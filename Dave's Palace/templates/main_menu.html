@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='assets/Capture_decran_2024-07-03_202119.png') }}" type="image/png">
+    <!-- Import Google Fonts Roboto -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sections/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>🎰Dave's palace🎰</title>
+</head>
+<body>
+    <h1 class="dave2">Bienvenue!!{{prenom}} a Dave's palace</h1>
+    <header>
+        <img class="header__jpz2"src="/static/css/sections/assets/jpz.png" alt="jpz">
+        <img class="header__casino2"src="/static/css/sections/assets/casino.png" alt="casino">
+
+
+    </header>
+    <h2 class="header__game">games:</h2>
+    <ul>
+        <a href="/dave_dice"><button class = "header__button2">🎲dice🎲</button></br>
+        <a href="/dave_machine"><button class = "header__button2">🎰cash_machine🎰</button></br>
+        <a href="/dave_roulette"><button class = "header__button2">🎡roulette🎡</button></br>
+        <a href="/dave_jack"><button class = "header__button2">🂡blackjack🂡</button></br>
+
+</body>
+</html>
