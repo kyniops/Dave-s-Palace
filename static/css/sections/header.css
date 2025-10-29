@@ -1,0 +1,211 @@
+.header__logo {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: -150px;
+  text-align: center;
+
+  background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
+  background-size: 25% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -moz-background-clip: text;
+
+  color: transparent;
+  font-weight: 700;
+  font-size: 75px;
+  font-family: 'Roboto', sans-serif;
+
+  cursor: default;
+}
+
+.header__menu {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px; 
+  margin-top: 40px;
+}
+
+.header__button {
+  padding: 9px 20px;
+  border-radius: 25px;
+  border: none;
+  outline: none;
+  background: #262626;
+  background-size: 120% 120%;
+  color: var(--secondary-color);
+  font-weight: 500;
+  font-size: 16px;
+  font-family: var(--open-sans, 'Roboto', sans-serif);
+  line-height: 23px;
+  cursor: pointer;
+  margin: 0; 
+}
+
+.header__button:hover {
+  background-color:var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.header__jpz{
+  position: relative;
+  top: 417px;
+  left: 1600px;
+  width: 300px;
+  height: 300px;
+}
+
+.header__casino{
+  position: relative;
+  top: 420px;
+  width: 500px;
+  height: 500px;
+  right: 300px;
+}
+
+.dave {
+  top: -350px;
+  position: relative;
+    background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
+    background-size: 10% 10%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -moz-background-clip: text;
+    color: transparent;
+    font-weight: 700;
+    font-size: 100px;
+    font-family: 'Roboto', sans-serif;
+    cursor: default;
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding: 10px 20px;
+}
+
+.info-label {
+  position: relative;
+  top: -350px;
+  background-color:rgb(255, 255, 255);
+  color: transparent;
+   background-clip: text;
+ font-size: 30px;
+  font-weight: 500;
+  font-family: 'Open Sans', sans-serif;
+  text-align: center;
+  padding: 10px 20px;
+  border-radius: 25px;
+  margin: 0 auto;
+  display: block;
+  width: fit-content;
+}
+
+.info{
+  left: 765px;
+  top: -350px;
+  position: relative;
+  padding: 9px 20px;
+  border-radius: 25px;
+  border: none;
+  outline: none;
+  background: #262626;
+  background-size: 120% 120%;
+  color: var(--secondary-color);
+  font-weight: 500;
+  font-size: 30px;
+  font-family: var(--open-sans, 'Roboto', sans-serif);
+  line-height: 23px;
+  cursor: pointer;
+  margin: 0; 
+}
+
+.send{
+  position: relative;
+  top: -250px;
+  left: 475px;
+  padding: 9px 20px;
+  border-radius: 25px;
+  border: none;
+  outline: none;
+  background: #262626;
+  background-size: 120% 120%;
+  color: var(--secondary-color);
+  font-weight: 500;
+  font-size: 30px;
+  font-family: var(--open-sans, 'Roboto', sans-serif);
+  line-height: 23px;
+  cursor: pointer;
+}
+
+.dave2 {
+  position: relative;
+  background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
+  background-size: 10% 10%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -moz-background-clip: text;
+  color: transparent;
+  font-size: 75px;
+  left: 550px;
+  top: 100px;
+}
+
+.header__button2 {
+  position: relative;
+
+  left : 850px;
+  bottom: 300px;
+ padding: 9px 20px;
+  border-radius: 25px;
+  border: none;
+  outline: none;
+  background: #262626;
+  background-size: 120% 120%;
+  color: #fff;
+  font-weight: 500;
+  font-size: 35px;
+  font-family: var(--open-sans, 'Roboto', sans-serif);
+  line-height: 23px;
+  cursor: pointer;
+  margin: 15px 0;
+
+
+}
+.header__button2:hover {
+  background-color:var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.header__jpz2{
+  position: relative;
+  top: 331px;
+  left: 1600px;
+  width: 300px;
+  height: 300px;
+}
+
+.header__casino2{
+  position: relative;
+  top: 334px;
+  width: 500px;
+  height: 500px;
+  right: 300px;
+}
+
+.header__game {
+  position: relative;
+  top: -350px;
+  color: white;
+  left: 850px;
+  background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
+  color: transparent;
+  background-size: 25% 10%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -moz-background-clip: text;
+  color: transparent;
+  font-size: 75px;
+}
