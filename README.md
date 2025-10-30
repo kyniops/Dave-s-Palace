@@ -1,83 +1,73 @@
-## Dave's Palace — Mini Casino en Flask
+🏰 Dave’s Palace
 
-Application web de type mini-casino développée avec Flask (Python). Elle propose plusieurs pages de jeux et des écrans d'inscription/connexion très simples basés sur un fichier JSON local.
+Bienvenue sur Dave’s Palace, un casino en ligne 100 % JavaScript où la chance (et un peu de code) décident de ton destin 🎲
+Amuse-toi avec cinq mini-jeux uniques créés de A à Z avec HTML, CSS et JavaScript !
 
-### Fonctionnalités
-- Page d’accueil et menu principal
-- Inscription et connexion avec stockage JSON (`user.json`)
-- Pages de jeux: dés, machine à sous, roulette, blackjack (vues HTML et styles)
+🎮 Les jeux disponibles
+Jeu	Description
+🎲 DaveDice	Lance les dés et mise sur le bon chiffre pour multiplier tes gains !
+♠️ DaveJack	Une version revisitée du blackjack, simple mais stratégique.
+🟢 PlinkoDave	Lâche une bille et regarde où elle atterrit… chance ou malchance ?
+🔴 DaveRoulette	Parie sur ton numéro porte-bonheur et espère que la roue te sourira.
+🎰 DaveMachine	Une machine à sous colorée et animée pour tester ta chance !
+🧱 Technologies utilisées
+Technologie	Rôle
+JavaScript (ES6)	Logique des jeux et interactions utilisateur
+HTML5	Structure et organisation du site
+CSS3	Design, animations et responsive
+(Optionnel) LocalStorage	Sauvegarde des scores ou crédits du joueur
+⚙️ Installation et exécution
+1️⃣ Cloner le dépôt
+git clone https://github.com/<ton-utilisateur-github>/daves-palace.git
+cd daves-palace
 
-### Prérequis
-- **Python 3.10+** (testé avec Python 3.12)
-- **pip** disponible dans votre terminal
+2️⃣ Ouvrir le projet
 
-### Installation
-1. Cloner le dépôt
-```bash
-git clone <URL_DU_DEPOT_GITHUB>
-cd Dave-s-Palace-main
-```
-2. (Optionnel) Créer un environnement virtuel
-```bash
-python -m venv .venv
-# Windows PowerShell
-. .venv/Scripts/Activate.ps1
-```
-3. Installer les dépendances minimales
-```bash
-python -m pip install --upgrade pip
-python -m pip install flask
-```
+Ouvre simplement le fichier index.html dans ton navigateur !
+Aucune installation serveur n’est nécessaire 🎉
 
-### Lancement
-Depuis Windows PowerShell, exécuter depuis le dossier contenant `app.py`:
-```bash
-cd "Dave-s-Palace-main/Dave's Palace"
-python app.py
-```
-Ouvrir ensuite le navigateur à l’adresse: `http://127.0.0.1:5000/`.
-
-Arrêt du serveur: `Ctrl + C` dans le terminal.
-
-### Structure du projet
-```
-Dave-s-Palace-main/
-├── Dave's Palace/
-│   ├── app.py
-│   ├── user.json
-│   ├── templates/
-│   │   ├── index.html
-│   │   ├── inscription.html
-│   │   ├── connexion.html
-│   │   ├── main_menu.html
-│   │   ├── dave_dice.html
-│   │   ├── dave_machine.html
-│   │   └── dave_roulette.html
-│   └── static/
-│       ├── global.css
-│       ├── style.css
-│       └── css/sections/
-│           ├── header.css
-│           ├── dave_dice.css
-│           └── inscription.css
+📁 Structure du projet
+daves-palace/
+│
+├── index.html           # Page d’accueil
+├── /games               # Dossiers des jeux individuels
+│   ├── davedice.html
+│   ├── davejack.html
+│   ├── plinkodave.html
+│   ├── daveroulette.html
+│   └── davemachine.html
+│
+├── /js                  # Fichiers JavaScript
+│   ├── main.js
+│   ├── davedice.js
+│   ├── davejack.js
+│   ├── plinkodave.js
+│   ├── daveroulette.js
+│   └── davemachine.js
+│
+├── /css                 # Styles CSS
+│   ├── style.css
+│   └── games.css
+│
+├── /assets              # Images, sons, icônes…
 └── README.md
-```
 
-### Routes principales (dans `app.py`)
-- `/` → page d’accueil (`index.html`)
-- `/inscription` → inscription (GET/POST) avec stockage dans `user.json`
-- `/connexion` → connexion (GET/POST) redirige vers `main_menu.html` si succès
-- `/dave_dice`, `/dave_machine`, `/dave_roulette`, `/dave_jack` → pages de jeux
+🧠 Fonctionnalités
 
-### Notes de développement
-- Les données utilisateur sont stockées en clair dans `user.json` (pour la démonstration). Ne pas utiliser en production tel quel.
-- Le serveur est lancé en mode `debug=True` pour faciliter le développement.
+Interface fluide et animée 🎨
 
-### Dépannage
-- Erreur « Import \"flask\" could not be resolved »:
-  - Installer Flask: `python -m pip install flask`
-  - Vérifier l’import: `python -c "import flask; import importlib.metadata as m; print(m.version('flask'))"`
-  - Vérifier que vous utilisez le bon interpréteur Python dans votre IDE.
+Système de points/credits en localStorage 💰
 
-### Licence
-Indiquez ici la licence si nécessaire (MIT, Apache-2.0, etc.).
+Page d’accueil pour choisir son jeu 🕹️
+
+Transitions entre jeux et retour au lobby 🔁
+
+Effets sonores (optionnels) pour plus d’immersion 🔊
+
+👤 Auteur
+
+Dave
+💻 Créateur de Dave’s Palace
+📫 Contact : [ton.email@example.com
+]
+🌐 GitHub : https://github.com/<ton-utilisateur-github>
