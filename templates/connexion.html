@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../static/assets/Capture_decran_2024-07-03_202119.png" type="image/png">
+    <!-- Import Google Fonts Roboto -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../static/global.css">
+    <link rel="stylesheet" href="../static/css/sections/header.css">
+    <link rel="stylesheet" href="../static/style.css">
+
+
+    <title>🎰Dave's palace🎰</title>
+</head>
+<body>
+     <header>
+        <img class="header__jpz" src="../static/css/sections/assets/jpz.png" alt="casino logo"></img>
+        <img class="header__casino" src="../static/css/sections/assets/casino.png" alt="">
+            <h1 class="dave">Dave's palace</h1>
+     </header>
+    <form id="form-connexion">
+        <h1 class="info-label"> Connexion à Dave's palace</h1>
+        <label class="info-label" for="prénom">Nom d'utilisateur:</label>
+        <input class="info" name="prénom" id="prénom">
+        <label class="info-label" for="motdepasse">Mot de passe:</label>
+        <input class="info" type="password" name="motdepasse" id="motdepasse">
+        <button class="send">Envoyer</button>
+    </form>
+    <script>
+    (function(){
+        const form = document.getElementById('form-connexion');
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            const prenom = document.getElementById('prénom').value.trim();
+            const motdepasse = document.getElementById('motdepasse').value;
+            const utilisateurs = JSON.parse(localStorage.getItem('utilisateurs') || '[]');
+            const ok = utilisateurs.some(u => u.prénom === prenom && u.motdepasse === motdepasse);
+            if(ok){
+                localStorage.setItem('utilisateurCourant', prenom);
+                window.location.href = 'main_menu.html';
+            } else {
+                alert('Identifiants invalides.');
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
