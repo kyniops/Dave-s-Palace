@@ -10,7 +10,15 @@
     <link rel="stylesheet" href="../static/css/sections/header.css">
     <link rel="stylesheet" href="../static/style.css">
     <title>🎰Dave's palace🎰</title>
+
+    <style>
+        html, body { overflow: hidden; }
+        .header__jpz { position: fixed; right: 16px; bottom: 16px; z-index: 1000; }
+    </style>
+
 </head>
+
+
 <body>
     <h1 class="dave2">Bienvenue!! <span id="prenom"></span> à Dave's palace</h1>
     <header>
@@ -21,11 +29,11 @@
     </header>
     <h2 class="header__game">games:</h2>
     <ul>
-        <a href="dave_dice.html"><button class = "header__button2">🎲dice🎲</button></a><br>
-        <a href="dave_machine.html"><button class = "header__button2">🎰cash_machine🎰</button></a><br>
-        <a href="dave_roulette.html"><button class = "header__button2">🎡roulette🎡</button></a><br>
-        <a href="dave_jack.html"><button class = "header__button2">🂡blackjack🂡</button></a><br>
-        <a href="plinkodave.html"><button class = "header__button2">🂡plinkodave🂡</button></a><br>
+        <a href="dave_dice.html"><button class = "header__button2">🎲DaveDice🎲</button></a><br>
+        <a href="dave_machine.html"><button class = "header__button2">🎰DaveMachine🎰</button></a><br>
+        <a href="dave_roulette.html"><button class = "header__button2">🎡DaveRoulette🎡</button></a><br>
+        <a href="dave_jack.html"><button class = "header__button2">🂡DaveJack🂡</button></a><br>
+        <a href="plinkodave.html"><button class = "header__button2">💥PlinkoDave💥</button></a><br>
     <script>
     (function(){
         const prenom = localStorage.getItem('utilisateurCourant') || '';
