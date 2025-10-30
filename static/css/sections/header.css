@@ -1,3 +1,23 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  background-color: #000000;
+  color: white;
+  overflow: hidden;
+}
+
+header {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
 .header__logo {
   display: block;
   margin-left: auto;
@@ -6,7 +26,7 @@
   text-align: center;
 
   background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
-  background-size: 25% 100%;
+  background-size: 100% 100%;
   background-clip: text;
   -webkit-background-clip: text;
   -moz-background-clip: text;
@@ -21,74 +41,48 @@
 
 .header__menu {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 30px; 
-  margin-top: 40px;
+  gap: 20px;
 }
 
 .header__button {
-  padding: 9px 20px;
+  padding: 10px 20px;
   border-radius: 25px;
   border: none;
   outline: none;
-  background: #262626;
+  background: #201e1e;
   background-size: 120% 120%;
-  color: var(--secondary-color);
+  color: beige;
   font-weight: 500;
   font-size: 16px;
   font-family: var(--open-sans, 'Roboto', sans-serif);
-  line-height: 23px;
+  line-height: 30px;
   cursor: pointer;
   margin: 0; 
 }
 
 .header__button:hover {
-  background-color:var(--secondary-color);
-  color: var(--primary-color);
+  background-color: rgb(29, 27, 27);
+  transform: scale(1.05);
 }
 
-.header__jpz{
-  position: relative;
-  top: 550px;
-  left: 1600px;
-  width: 300px;
-  height: 300px;
+/* Images en bas à gauche et à droite */
+.header__jpz {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 250px;
 }
 
-.header__casino{
-  position: relative;
-  top: 420px;
-  width: 500px;
-  height: 500px;
-  right: 300px;
-}
-
-.dave {
-  top: -350px;
-  position: relative;
-    background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
-    background-size: 10% 10%;
-    background-clip: text;
-    -webkit-background-clip: text;
-    -moz-background-clip: text;
-    color: transparent;
-    font-weight: 700;
-    font-size: 100px;
-    font-family: 'Roboto', sans-serif;
-    cursor: default;
-    text-align: center;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    margin-left: auto;
-    margin-right: auto;
-    width: 100%;
-    padding: 10px 20px;
+.header__casino {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  width: 400px;
 }
 
 .info-label {
   position: relative;
-  top: -350px;
+  top: -500px;
   background-color:rgb(255, 255, 255);
   color: transparent;
    background-clip: text;
@@ -105,7 +99,7 @@
 
 .info{
   left: 765px;
-  top: -350px;
+  top: -500px;
   position: relative;
   padding: 9px 20px;
   border-radius: 25px;
@@ -123,9 +117,9 @@
 }
 
 .send{
+  left: 500px;
+  top: -400px;
   position: relative;
-  top: -250px;
-  left: 475px;
   padding: 9px 20px;
   border-radius: 25px;
   border: none;
@@ -138,74 +132,6 @@
   font-family: var(--open-sans, 'Roboto', sans-serif);
   line-height: 23px;
   cursor: pointer;
+  margin: 0; 
 }
 
-.dave2 {
-  position: relative;
-  background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
-  background-size: 30% 10%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -moz-background-clip: text;
-  color: transparent;
-  font-size: 75px;
-  left: 550px;
-  top: 100px;
-}
-
-.header__button2 {
-  position: relative;
-
-  left : 850px;
-  bottom: 300px;
- padding: 9px 20px;
-  border-radius: 25px;
-  border: none;
-  outline: none;
-  background: #262626;
-  background-size: 120% 120%;
-  color: #fff;
-  font-weight: 500;
-  font-size: 35px;
-  font-family: var(--open-sans, 'Roboto', sans-serif);
-  line-height: 23px;
-  cursor: pointer;
-  margin: 15px 0;
-
-
-}
-.header__button2:hover {
-  background-color:var(--secondary-color);
-  color: var(--primary-color);
-}
-
-.header__jpz2{
-  position: relative;
-  top: 331px;
-  left: 1600px;
-  width: 300px;
-  height: 300px;
-}
-
-.header__casino2{
-  position: relative;
-  top: 334px;
-  width: 500px;
-  height: 500px;
-  right: 300px;
-}
-
-.header__game {
-  position: relative;
-  top: -350px;
-  color: white;
-  left: 850px;
-  background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
-  color: transparent;
-  background-size: 25% 10%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -moz-background-clip: text;
-  color: transparent;
-  font-size: 75px;
-}
