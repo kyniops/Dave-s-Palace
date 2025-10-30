@@ -1,6 +1,6 @@
-# 🎰 **Dave’s Palace** 🏰  
+# 🎰 **Dave’s Palace** 🏰  dave
 ### *Le casino en ligne où la chance rencontre le style.*
-
+dave
 ![Dave’s Palace Banner](https://img.shields.io/badge/Dave's%20Palace-%F0%9F%8F%B0-blueviolet?style=for-the-badge)
 ![HTML5](https://img.shields.io/badge/HTML5-orange?logo=html5&style=for-the-badge)
 ![CSS3](https://img.shields.io/badge/CSS3-blue?logo=css3&style=for-the-badge)
