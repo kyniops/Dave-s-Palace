@@ -3,20 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../static/css/sections/dave_dice.css">
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="../static/css/plinko_dave.css">
     <title>PlinkoDave</title>
-
 </head>
 <body>
-    <header>
-        <h1 class="title" >PlinkoDave</h1>
-        <p class="stitle">Bienvenue au PlinkoDave!</p>
-            <form id="form-dice">
-            </form>
-    </header>
-    <script>
-    </script>
+    <!-- Compteur DaveCoin en haut à droite -->
+    <div class="davecoin-header" id="davecoinHeader"></div>
+    
+    <div class="main-container">
+        <header>
+            <h1 class="title">PlinkoDave</h1>
+        </header>
+        
+        <div class="game-area">
+            <canvas id="plinkoCanvas"></canvas>
+            <div class="multipliers" id="multipliers"></div>
+        </div>
+        
+        <div class="controls">
+            </div>
+            <button id="dropBtn" class="drop-button">Lancer une balle</button>
+            <div class="stats">
+                <p>Multiplicateur: <span id="multiplier">-</span> | Gain: <span id="winAmount">-</span> DaveCoin</p>
+            </div>
+        </div>
+    </div>
 
+    <script src="../static/js/davecoin.js"></script>
+    <script src="../static/js/plinko_dave.js"></script>
 </body>
 </html>
