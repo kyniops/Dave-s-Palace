@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../static/assets/Capture_decran_2024-07-03_202119.png" type="image/png">
+    <!-- Import Google Fonts Roboto -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../static/global.css">
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="../static/css/main_menu.css">
+    <title>🎰Dave's palace🎰</title>
+</head>
+
+<body class="main-menu">
+    <div class="background-overlay"></div>
+    
+    <header>
+        <img class="header__jpz2" src="../static/css/sections/assets/jpz.png" alt="jpz">
+        <img class="header__casino2" src="../static/css/sections/assets/casino.png" alt="casino">
+    </header>
+
+    <main class="main-content">
+        <h1 class="dave2">Bienvenue <span id="prenom"></span> à Dave's Palace</h1>
+        <h2 class="header__game">Games</h2>
+        
+        <div class="game-menu">
+            <a href="dave_dice.html">
+                <button class="header__button2">🎲 DaveDice 🎲</button>
+            </a>
+            <a href="dave_machine.html">
+                <button class="header__button2">🎰 DaveMachine 🎰</button>
+            </a>
+            <a href="dave_roulette.html">
+                <button class="header__button2">🎡 DaveRoulette 🎡</button>
+            </a>
+            <a href="dave_jack.html">
+                <button class="header__button2">🂡 DaveJack 🂡</button>
+            </a>
+            <a href="plinko_dave.html">
+                <button class="header__button2">💥 PlinkoDave 💥</button>
+            </a>
+        </div>
+    </main>
+
+    <script src="../static/js/davecoin.js"></script>
+    <script>
+        (function(){
+            const prenom = localStorage.getItem('utilisateurCourant') || '';
+            document.getElementById('prenom').textContent = prenom;
+        })();
+    </script>
+</body>
+</html>
