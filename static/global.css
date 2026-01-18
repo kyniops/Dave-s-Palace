@@ -1,0 +1,33 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0 auto;
+    background-color: var(--primary-color);
+    overflow-x: hidden;
+}
+
+/* Davecoin header (top-right) */
+.davecoin-header {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffd700;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px);
+}
+.davecoin-header .dc-amount {
+  margin-right: 6px;
+}
+.davecoin-header .dc-label {
+  opacity: 0.9;
+}
+
