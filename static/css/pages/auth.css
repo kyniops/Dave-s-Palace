@@ -52,13 +52,15 @@
 }
 
 .auth-header .header__jpz {
-    top: 20px;
+    position: fixed;
+    bottom: 20px;
     right: 20px;
     width: 150px;
 }
 
 .auth-header .header__casino {
-    top: 20px;
+    position: fixed;
+    bottom: 20px;
     left: 20px;
     width: 200px;
 }

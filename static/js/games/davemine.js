@@ -10,7 +10,7 @@ function initGrid() {
     grid.innerHTML = '';
     for (let i = 0; i < 25; i++) {
         const tile = document.createElement('div');
-        tile.className = 'tile disabled';
+        tile.className = 'tile';
         tile.dataset.index = i;
         tile.onclick = () => revealTile(i);
         grid.appendChild(tile);
@@ -19,15 +19,18 @@ function initGrid() {
 
 // Calculer les gemmes
 function updateGems() {
-    const mines = parseInt(document.getElementById('minesCount').value);
+    const minesEl = document.getElementById('minesCount');
+    const gemsEl = document.getElementById('gemsCount');
+    if (!minesEl || !gemsEl) return;
+    const mines = parseInt(minesEl.value);
     const gems = 25 - mines;
-    document.getElementById('gemsCount').textContent = gems;
+    gemsEl.textContent = gems;
 }
 
 // Mettre à jour le montant du pari
 function updateBetDisplay() {
     const amount = parseFloat(document.getElementById('betAmount').value) || 0;
-    document.getElementById('betUSD').textContent = '0,00 $US';
+    document.getElementById('betUSD').textContent = '0,00 $DAVE';
 }
 
 // Demi pari
@@ -48,17 +51,15 @@ function doubleBet() {
 
 // Calculer le multiplicateur
 function calculateMultiplier(revealed, totalMines) {
-    const totalGems = 25 - totalMines;
+    const totalTiles = 25;
     if (revealed === 0) return 1.0;
-    
     let multiplier = 1.0;
     for (let i = 0; i < revealed; i++) {
-        const gemsLeft = totalGems - i;
-        const tilesLeft = 25 - totalMines - i;
-        multiplier *= (25 - i) / gemsLeft;
+        const safeLeft = totalTiles - totalMines - i;
+        const tilesLeft = totalTiles - i;
+        multiplier *= tilesLeft / safeLeft;
     }
-    
-    return multiplier * 0.97; // House edge
+    return multiplier * 0.98;
 }
 
 // Commencer le jeu
@@ -160,7 +161,7 @@ function gameOver(won) {
     const tiles = document.querySelectorAll('.tile');
     tiles.forEach((tile, index) => {
         if (!tile.classList.contains('revealed')) {
-            tile.classList.add('revealed', 'disabled');
+            tile.classList.add('revealed');
             if (minePositions.includes(index)) {
                 tile.classList.add('mine');
                 tile.textContent = '💣';
@@ -200,12 +201,23 @@ function updateProfit() {
     const profit = currentBet * (currentMultiplier - 1);
     document.getElementById('profitAmount').textContent = profit.toFixed(8);
     document.getElementById('multiplier').textContent = currentMultiplier.toFixed(2);
-    document.getElementById('profitUSD').textContent = '0,00 $US';
+    document.getElementById('profitUSD').textContent = '0,00 $DAVE';
+    
 }
 
 // Événements
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('minesCount').addEventListener('change', updateGems);
+    const minesEl = document.getElementById('minesCount');
+    if (minesEl) {
+        minesEl.addEventListener('change', function() {
+            updateGems();
+            if (!gameActive) {
+                currentMultiplier = 1.0;
+                revealedTiles = 0;
+                updateProfit();
+            }
+        });
+    }
     document.getElementById('betAmount').addEventListener('input', updateBetDisplay);
 
     // Initialisation

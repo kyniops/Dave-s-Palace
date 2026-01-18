@@ -3,102 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="../static/assets/Capture_decran_2024-07-03_202119.png" type="image/png">
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <title>Roulette - Davecoin Casino</title>
     <link rel="stylesheet" href="../static/global.css">
     <link rel="stylesheet" href="../static/style.css">
     <link rel="stylesheet" href="../static/css/games/dave_roulette.css">
-    <title>🎡 DaveRoulette 🎡</title>
 </head>
-<body class="dave-roulette-page">
-    <div class="background-overlay"></div>
-    
-    <header class="roulette-header">
-        <div class="header__logo">Dave's Palace</div>
-        <h1 class="roulette-title">🎡 DaveRoulette 🎡</h1>
-        <div class="header__menu">
-            <a href="main_menu.html">
-                <button class="header__button">Retour</button>
-            </a>
-        </div>
-        <img class="header__jpz" src="../static/css/sections/assets/jpz.png" alt="jpz logo">
-        <img class="header__casino" src="../static/css/sections/assets/casino.png" alt="casino logo">
-    </header>
+<body>
+    <div class="davecoin-header"><span class="dc-amount"></span><span class="dc-label"> Davecoins</span></div>
+    <div class="container">
+        <!-- Panel de gauche -->
+        <div class="left-panel">
+            <div class="mode-selector">
+                <button class="mode-btn active" data-mode="manual">Manual</button>
+                <button class="mode-btn" data-mode="auto">Auto</button>
+            </div>
 
-    <main class="roulette-main">
-        <div class="roulette-container">
-            <div class="roulette-wheel" id="rouletteWheel">
-                <div class="wheel-numbers">
-                    <div class="number green">0</div>
-                    <div class="number red">32</div>
-                    <div class="number black">15</div>
-                    <div class="number red">19</div>
-                    <div class="number black">4</div>
-                    <div class="number red">21</div>
-                    <div class="number black">2</div>
-                    <div class="number red">25</div>
-                    <div class="number black">17</div>
-                    <div class="number red">34</div>
-                    <div class="number black">6</div>
-                    <div class="number red">27</div>
-                    <div class="number black">13</div>
-                    <div class="number red">36</div>
-                    <div class="number black">11</div>
-                    <div class="number red">30</div>
-                    <div class="number black">8</div>
-                    <div class="number red">23</div>
-                    <div class="number black">10</div>
-                    <div class="number red">5</div>
-                    <div class="number black">24</div>
-                    <div class="number red">16</div>
-                    <div class="number black">33</div>
-                    <div class="number red">1</div>
-                    <div class="number black">20</div>
-                    <div class="number red">14</div>
-                    <div class="number black">31</div>
-                    <div class="number red">9</div>
-                    <div class="number black">22</div>
-                    <div class="number red">18</div>
-                    <div class="number black">29</div>
-                    <div class="number red">7</div>
-                    <div class="number black">28</div>
-                    <div class="number red">12</div>
-                    <div class="number black">35</div>
-                    <div class="number red">3</div>
-                    <div class="number black">26</div>
+            <div class="chip-selector">
+                <div class="chip-label">Chip Value <span class="davecoin-icon">D</span></div>
+                <div class="chips-container">
+                    <button class="chip" data-value="1">1</button>
+                    <button class="chip" data-value="5">5</button>
+                    <button class="chip active" data-value="10">10</button>
+                    <button class="chip" data-value="25">25</button>
+                    <button class="chip" data-value="100">100</button>
                 </div>
-                <div class="wheel-center"></div>
-                <div class="wheel-pointer"></div>
             </div>
-            
-            <div class="betting-area">
-                <div class="bet-controls">
-                    <label for="betAmount">Mise:</label>
-                    <input type="number" id="betAmount" min="10" max="1000" value="100" step="10">
-                    <span>DaveCoins</span>
+
+            <div class="total-amount">
+                <div class="amount-label">Total Amount</div>
+                <div class="amount-display">
+                    <span class="amount-value">0.00</span>
+                    <span class="davecoin-icon">D</span>
+                    <div class="quick-actions">
+                        <button class="quick-btn" data-action="half">½</button>
+                        <button class="quick-btn" data-action="double">2×</button>
+                    </div>
                 </div>
-                
-                <div class="bet-options">
-                    <button class="bet-btn" data-bet="red">🔴 Rouge (x2)</button>
-                    <button class="bet-btn" data-bet="black">⚫ Noir (x2)</button>
-                    <button class="bet-btn" data-bet="even">Pair (x2)</button>
-                    <button class="bet-btn" data-bet="odd">Impair (x2)</button>
-                </div>
-                
-                <div class="number-bet">
-                    <label for="numberBet">Numéro (x36):</label>
-                    <input type="number" id="numberBet" min="0" max="36" placeholder="0-36">
-                </div>
-                
-                <button id="spinButton" class="spin-btn">🎡 LANCER LA ROULETTE</button>
+            </div>
+
+            <button class="play-btn" id="spinBtn">Play</button>
+
+            <div class="history">
+                <div class="history-label">History</div>
+                <div class="history-items" id="historyContainer"></div>
             </div>
         </div>
-        
-        <div class="result-area" id="resultArea">
-            <div class="result-number" id="resultNumber"></div>
-            <div class="result-message" id="resultMessage"></div>
+
+        <!-- Zone centrale de la roulette -->
+        <div class="main-area">
+            <div class="wheel-container">
+                <canvas id="wheelCanvas" width="280" height="280"></canvas>
+                <div class="wheel-center">
+                    <div class="ball" id="ball"></div>
+                </div>
+                <div class="result-display" id="resultDisplay"></div>
+            </div>
+
+            <!-- Table de paris -->
+            <div class="betting-table">
+                <div class="numbers-grid">
+                    <div class="zero-cell bet-cell" data-bet="0" data-type="straight">0</div>
+                    
+                    <div class="numbers-rows">
+                        <div class="number-row">
+                            <div class="bet-cell red" data-bet="3" data-type="straight">3</div>
+                            <div class="bet-cell black" data-bet="6" data-type="straight">6</div>
+                            <div class="bet-cell red" data-bet="9" data-type="straight">9</div>
+                            <div class="bet-cell red" data-bet="12" data-type="straight">12</div>
+                            <div class="bet-cell black" data-bet="15" data-type="straight">15</div>
+                            <div class="bet-cell red" data-bet="18" data-type="straight">18</div>
+                            <div class="bet-cell red" data-bet="21" data-type="straight">21</div>
+                            <div class="bet-cell black" data-bet="24" data-type="straight">24</div>
+                            <div class="bet-cell red" data-bet="27" data-type="straight">27</div>
+                            <div class="bet-cell red" data-bet="30" data-type="straight">30</div>
+                            <div class="bet-cell black" data-bet="33" data-type="straight">33</div>
+                            <div class="bet-cell red" data-bet="36" data-type="straight">36</div>
+                            <div class="bet-cell column" data-bet="column3" data-type="column">2:1</div>
+                        </div>
+                        <div class="number-row">
+                            <div class="bet-cell black" data-bet="2" data-type="straight">2</div>
+                            <div class="bet-cell red" data-bet="5" data-type="straight">5</div>
+                            <div class="bet-cell black" data-bet="8" data-type="straight">8</div>
+                            <div class="bet-cell black" data-bet="11" data-type="straight">11</div>
+                            <div class="bet-cell red" data-bet="14" data-type="straight">14</div>
+                            <div class="bet-cell black" data-bet="17" data-type="straight">17</div>
+                            <div class="bet-cell black" data-bet="20" data-type="straight">20</div>
+                            <div class="bet-cell red" data-bet="23" data-type="straight">23</div>
+                            <div class="bet-cell black" data-bet="26" data-type="straight">26</div>
+                            <div class="bet-cell black" data-bet="29" data-type="straight">29</div>
+                            <div class="bet-cell red" data-bet="32" data-type="straight">32</div>
+                            <div class="bet-cell black" data-bet="35" data-type="straight">35</div>
+                            <div class="bet-cell column" data-bet="column2" data-type="column">2:1</div>
+                        </div>
+                        <div class="number-row">
+                            <div class="bet-cell red" data-bet="1" data-type="straight">1</div>
+                            <div class="bet-cell black" data-bet="4" data-type="straight">4</div>
+                            <div class="bet-cell red" data-bet="7" data-type="straight">7</div>
+                            <div class="bet-cell black" data-bet="10" data-type="straight">10</div>
+                            <div class="bet-cell black" data-bet="13" data-type="straight">13</div>
+                            <div class="bet-cell red" data-bet="16" data-type="straight">16</div>
+                            <div class="bet-cell red" data-bet="19" data-type="straight">19</div>
+                            <div class="bet-cell black" data-bet="22" data-type="straight">22</div>
+                            <div class="bet-cell red" data-bet="25" data-type="straight">25</div>
+                            <div class="bet-cell black" data-bet="28" data-type="straight">28</div>
+                            <div class="bet-cell black" data-bet="31" data-type="straight">31</div>
+                            <div class="bet-cell red" data-bet="34" data-type="straight">34</div>
+                            <div class="bet-cell column" data-bet="column1" data-type="column">2:1</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="outside-bets">
+                    <div class="bet-cell outside" data-bet="1-12" data-type="dozen">1 to 12</div>
+                    <div class="bet-cell outside" data-bet="13-24" data-type="dozen">13 to 24</div>
+                    <div class="bet-cell outside" data-bet="25-36" data-type="dozen">25 to 36</div>
+                </div>
+
+                <div class="outside-bets">
+                    <div class="bet-cell outside" data-bet="1-18" data-type="outside">1 to 18</div>
+                    <div class="bet-cell outside" data-bet="even" data-type="outside">Even</div>
+                    <div class="bet-cell outside red" data-bet="red" data-type="outside">Red</div>
+                    <div class="bet-cell outside black" data-bet="black" data-type="outside">Black</div>
+                    <div class="bet-cell outside" data-bet="odd" data-type="outside">Odd</div>
+                    <div class="bet-cell outside" data-bet="19-36" data-type="outside">19 to 36</div>
+                </div>
+            </div>
+
+            <div class="table-actions">
+                <button class="action-btn" id="undoBtn">
+                    <span>↶</span> Undo
+                </button>
+                <button class="action-btn" id="clearBtn">
+                    Clear <span>↻</span>
+                </button>
+            </div>
+
+            <div class="bottom-bets">
+                <button class="bottom-bet red" id="bottomRed">Rouge</button>
+                <button class="bottom-bet black" id="bottomBlack">Noir</button>
+            </div>
         </div>
-    </main>
+    </div>
 
     <script src="../static/js/common/davecoin.js"></script>
     <script src="../static/js/games/dave_roulette.js"></script>

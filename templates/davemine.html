@@ -3,25 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mines - Stake</title>
+    <title>DaveMines </title>
     <link rel="stylesheet" href="../static/css/games/davemine.css">
 </head>
 <body>
     <div class="container">
         <div class="controls-panel">
-            <div class="mode-toggle">
-                <button class="mode-btn active">Manuel</button>
-                <button class="mode-btn">Auto</button>
-            </div>
-
             <div class="input-group">
                 <div class="input-label">
                     <span>Montant du Pari</span>
-                    <span id="betUSD">0,00 $US</span>
+                    <span id="betUSD">0,00 $DAVE</span>
                 </div>
                 <div class="input-wrapper">
                     <input type="number" class="input-field" id="betAmount" value="0" step="0.00000001" min="0">
-                    <div class="input-icon">₿</div>
+                    <div class="input-icon"><img src="../static/css/sections/assets/davecoin2.png" alt="Davecoin" class="icon-img"></div>
                 </div>
                 <div class="bet-buttons">
                     <button class="bet-btn" onclick="halfBet()">½</button>
@@ -45,13 +40,6 @@
                 </select>
             </div>
 
-            <div class="input-group">
-                <div class="input-label">
-                    <span>Gemmes</span>
-                </div>
-                <div class="gems-display" id="gemsCount">22</div>
-            </div>
-
             <button class="play-btn" id="playBtn" onclick="startGame()">Pari</button>
 
             <div class="random-selection" onclick="selectRandom()">Sélection aléatoire</div>
@@ -59,11 +47,11 @@
             <div class="profit-display">
                 <div class="input-label">
                     <span>Profit total (<span id="multiplier">1,00</span>×)</span>
-                    <span id="profitUSD">0,00 $US</span>
+                    <span id="profitUSD">0,00 $DAVE</span>
                 </div>
                 <div class="profit-value">
                     <span id="profitAmount">0.00000000</span>
-                    <div class="input-icon">₿</div>
+                    <div class="input-icon"><img src="../static/css/sections/assets/davecoin2.png" alt="Davecoin" class="icon-img"></div>
                 </div>
             </div>
         </div>
@@ -73,7 +61,7 @@
         </div>
     </div>
 
-    <div class="watermark">Stake</div>
+    <div class="watermark">Dave's Palace</div>
 
     <script src="../static/js/common/davecoin.js"></script>
     <script src="../static/js/games/davemine.js"></script>

@@ -5,9 +5,9 @@
     padding: 0;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     font-family: 'Roboto', sans-serif;
-    min-height: 100vh;
+    height: 100vh;
     color: #ffffff;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .dice-page::before {
@@ -31,7 +31,7 @@
 
 .dice-header {
     text-align: center;
-    padding: 2rem 1rem 1rem;
+    padding: 1rem 1rem 0.5rem;
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -65,7 +65,7 @@
 /* Game Container */
 .dice-container {
     max-width: 1200px;
-    margin: 2rem auto;
+    margin: 1rem auto;
     padding: 0 1rem;
 }
 
@@ -134,7 +134,7 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
     max-width: 600px;
-    margin: 0 auto 2rem;
+    margin: 0 auto 1rem;
 }
 
 .game-case {
@@ -195,7 +195,7 @@
 /* Dice Rolling Section */
 .dice-section {
     text-align: center;
-    margin: 2rem 0;
+    margin: 1rem 0;
 }
 
 .roll-button {
@@ -230,13 +230,13 @@
     display: flex;
     justify-content: center;
     gap: 1rem;
-    margin: 2rem 0;
+    margin: 1rem 0;
     min-height: 100px;
 }
 
 .dice {
-    width: 100px;
-    height: 100px;
+    width: 90px;
+    height: 90px;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 20px;
     display: flex;
@@ -253,8 +253,8 @@
 }
 
 .dice img {
-    width: 70px;
-    height: 70px;
+    width: 60px;
+    height: 60px;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
     transition: all 0.3s ease;
@@ -273,7 +273,7 @@
 /* Result Display */
 .result-display {
     text-align: center;
-    margin: 2rem 0;
+    margin: 1rem 0;
     padding: 1.5rem;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(15px);

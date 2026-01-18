@@ -96,8 +96,8 @@ class DaveDiceGame {
         }
         
         const resultDisplay = document.createElement('div');
-        resultDisplay.className = 'result-display';
-        resultDisplay.innerHTML = '<p class="result-text">Sélectionnez une case et une mise pour commencer</p>';
+        
+        
         
         diceSection.appendChild(rollButton);
         diceSection.appendChild(diceDisplay);
