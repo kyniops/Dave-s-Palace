@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../static/assets/Capture_decran_2024-07-03_202119.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../static/global.css">
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="../static/css/auth.css">
+    <title>🎰Dave's palace🎰</title>
+</head>
+<body class="auth-page">
+    <div class="background-overlay"></div>
+    
+    <header class="auth-header">
+        <img class="header__jpz" src="../static/css/sections/assets/jpz.png" alt="casino logo">
+        <img class="header__casino" src="../static/css/sections/assets/casino.png" alt="casino logo">
+    </header>
+    
+    <form id="form-connexion" class="auth-form">
+        <h1 class="info-label">Connexion à Dave's Palace</h1>
+        <label class="info-label" for="prenom">Nom d'utilisateur:</label>
+        <input class="info" id="prenom" placeholder="Entrez votre nom d'utilisateur" required>
+        <label class="info-label" for="motdepasse">Mot de passe:</label>
+        <input class="info" type="password" id="motdepasse" placeholder="Entrez votre mot de passe" required>
+        <button class="send" type="submit">Se connecter</button>
+        <p style="text-align: center; margin-top: 20px;">
+            <a href="inscription.html">Pas de compte ? S'inscrire</a>
+        </p>
+    </form>
+    <script src="../static/js/davecoin.js"></script>
+    <script src="../static/auth.js"></script>
+</body>
+</html>

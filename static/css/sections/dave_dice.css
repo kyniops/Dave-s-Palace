@@ -1,0 +1,59 @@
+.title{
+    position: relative;
+    color: white;
+    background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
+    color: transparent;
+    background-size: 30% 10%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -moz-background-clip: text;
+    color: transparent;
+    font-size: 75px;
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    left: 650px;
+    top : 100px;
+}
+
+.stitle{
+    position: relative;
+    color: white;
+    background: linear-gradient(to left,#ff8628,#F60B9A,#283ca6,#102243);
+    color: transparent;
+    background-size: 28% 10%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -moz-background-clip: text;
+    color: transparent;
+    font-size: 20px;
+    left: 607px;
+    top: 100px;
+    
+}
+
+.send{
+left: 675px;
+  top: 150px;
+  position: relative;
+  padding: 9px 20px;
+  border-radius: 25px;
+  border: none;
+  outline: none;
+  background: #262626;
+  background-size: 120% 120%;
+  color: var(--secondary-color);
+  font-weight: 500;
+  font-size: 20px;
+  font-family: var(--open-sans, 'Roboto', sans-serif);
+  line-height: 23px;
+  cursor: pointer;
+  margin: 0; 
+}
+
+.send_label{
+    position: relative;
+    left: 675px;
+    top: 150px;
+    color: white;
+    font-size: 25px;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
