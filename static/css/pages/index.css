@@ -1,7 +1,7 @@
 /* Index Page Styles */
 .index-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+    background: #1a2c38;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -10,7 +10,7 @@
     overflow: hidden;
     margin: 0;
     padding: 0;
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* Background overlay for particles */
@@ -76,52 +76,27 @@
 
 /* Menu buttons */
 .header__button {
-    padding: 1.2rem 2.5rem;
-    border: none;
-    border-radius: 50px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: #fff;
-    font-size: 1.2rem;
-    font-weight: 600;
-    font-family: 'Roboto', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    padding: 12px 20px;
+    border: 2px solid #2f4553;
+    border-radius: 8px;
+    background: #213743;
+    color: #b1bad3;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 
-        0 10px 30px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
     min-width: 180px;
 }
 
-.header__button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transition: left 0.5s;
-}
-
-.header__button:hover::before {
-    left: 100%;
-}
-
 .header__button:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 
-        0 20px 40px rgba(255, 134, 40, 0.3),
-        0 0 20px rgba(246, 11, 154, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: #2f4553;
+    color: #fff;
+    border-color: #3d5664;
 }
 
 .header__button:active {
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(0);
 }
 
 /* Decorative images */

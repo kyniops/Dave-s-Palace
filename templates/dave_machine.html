@@ -3,21 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../static/css/games/dave_dice.css">
+    <link rel="stylesheet" href="../static/global.css">
     <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="../static/css/games/dave_machine.css">
     <title>DaveMachine</title>
 
 </head>
-<body>
+<body class="machine-page">
+    <div class="davecoin-header"><span class="dc-amount"></span><span class="dc-label"> Davecoins</span></div>
     <script src="../static/js/common/davecoin.js"></script>
-    <header>
-        <h1 class="title" >DaveMachine</h1>
-        <p class="stitle">Bienvenue dans DaveMachine!</p>
-            <form id="form-dice">
-            </form>
-    </header>
-    <script>
-    </script>
+    <div class="machine-layout">
+        <div class="left-panel">
+            <div class="bet-amount">
+                <div class="bet-header">
+                    <div class="label">Bet Amount</div>
+                    <div class="unit">Davecoins</div>
+                </div>
+                <div class="bet-input-row">
+                    <input type="number" id="bet-input" min="1" value="10" class="bet-input"/>
+                    <div class="quick-actions">
+                        <button class="quick-btn" data-action="half">½</button>
+                        <button class="quick-btn" data-action="double">2×</button>
+                    </div>
+                </div>
+            </div>
+            <div class="control-grid">
+                <button class="play-btn" id="spin-button">Spin</button>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+        <div class="main-area">
+            <div class="slot-machine" id="slot-machine">
+                <div class="machine-frame">
+                    <div class="reels">
+                        <div class="reel" id="reel-1"></div>
+                        <div class="reel" id="reel-2"></div>
+                        <div class="reel" id="reel-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="../static/js/games/dave_machine.js"></script>
 
 </body>
-</html>

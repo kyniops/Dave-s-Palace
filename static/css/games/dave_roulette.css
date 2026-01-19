@@ -243,6 +243,8 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
+    width: 0;
+    height: 0;
 }
 
 .ball {
@@ -252,6 +254,8 @@ body {
     border-radius: 50%;
     position: absolute;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    top: -8px;
+    left: -8px;
 }
 
 .result-display {
@@ -450,16 +454,13 @@ body {
 }
 
 .davecoin-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block;
     width: 20px;
     height: 20px;
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    background: url('../sections/assets/davecoin2.png') no-repeat center center;
+    background-size: contain;
     border-radius: 50%;
-    color: #fff;
-    font-weight: 700;
-    font-size: 11px;
+    color: transparent;
 }
 
 /* Header Davecoin */

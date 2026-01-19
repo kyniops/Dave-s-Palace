@@ -8,6 +8,7 @@ body {
     margin: 0 auto;
     background-color: var(--primary-color);
     overflow-x: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* Davecoin header (top-right) */
@@ -15,14 +16,13 @@ body {
   position: fixed;
   top: 12px;
   right: 12px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #ffd700;
-  padding: 8px 12px;
+  background: #213743;
+  color: #fff;
+  padding: 10px 16px;
   border-radius: 8px;
   font-weight: 700;
   z-index: 1000;
   box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-  backdrop-filter: blur(4px);
 }
 .davecoin-header .dc-amount {
   margin-right: 6px;
@@ -30,4 +30,3 @@ body {
 .davecoin-header .dc-label {
   opacity: 0.9;
 }
-

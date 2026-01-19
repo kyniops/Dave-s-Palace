@@ -32,53 +32,51 @@ class DaveJack {
             this.loadDavecoin();
         }
         this.updateDavecoinDisplay();
+        this.validateBetInput();
     }
     
     createUI() {
         document.body.innerHTML = `
-            <div class="background-overlay"></div>
-            
-            <header class="jack-header">
-                <h1 class="jack-title">Dave's Jack Game</h1>
-                <p class="jack-subtitle">Bienvenue au Dave's Jack Game!</p>
-            </header>
-            
-            <div class="jack-container">
-                <div class="davecoin-display">
-                    <div class="davecoin-amount" id="davecoin-amount">${this.davecoin}</div>
-                    <div class="davecoin-label">Davecoins</div>
-                </div>
-                
-                <div class="betting-section" id="betting-section">
-                    <button class="bet-button" data-bet="10">10</button>
-                    <button class="bet-button" data-bet="50">50</button>
-                    <button class="bet-button" data-bet="100">100</button>
-                    <button class="bet-button" data-bet="1000">1000</button>
-                    <button class="bet-button" data-bet="10000">10000</button>
-                    <button class="bet-button" data-bet="100000">100000</button>
-                </div>
-                
-                <div class="game-table" id="game-table" style="display: none;">
-                    <div class="card-area">
-                        <div class="hand-section">
-                            <div class="hand-title">Dealer</div>
-                            <div class="score-display" id="dealer-score">Score: 0</div>
-                            <div class="cards-container" id="dealer-cards"></div>
+            <div class="davecoin-header"><span class="dc-amount"></span><span class="dc-label"> Davecoins</span></div>
+            <div class="jack-layout">
+                <div class="left-panel">
+                    <div class="bet-amount">
+                        <div class="bet-header">
+                            <div class="label">Bet Amount</div>
+                            <div class="unit">Davecoins</div>
                         </div>
-                        
-                        <div class="hand-section">
-                            <div class="hand-title">Player</div>
-                            <div class="score-display" id="player-score">Score: 0</div>
-                            <div class="cards-container" id="player-cards"></div>
+                        <div class="bet-input-row">
+                            <input type="number" id="bet-input" min="1" value="10" class="bet-input"/>
+                            <div class="quick-actions">
+                                <button class="quick-btn" data-action="half">½</button>
+                                <button class="quick-btn" data-action="double">2×</button>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="game-status" id="game-status"></div>
-                    
-                    <div class="game-controls" id="game-controls">
-                        <button class="control-button deal" id="deal-button">Deal</button>
+                    <div class="control-grid">
                         <button class="control-button hit" id="hit-button" disabled>Hit</button>
                         <button class="control-button stand" id="stand-button" disabled>Stand</button>
+                        <button class="control-button" id="double-button" disabled>Double ×2</button>
+                    </div>
+                    <button class="play-btn" id="deal-button" disabled>Bet</button>
+                </div>
+                <div class="main-area">
+                    <div class="game-table" id="game-table">
+                        <div class="banner">
+                            <span>BLACKJACK PAYS 3 TO 2</span>
+                            <span>INSURANCE PAYS 2 TO 1</span>
+                        </div>
+                        <div class="hands">
+                            <div class="hand dealer">
+                                <div class="score-badge" id="dealer-badge">0</div>
+                                <div class="cards-container" id="dealer-cards"></div>
+                            </div>
+                            <div class="hand player">
+                                <div class="score-badge" id="player-badge">0</div>
+                                <div class="cards-container" id="player-cards"></div>
+                            </div>
+                        </div>
+                        <div class="game-status" id="game-status"></div>
                         <button class="control-button" id="new-game-button" style="display: none;">New Game</button>
                     </div>
                 </div>
@@ -89,39 +87,36 @@ class DaveJack {
     }
     
     attachEventListeners() {
-        // Betting buttons
-        document.querySelectorAll('.bet-button').forEach(button => {
-            button.addEventListener('click', (e) => {
-                this.setBet(parseInt(e.target.dataset.bet));
-            });
+        // Quick actions
+        document.querySelector('[data-action="half"]').addEventListener('click', () => {
+            const inp = document.getElementById('bet-input');
+            const v = Math.max(1, Math.floor((parseInt(inp.value || '0') || 0) / 2));
+            inp.value = v;
+            this.validateBetInput();
         });
-        
+        document.querySelector('[data-action="double"]').addEventListener('click', () => {
+            const inp = document.getElementById('bet-input');
+            const v = Math.max(1, (parseInt(inp.value || '0') || 0) * 2);
+            inp.value = v;
+            this.validateBetInput();
+        });
+        document.getElementById('bet-input').addEventListener('input', () => this.validateBetInput());
+
         // Game control buttons
         document.getElementById('deal-button').addEventListener('click', () => this.deal());
         document.getElementById('hit-button').addEventListener('click', () => this.hit());
         document.getElementById('stand-button').addEventListener('click', () => this.stand());
+        document.getElementById('double-button').addEventListener('click', () => this.doubleDown());
         document.getElementById('new-game-button').addEventListener('click', () => this.resetGame());
     }
     
-    setBet(amount) {
+    validateBetInput() {
+        const inp = document.getElementById('bet-input');
+        const amount = parseInt(inp.value || '0') || 0;
         const available = (window.Davecoin ? window.Davecoin.get() : this.davecoin);
-        if (amount > available) {
-            alert("Pas assez de Davecoins!");
-            return;
-        }
-        
-        this.betAmount = amount;
-        
-        // Update button states
-        document.querySelectorAll('.bet-button').forEach(button => {
-            button.classList.remove('active');
-            if (parseInt(button.dataset.bet) === amount) {
-                button.classList.add('active');
-            }
-        });
-        
-        document.getElementById('game-table').style.display = 'block';
-        document.getElementById('deal-button').disabled = false;
+        const valid = amount >= 1 && amount <= available;
+        this.betAmount = valid ? amount : 0;
+        document.getElementById('deal-button').disabled = !valid || this.gameActive;
     }
     
     createDeck() {
@@ -142,6 +137,8 @@ class DaveJack {
     }
     
     async deal() {
+        // Read current input
+        this.validateBetInput();
         if (this.betAmount === 0) {
             alert("Veuillez sélectionner une mise!");
             return;
@@ -164,7 +161,7 @@ class DaveJack {
         document.getElementById('deal-button').disabled = true;
         document.getElementById('hit-button').disabled = true;
         document.getElementById('stand-button').disabled = true;
-        document.getElementById('betting-section').style.display = 'none';
+        document.getElementById('double-button').disabled = true;
 
         // Deal sequence: Player1, Dealer1, Player2, Dealer2(hidden)
         await this.dealSequence(round);
@@ -172,10 +169,13 @@ class DaveJack {
         // Enable controls after initial deal
         document.getElementById('hit-button').disabled = false;
         document.getElementById('stand-button').disabled = false;
+        document.getElementById('double-button').disabled = false;
 
         // Check for blackjack
-        if (this.calculateScore(this.playerHand) === 21) {
-            this.stand();
+        const playerInitScore = this.calculateScore(this.playerHand);
+        if (playerInitScore === 21 && this.playerHand.length === 2) {
+            this.endGame('blackjack');
+            return;
         }
     }
     
@@ -214,8 +214,11 @@ class DaveJack {
         // Converted to async via helper
         return (async () => {
             await this.dealCardTo('player');
-            if (this.calculateScore(this.playerHand) > 21) {
+            const score = this.calculateScore(this.playerHand);
+            if (score > 21) {
                 this.endGame('lose');
+            } else if (score === 21) {
+                this.endGame('win');
             }
         })();
     }
@@ -287,7 +290,9 @@ class DaveJack {
                 cardElement.classList.add('hidden');
             }
             
+            cardElement.classList.add('deal-in');
             container.appendChild(cardElement);
+            setTimeout(() => cardElement.classList.remove('deal-in'), 400);
         });
     }
     
@@ -303,6 +308,7 @@ class DaveJack {
             <div style="transform: rotate(180deg);">${card.value}</div>
         `;
         if (faceDown) el.classList.add('hidden');
+        el.classList.add('deal-in');
         return el;
     }
 
@@ -320,6 +326,7 @@ class DaveJack {
                 setTimeout(() => {
                     if (round !== this.roundId || !this.gameActive) { resolve(); return; }
                     el.classList.remove('flipping');
+                    el.classList.remove('deal-in');
                     resolve();
                 }, 600);
             }, delay);
@@ -364,22 +371,33 @@ class DaveJack {
     }
 
     updateScores() {
-        const playerScore = this.calculateScore(this.playerHand);
-        document.getElementById('player-score').textContent = `Score: ${playerScore}`;
-
-        const dealerScoreEl = document.getElementById('dealer-score');
+        const playerBadge = document.getElementById('player-badge');
+        const dealerBadge = document.getElementById('dealer-badge');
+        playerBadge.textContent = this.getScoreText(this.playerHand);
         if (this.gameActive && !this.dealerRevealed) {
             // Show only first card score until hole card revealed
-            if (this.dealerHand.length > 0) {
-                const firstCardScore = this.calculateScore([this.dealerHand[0]]);
-                dealerScoreEl.textContent = `Score: ${firstCardScore}`;
-            } else {
-                dealerScoreEl.textContent = `Score: ?`;
-            }
+            const first = this.dealerHand.length > 0 ? [this.dealerHand[0]] : [];
+            dealerBadge.textContent = this.getScoreText(first) || '?';
         } else {
-            const dealerScore = this.calculateScore(this.dealerHand);
-            dealerScoreEl.textContent = `Score: ${dealerScore}`;
+            dealerBadge.textContent = this.getScoreText(this.dealerHand);
         }
+    }
+    
+    getScoreText(hand) {
+        if (!hand || hand.length === 0) return '0';
+        // low: all aces = 1; high: best <=21
+        let low = 0, aces = 0;
+        for (const card of hand) {
+            if (card.value === 'A') { aces++; low += 1; }
+            else if (['J','Q','K'].includes(card.value)) low += 10;
+            else low += parseInt(card.value);
+        }
+        let high = low;
+        for (let i = 0; i < aces; i++) {
+            if (high + 10 <= 21) high += 10;
+        }
+        if (aces > 0 && high !== low) return `${low}, ${high}`;
+        return `${high}`;
     }
     
     endGame(result) {
@@ -425,6 +443,7 @@ class DaveJack {
         // Update button states
         document.getElementById('hit-button').disabled = true;
         document.getElementById('stand-button').disabled = true;
+        document.getElementById('double-button').disabled = true;
         document.getElementById('new-game-button').style.display = 'inline-block';
         
         // Show all dealer cards
@@ -441,29 +460,30 @@ class DaveJack {
         this.dealerHand = [];
         this.betAmount = 0;
         
-        document.getElementById('game-table').style.display = 'none';
-        document.getElementById('betting-section').style.display = 'flex';
+        document.getElementById('game-table').style.display = 'block';
         document.getElementById('game-status').textContent = '';
         document.getElementById('game-status').className = 'game-status';
         document.getElementById('new-game-button').style.display = 'none';
         document.getElementById('deal-button').disabled = true;
         document.getElementById('hit-button').disabled = true;
         document.getElementById('stand-button').disabled = true;
+        document.getElementById('double-button').disabled = true;
         // Clear board and reset scores
         document.getElementById('player-cards').innerHTML = '';
         document.getElementById('dealer-cards').innerHTML = '';
-        document.getElementById('player-score').textContent = 'Score: 0';
-        document.getElementById('dealer-score').textContent = 'Score: 0';
+        document.getElementById('player-badge').textContent = '0';
+        document.getElementById('dealer-badge').textContent = '0';
         
-        // Clear active bet buttons
-        document.querySelectorAll('.bet-button').forEach(button => {
-            button.classList.remove('active');
-        });
+        // Reset bet input
+        const inp = document.getElementById('bet-input');
+        if (inp) inp.value = 10;
+        this.validateBetInput();
     }
     
     updateDavecoinDisplay() {
         const val = window.Davecoin ? window.Davecoin.get() : this.davecoin;
-        document.getElementById('davecoin-amount').textContent = val;
+        const headerEl = document.querySelector('.davecoin-header .dc-amount');
+        if (headerEl) headerEl.textContent = val;
     }
     
     loadDavecoin() {
@@ -488,3 +508,13 @@ class DaveJack {
 document.addEventListener('DOMContentLoaded', () => {
     new DaveJack();
 });
+
+// Double Down action: doubles bet, draws one card, then stands
+DaveJack.prototype.doubleDown = function() {
+    if (!this.gameActive) return;
+    this.betAmount = this.betAmount * 2;
+    return (async () => {
+        await this.dealCardTo('player');
+        this.stand();
+    })();
+};

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../static/global.css">
+  <link rel="stylesheet" href="../static/style.css">
+  <link rel="stylesheet" href="../static/css/games/dave_chicken.css">
+  <title>Poulet de Stake - Réplique</title>
+</head>
+<body class="chicken-page">
+  <div class="davecoin-header"><span class="dc-amount"></span><span class="dc-label"> Davecoins</span></div>
+  <script src="../static/js/common/davecoin.js"></script>
+  <div class="chicken-layout">
+    <div class="left-panel">
+      <div class="tabs">
+        <button class="tab active" data-mode="manual">Manual</button>
+        <button class="tab" data-mode="auto">Auto</button>
+      </div>
+      <div class="bet-amount">
+        <div class="bet-header">
+          <div class="label">Bet Amount</div>
+          <div class="unit">Davecoins</div>
+        </div>
+        <div class="bet-input-row">
+          <input type="number" id="bet-input" min="1" value="10" class="bet-input"/>
+          <div class="quick-actions">
+            <button class="quick-btn" data-action="half">½</button>
+            <button class="quick-btn" data-action="double">2×</button>
+          </div>
+        </div>
+      </div>
+      <div class="difficulty">
+        <label for="difficulty-select">Difficulty</label>
+        <select id="difficulty-select">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="profit">
+        <div class="label">Total profit (<span id="multiplier">1.00×</span>)</div>
+        <div class="value"><span id="profit">0.00</span></div>
+      </div>
+      <div class="controls">
+        <button class="play-btn" id="go-button">Go</button>
+        <button class="cashout-btn" id="cashout-button" disabled>Cashout</button>
+      </div>
+    </div>
+    <div class="main-area">
+      <div class="board" id="board">
+        <div class="track" id="track">
+          <div class="chicken" id="chicken" aria-label="chicken"></div>
+        </div>
+        <div class="columns" id="columns"></div>
+        <div class="multipliers" id="multipliers"></div>
+      </div>
+    </div>
+  </div>
+  <script src="../static/js/games/dave_chicken.js"></script>
+</body>
+</html>

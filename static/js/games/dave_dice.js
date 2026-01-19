@@ -96,9 +96,7 @@ class DaveDiceGame {
         }
         
         const resultDisplay = document.createElement('div');
-        
-        
-        
+        resultDisplay.className = 'result-display';
         diceSection.appendChild(rollButton);
         diceSection.appendChild(diceDisplay);
         diceSection.appendChild(resultDisplay);
@@ -157,6 +155,9 @@ class DaveDiceGame {
     
     updateResultDisplay() {
         const resultDisplay = document.querySelector('.result-display');
+        if (!resultDisplay) {
+            return;
+        }
         const available = (window.Davecoin ? window.Davecoin.get() : this.davecoin);
         if (this.selectedCase && this.currentBet > 0) {
             if (available < this.currentBet) {
@@ -343,6 +344,9 @@ class DaveDiceGame {
     
     showResult(won, matches, multiplier, winnings) {
         const resultDisplay = document.querySelector('.result-display');
+        if (!resultDisplay) {
+            return;
+        }
         let message = '';
         
         if (won) {

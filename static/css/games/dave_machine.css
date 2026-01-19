@@ -1,0 +1,203 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.machine-page {
+  background: #1a2c38;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  color: #b1bad3;
+  overflow-x: hidden;
+  padding-top: 120px;
+}
+.machine-layout {
+  max-width: none;
+  width: calc(100vw - 40px);
+  margin: 32px auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 24px;
+}
+.left-panel {
+  background: #213743;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bet-amount .bet-header {
+  display: flex;
+  justify-content: space-between;
+  color: #7889a4;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.bet-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bet-input {
+  flex: 1;
+  background: #1a2c38;
+  border: 2px solid #2f4553;
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+.quick-actions {
+  display: flex;
+  gap: 6px;
+}
+.quick-btn {
+  background: #2f4553;
+  border: none;
+  color: #b1bad3;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.quick-btn:hover {
+  background: #3d5664;
+  color: #fff;
+}
+.control-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.play-btn {
+  background: linear-gradient(135deg, #00e701 0%, #00c300 100%);
+  border: none;
+  color: #000;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.play-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.status {
+  background: #1a2c38;
+  border: 2px solid #2f4553;
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-height: 40px;
+  font-weight: 700;
+  color: #fff;
+}
+.main-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slot-machine {
+  background: #213743;
+  border-radius: 16px;
+  border: 1px solid #2f4553;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+  padding: 20px;
+  position: relative;
+  width: 1200px;
+}
+.machine-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+.reels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  background: #1a2c38;
+  border-radius: 12px;
+  border: 2px solid #2f4553;
+  padding: 12px;
+  position: relative;
+}
+.reel {
+  width: 360px;
+  height: 480px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #213743;
+  border: 2px solid #2f4553;
+  position: relative;
+}
+.symbol {
+  width: 100%;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a2c38;
+  border-bottom: 2px solid #2f4553;
+}
+.symbol img {
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
+}
+.highlight-bar {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 140px;
+  top: calc(50% - 70px);
+  --hb-h: 140px;
+  border: 2px solid #f59e0b;
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.35);
+  will-change: top;
+}
+.highlight-bar.animate {
+  animation: highlightVertical 1.6s ease-in-out infinite;
+}
+@keyframes highlightVertical {
+  0% { top: 0; }
+  50% { top: calc(50% - 70px); }
+  100% { top: calc(100% - 140px); }
+}
+.scan-bar {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: var(--scan-h, 6px);
+  top: 0;
+  background: linear-gradient(90deg, rgba(245,158,11,0.0), rgba(245,158,11,0.85), rgba(245,158,11,0.0));
+  box-shadow: 0 0 16px rgba(245,158,11,0.45);
+  border-radius: 3px;
+  will-change: top;
+}
+.scan-bar.animate {
+  animation: scanDownUp var(--sync-duration, 0.8s) ease-in-out var(--sync-iter, 1);
+}
+@keyframes scanDownUp {
+  0% { top: 0; }
+  50% { top: calc(100% - var(--scan-h, 6px)); }
+  100% { top: 0; }
+}
+@media (max-width: 1100px) {
+  .machine-layout { grid-template-columns: 1fr; }
+  .slot-machine { width: 100%; }
+  .reel { width: 30vw; height: 65vw; }
+  .symbol { height: calc(65vw / 3); }
+  .symbol img { width: 18vw; height: 18vw; }
+  .highlight-bar { height: calc(65vw / 3); top: calc(50% - (65vw / 6)); }
+  @keyframes highlightVertical {
+    0% { top: 0; }
+    50% { top: calc(50% - (65vw / 6)); }
+    100% { top: calc(100% - (65vw / 3)); }
+  }
+}

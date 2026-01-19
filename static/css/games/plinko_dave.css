@@ -5,9 +5,9 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%);
-    color: white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1a2c38;
+    color: #b1bad3;
     height: 100vh;
     overflow: hidden;
     display: flex;
@@ -31,12 +31,9 @@ header {
 }
 
 .title {
-    font-size: 2.5em;
-    font-weight: bold;
-    background: linear-gradient(45deg, #ffd700, #ff8c00);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
     margin: 0;
 }
 
@@ -49,10 +46,10 @@ header {
 }
 
 #plinkoCanvas {
-    background: linear-gradient(180deg, #0f1e33 0%, #1a2f4a 100%);
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: #213743;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    border: 1px solid #2f4553;
     max-height: 100%;
     width: auto;
 }
@@ -63,22 +60,25 @@ header {
     width: 100%;
     max-width: 800px;
     margin-top: 5px;
-    gap: 2px;
+    gap: 3px;
 }
 
 .multiplier-box {
     flex: 1;
-    padding: 8px 3px;
+    padding: 10px 6px;
     text-align: center;
-    font-weight: bold;
-    font-size: 0.8em;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    font-weight: 700;
+    font-size: 0.9em;
+    border-radius: 6px;
+    background: #213743;
+    color: #b1bad3;
+    border: 1px solid #2f4553;
 }
 
 .multiplier-box.active {
     animation: pulse 0.5s ease;
-    transform: scale(1.1);
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px #f59e0b;
 }
 
 @keyframes pulse {
@@ -100,45 +100,44 @@ header {
 }
 
 .balance-display {
-    background: rgba(255, 255, 255, 0.15);
-    padding: 10px 25px;
-    border-radius: 10px;
-    backdrop-filter: blur(10px);
+    background: #213743;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 1px solid #2f4553;
     text-align: center;
 }
 
 .balance-display p {
     margin: 3px 0;
-    font-size: 1em;
+    font-size: 0.95em;
 }
 
 #balance {
-    font-weight: bold;
-    color: #ffd700;
-    font-size: 1.3em;
+    font-weight: 700;
+    color: #fff;
+    font-size: 1.2em;
 }
 
 .cost-info {
     font-size: 0.85em !important;
-    color: #a0aec0;
+    color: #7889a4;
 }
 
 .drop-button {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    background: linear-gradient(135deg, #00e701, #00c300);
     border: none;
-    color: white;
+    color: #000;
     padding: 12px 35px;
-    font-size: 1.1em;
-    font-weight: bold;
-    border-radius: 50px;
+    font-size: 1.05em;
+    font-weight: 700;
+    border-radius: 8px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-    transition: all 0.3s ease;
+    transition: all 0.2s;
 }
 
 .drop-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+    box-shadow: 0 8px 20px rgba(0, 231, 1, 0.3);
 }
 
 .drop-button:active {
@@ -146,25 +145,25 @@ header {
 }
 
 .stats {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 10px 25px;
-    border-radius: 10px;
-    backdrop-filter: blur(10px);
+    background: #213743;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 1px solid #2f4553;
 }
 
 .stats p {
-    font-size: 1em;
+    font-size: 0.95em;
     margin: 0;
 }
 
 #multiplier {
-    font-weight: bold;
-    color: #ffd700;
-    font-size: 1.2em;
+    font-weight: 700;
+    color: #fff;
+    font-size: 1.1em;
 }
 
 #winAmount {
-    font-weight: bold;
-    color: #4CAF50;
-    font-size: 1.1em;
+    font-weight: 700;
+    color: #00e701;
+    font-size: 1.05em;
 }
