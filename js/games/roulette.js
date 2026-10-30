@@ -10,35 +10,10 @@
   const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
   const color = (n) => (n === 0 ? 'green' : RED.has(n) ? 'red' : 'black');
   const POCKET = 360 / 37;
-  const CHIPS = [
-    { v: 1, c: '#5b6378', e: '#e9ecf2', ink: '#fff' },
-    { v: 5, c: '#e5484d', e: '#fff', ink: '#fff' },
-    { v: 10, c: '#3d6bff', e: '#fff', ink: '#fff' },
-    { v: 25, c: '#12a06e', e: '#fff', ink: '#fff' },
-    { v: 100, c: '#15171f', e: '#c8ff3d', ink: '#c8ff3d' },
-    { v: 500, c: '#ffb547', e: '#15171f', ink: '#1f1300' },
-    { v: 1000, c: '#c8ff3d', e: '#15171f', ink: '#0d1200' }
-  ];
-  const chipFor = (v) => [...CHIPS].reverse().find((c) => v >= c.v) || CHIPS[0];
-  const short = (v) => (v >= 1000 ? round2(v / 1000) + 'k' : String(round2(v)));
-
-  /** Jeton de casino en SVG : bord à encoches, anneau pointillé, valeur au centre. */
-  function chipSvg(v, cls = '') {
-    const c = chipFor(v);
-    const notches = Array.from({ length: 6 }, (_, i) => `<rect x="46" y="2" width="8" height="14" rx="2" fill="${c.e}" transform="rotate(${i * 60} 50 50)"/>`).join('');
-    return `<svg class="chip-svg ${cls}" viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="52" r="48" fill="rgba(0,0,0,.45)"/>
-      <circle cx="50" cy="50" r="48" fill="${c.c}"/>
-      ${notches}
-      <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
-      <circle cx="50" cy="50" r="33" fill="${c.c}" stroke="${c.e}" stroke-width="2.5" stroke-dasharray="5 4"/>
-      <circle cx="50" cy="50" r="27" fill="rgba(255,255,255,.08)"/>
-      <ellipse cx="38" cy="30" rx="20" ry="9" fill="rgba(255,255,255,.18)" transform="rotate(-25 38 30)"/>
-      <text x="50" y="51" fill="${c.ink}" font-family="Geist Mono, monospace" font-weight="600" font-size="${short(v).length > 3 ? 19 : 24}" text-anchor="middle" dominant-baseline="central">${short(v)}</text>
-    </svg>`;
-  }
-
-  DP.ui.chip = chipSvg; // réutilisé par DaveJack
+  // Jetons partagés (js/core.js)
+  const CHIPS = DP.chips.LIST;
+  const chipFor = DP.chips.of;
+  const chipSvg = DP.chips.svg;
 
   /** Renvoie le multiplicateur (mise incluse) d'un pari pour le numéro sorti. */
   function payoutMult(key, n) {
@@ -235,7 +210,7 @@
         if (glowPocket >= 0) {
           const a0 = rad(glowPocket * POCKET - POCKET / 2), a1 = rad(glowPocket * POCKET + POCKET / 2);
           g.beginPath(); g.arc(0, 0, R * 0.745, a0, a1); g.arc(0, 0, R * 0.5, a1, a0, true); g.closePath();
-          g.strokeStyle = '#c8ff3d'; g.lineWidth = 3; g.shadowColor = '#c8ff3d'; g.shadowBlur = 18; g.stroke(); g.shadowBlur = 0;
+          g.strokeStyle = '#ffffff'; g.lineWidth = 3; g.stroke();
         }
         g.restore();
         if (ball) {
@@ -270,8 +245,7 @@
           let st = c.querySelector('.chip-stack');
           if (v) {
             if (!st) { st = document.createElement('span'); st.className = 'chip-stack'; c.appendChild(st); }
-            const layers = Math.min(4, 1 + Math.floor(Math.log10(v / chipFor(v).v + 1) * 3));
-            st.innerHTML = Array.from({ length: layers }, (_, i) => `<i style="--k:${i}">${chipSvg(v)}</i>`).join('');
+            st.innerHTML = DP.chips.stack(v);
           } else if (st) st.remove();
         });
         chipBtns.forEach((b) => b.classList.toggle('on', +b.dataset.chip === chip));
@@ -428,14 +402,15 @@
         lastOut.set(pay > 0 ? `<span class="pos">+${fmt(pay)}</span>` : '0');
 
         // gagnants : éclats + montant ; perdants : jetons balayés
-        let delay = 0;
+        let delay = 0, wins = 0;
         cells.forEach((c) => {
           const k = c.dataset.bet;
           const m = payoutMult(k, n);
           if (m > 0) c.classList.add('hit');
           if (!lastBets[k]) return;
           if (m > 0) {
-            setTimeout(() => { if (!alive) return; ui.burst(c, { n: 16 }); ui.floatText(c, '+' + fmt(lastBets[k] * m)); sound.play('coin'); }, delay);
+            const lvl = wins++ * 2 + (m >= 36 ? 6 : 0);
+            setTimeout(() => { if (!alive) return; ui.burst(c, { n: 16 + lvl * 2 }); ui.floatText(c, '+' + fmt(lastBets[k] * m)); sound.play('streak', { i: lvl }); }, delay);
             delay += 140;
           } else {
             c.classList.add('lost');

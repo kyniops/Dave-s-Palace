@@ -170,10 +170,8 @@
             const glow = f ? Math.max(0, 1 - (now - f) / 250) : 0;
             ctx.beginPath();
             ctx.arc(pegX(r, j), pegY(r), pegR * (1 + glow * 0.6), 0, Math.PI * 2);
-            ctx.fillStyle = glow ? `rgba(200, 255, 61, ${0.6 + glow * 0.4})` : 'rgba(214,220,235,0.8)';
-            ctx.shadowColor = glow ? '#c8ff3d' : 'transparent';
-            ctx.shadowBlur = glow ? 14 : 0;
-            ctx.fill();
+            ctx.fillStyle = glow ? `rgba(255, 255, 255, ${0.8 + glow * 0.2})` : 'rgba(214,220,235,0.75)';
+                        ctx.fill();
           }
         }
         ctx.shadowBlur = 0;

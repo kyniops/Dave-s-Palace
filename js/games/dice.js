@@ -1,119 +1,242 @@
-/* DaveDice — mise sur un ou plusieurs visages, lance 3 dés. RTP ≈ 95,8 %. */
+/* DaveDice — pose des jetons sur les membres de la bande, lance 3 dés en 3D.
+ * Pour chaque case misée : 1 dé = ×2, 2 dés = ×3, 3 dés = ×12 (mise incluse). RTP ≈ 95,8 %.
+ */
 (function () {
   'use strict';
-  const { IMG, rng, fmt, wallet, settle, sound, ui, sleep, round2 } = DP;
+  const { IMG, rng, fmt, wallet, settle, sound, ui, chips, round2, sleep } = DP;
   const FACES = [
     { id: 'axb', name: 'AXB', src: 'axb.png' },
-    { id: 'olman', name: 'OLMAN', src: 'olman.png' },
-    { id: 'sauce', name: 'SAUCE BLANCHE', src: 'sauceblanche.png' },
-    { id: 'sevare', name: 'SÉVARÉ', src: 'sevare.png' },
-    { id: 'slyme', name: 'SLYMEFIRE', src: 'slymefire.png' },
-    { id: 'tdam', name: 'TDAM', src: 'tdam.png' }
+    { id: 'olman', name: 'Olman', src: 'olman.png' },
+    { id: 'sauce', name: 'Sauce Blanche', src: 'sauceblanche.png' },
+    { id: 'sevare', name: 'Sévaré', src: 'sevare.png' },
+    { id: 'slyme', name: 'Slymefire', src: 'slymefire.png' },
+    { id: 'tdam', name: 'Tdam', src: 'tdam.png' }
   ];
-  // Multiplicateur (mise incluse) selon le nombre de dés qui montrent le visage choisi
   const PAY = { 0: 0, 1: 2, 2: 3, 3: 12 };
-  const byId = Object.fromEntries(FACES.map((f) => [f.id, f]));
+  // Orientation du cube qui amène chaque face devant (rotateX, rotateY)
+  const POSE = [[0, 0], [0, -90], [0, 180], [0, 90], [-90, 0], [90, 0]];
+  const FACE_POS = ['front', 'right', 'back', 'left', 'top', 'bottom'];
+
+  const cubeHtml = () => `<div class="die3d"><div class="cube">${FACES.map((f, i) => `<div class="cube__f f-${FACE_POS[i]}"><img src="${IMG}${f.src}" alt="${f.name}" draggable="false"></div>`).join('')}</div><div class="die3d__shadow"></div></div>`;
 
   DP.games.register({
     id: 'dice',
     name: 'DaveDice',
     icon: 'dices',
-    tagline: 'Parie sur la bande, 3 dés, jusqu’à ×12',
+    tagline: 'Mise sur la bande, 3 dés, jusqu’à ×12',
     rtp: '95,8 %',
     hue: 265,
-    art: `<div class="art-stack">${['sevare', 'tdam', 'axb'].map((k, i) => `<img src="${IMG}${byId[k].src}" alt="" style="width:34%;aspect-ratio:1;object-fit:cover;border-radius:16px;border:5px solid #1a1f2e;outline:1px solid rgba(255,255,255,.25);left:${8 + i * 28}%;top:${22 + (i % 2) * 14}%;transform:rotate(${-12 + i * 12}deg)">`).join('')}</div>`,
-    rules: `<p>Sélectionne un ou plusieurs membres de la bande : ta mise est placée sur <strong>chacun</strong> d’eux.</p>
-      <ul><li>Le visage sort sur <strong>1 dé</strong> : ×2</li>
-      <li>Sur <strong>2 dés</strong> : ×3</li>
-      <li>Sur les <strong>3 dés</strong> : ×12</li>
-      <li>Aucun dé : la mise sur ce visage est perdue.</li></ul>`,
+    art: `<div class="art-stack">${['sevare', 'tdam', 'axb'].map((k, i) => `<img src="${IMG}${FACES.find((f) => f.id === k).src}" alt="" style="width:34%;aspect-ratio:1;object-fit:cover;border-radius:16px;border:5px solid #1a1f2e;outline:1px solid rgba(255,255,255,.25);left:${8 + i * 28}%;top:${22 + (i % 2) * 14}%;transform:rotate(${-12 + i * 12}deg)">`).join('')}</div>`,
+    rules: `<p>Choisis un jeton et pose-le sur un ou plusieurs membres de la bande. Tu peux miser des montants différents sur chaque case.</p>
+      <ul><li>On lance <strong>3 dés</strong>, chaque face montre un membre de la bande.</li>
+      <li>Pour chaque case misée : le visage sort sur <strong>1 dé ×2</strong>, sur <strong>2 dés ×3</strong>, sur les <strong>3 dés ×12</strong>.</li>
+      <li>Aucun dé sur la case : la mise de cette case est perdue.</li>
+      <li>Clic droit sur une case pour retirer ta mise.</li></ul>`,
     mount(root) {
       const { panel, stage } = ui.layout(root);
-      const betIn = ui.betInput(panel, { label: 'Mise par visage', gameId: 'dice', initial: 10 });
+      let bets = {}, lastBets = null, rolling = false, alive = true, pending = null;
+      const undo = [];
+
+      const rack = chips.rack(panel, { value: 10 });
       const totalOut = ui.readout(panel, 'Mise totale', '0');
+      const row1 = ui.el('<div class="panel__row"></div>');
+      const row2 = ui.el('<div class="panel__row"></div>');
+      panel.append(row1, row2);
+      const undoBtn = ui.button(row1, ui.icon('rotate-ccw', 'i--sm') + 'Annuler', 'btn btn--ghost btn--sm');
+      const clearBtn = ui.button(row1, ui.icon('trash-2', 'i--sm') + 'Effacer', 'btn btn--ghost btn--sm');
+      const dblBtn = ui.button(row2, '×2', 'btn btn--ghost btn--sm');
+      const rebetBtn = ui.button(row2, ui.icon('refresh-cw', 'i--sm') + 'Rejouer', 'btn btn--ghost btn--sm');
       const rollBtn = ui.button(panel, 'Lancer les dés');
-      const clearBtn = ui.button(panel, ui.icon('x', 'i--sm') + 'Désélectionner', 'btn btn--ghost btn--block');
-      panel.appendChild(ui.el(`<div class="readout" style="flex-direction:column;align-items:stretch;gap:4px">
-        <span style="display:flex;justify-content:space-between"><span>1 dé</span><strong>×2</strong></span>
-        <span style="display:flex;justify-content:space-between"><span>2 dés</span><strong>×3</strong></span>
-        <span style="display:flex;justify-content:space-between"><span>3 dés</span><strong class="accent">×12</strong></span></div>`));
+      panel.appendChild(ui.el(`<div class="paylist">
+        <div><span>1 dé</span><b class="num">×2</b></div><div><span>2 dés</span><b class="num">×3</b></div><div><span>3 dés</span><b class="num">×12</b></div></div>`));
+      const lastOut = ui.readout(panel, 'Dernier gain', '—');
 
       stage.innerHTML = `<div class="dice-stage">
-        <div class="dice-row">${[0, 1, 2].map(() => `<div class="die"><img src="${IMG}${rng.pick(FACES).src}" alt=""></div>`).join('')}</div>
-        <div class="faces">${FACES.map((f) => `<button type="button" class="face" data-id="${f.id}"><img src="${IMG}${f.src}" alt=""><span>${f.name}</span><i class="face__check">${ui.icon('check', 'i--sm')}</i><b class="face__hits"></b></button>`).join('')}</div>
+        <div class="dice-tray">${[0, 1, 2].map(cubeHtml).join('')}</div>
+        <div class="dbets">${FACES.map((f) => `
+          <button type="button" class="dbet" data-id="${f.id}">
+            <img src="${IMG}${f.src}" alt="">
+            <span class="dbet__name">${f.name}</span>
+            <span class="dbet__amt num"></span>
+            <span class="dbet__hits num"></span>
+            <span class="chip-stack"></span>
+          </button>`).join('')}
+        </div>
       </div>`;
-      const dice = [...stage.querySelectorAll('.die')];
-      const faceBtns = [...stage.querySelectorAll('.face')];
-      const picked = new Set(['sevare']);
-      let rolling = false, alive = true, pending = null;
+      const dice = [...stage.querySelectorAll('.die3d')];
+      const cubes = dice.map((d) => d.querySelector('.cube'));
+      const boxes = [...stage.querySelectorAll('.dbet')];
+      const boxOf = (id) => boxes.find((b) => b.dataset.id === id);
+      // orientation actuelle de chaque cube
+      const pose = cubes.map((c) => {
+        const p = POSE[rng.int(0, 5)];
+        c.style.transform = `rotateX(${p[0]}deg) rotateY(${p[1]}deg)`;
+        return [p[0], p[1]];
+      });
 
+      const total = () => round2(Object.values(bets).reduce((a, b) => a + b, 0));
       function paint() {
-        faceBtns.forEach((b) => { b.classList.toggle('on', picked.has(b.dataset.id)); b.disabled = rolling; });
-        totalOut.set(`${ui.coin('coin--xs')} ${fmt(betIn.get() * picked.size)}`);
-        rollBtn.disabled = rolling || picked.size === 0;
-        clearBtn.disabled = rolling || picked.size === 0;
+        boxes.forEach((b) => {
+          const v = bets[b.dataset.id];
+          b.classList.toggle('has-bet', !!v);
+          b.querySelector('.dbet__amt').innerHTML = v ? fmt(v) : '';
+          b.querySelector('.chip-stack').innerHTML = v ? chips.stack(v) : '';
+          b.disabled = rolling;
+        });
+        totalOut.set(`${ui.coin('coin--xs')} ${fmt(total())}`);
+        const empty = total() === 0;
+        [undoBtn, clearBtn, dblBtn].forEach((b) => (b.disabled = rolling || empty));
+        rebetBtn.disabled = rolling || !lastBets;
+        rollBtn.disabled = rolling || empty;
+        rack.disable(rolling);
       }
-      betIn.onChange(paint);
-      stage.querySelector('.faces').addEventListener('click', (e) => {
-        const b = e.target.closest('.face');
+
+      function place(id, amount) {
+        if (rolling) return;
+        if (total() + amount > wallet.get() + 1e-9) { ui.toast('Pas assez de DaveCoins pour ce jeton.', 'error'); sound.play('error'); return; }
+        const box = boxOf(id);
+        chips.fly(rack.btnFor(amount), box.querySelector('.chip-stack'), amount).then(() => {
+          if (!alive || rolling) return;
+          bets[id] = round2((bets[id] || 0) + amount);
+          undo.push({ id, amount });
+          sound.play('chip');
+          boxes.forEach((b) => (b.querySelector('.dbet__hits').textContent = ''));
+          paint();
+          box.querySelector('.chip-stack').animate([{ transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'cubic-bezier(.2,1.6,.4,1)' });
+        });
+      }
+      const betsEl = stage.querySelector('.dbets');
+      betsEl.addEventListener('click', (e) => {
+        const b = e.target.closest('.dbet');
+        if (b) place(b.dataset.id, rack.get());
+      });
+      betsEl.addEventListener('contextmenu', (e) => {
+        const b = e.target.closest('.dbet');
         if (!b || rolling) return;
-        picked.has(b.dataset.id) ? picked.delete(b.dataset.id) : picked.add(b.dataset.id);
-        faceBtns.forEach((f) => (f.querySelector('.face__hits').textContent = ''));
+        e.preventDefault();
+        if (bets[b.dataset.id]) { delete bets[b.dataset.id]; sound.play('click'); paint(); }
+      });
+      undoBtn.addEventListener('click', () => {
+        const u = undo.pop();
+        if (!u) return;
+        bets[u.id] = round2((bets[u.id] || 0) - u.amount);
+        if (bets[u.id] <= 0) delete bets[u.id];
         sound.play('click');
         paint();
       });
-      clearBtn.addEventListener('click', () => { picked.clear(); paint(); });
+      clearBtn.addEventListener('click', () => { bets = {}; undo.length = 0; sound.play('whoosh'); paint(); });
+      dblBtn.addEventListener('click', () => {
+        if (total() * 2 > wallet.get() + 1e-9) { ui.toast('Pas assez de DaveCoins pour doubler.', 'error'); return; }
+        Object.keys(bets).forEach((k) => (bets[k] = round2(bets[k] * 2)));
+        undo.length = 0;
+        sound.play('bet');
+        paint();
+      });
+      rebetBtn.addEventListener('click', () => {
+        const t = Object.values(lastBets).reduce((a, b) => a + b, 0);
+        if (t > wallet.get() + 1e-9) { ui.toast('Pas assez de DaveCoins pour rejouer.', 'error'); return; }
+        bets = { ...lastBets };
+        undo.length = 0;
+        sound.play('bet');
+        paint();
+      });
 
-      function payout(result, per, sel) {
+      function payout(result, placed) {
         let pay = 0;
-        sel.forEach((id) => (pay += per * PAY[result.filter((r) => r === id).length]));
+        Object.entries(placed).forEach(([id, v]) => (pay += v * PAY[result.filter((r) => r === id).length]));
         return round2(pay);
       }
 
-      async function roll() {
-        if (rolling || !picked.size) return;
-        const per = betIn.get();
-        const total = round2(per * picked.size);
-        if (!(per > 0)) { ui.toast('Mise invalide.', 'error'); return; }
-        if (!wallet.place(total)) return;
-        betIn.remember();
-        rolling = true;
-        betIn.disable(true);
-        paint();
-        sound.play('bet');
-        faceBtns.forEach((f) => (f.querySelector('.face__hits').textContent = ''));
-        dice.forEach((d) => d.classList.remove('match'));
+      /** Lancer d'un dé : saut + tonneaux, puis il retombe sur la face voulue. */
+      function tumble(i, faceIdx, dur) {
+        const [fx, fy] = POSE[faceIdx];
+        const [cx, cy] = pose[i];
+        const tx = fx + 360 * (2 + rng.int(0, 1)) * (rng.float() < 0.5 ? 1 : -1);
+        const ty = fy + 360 * (2 + rng.int(0, 2));
+        const a = cubes[i].animate([
+          { transform: `rotateX(${cx}deg) rotateY(${cy}deg)` },
+          { transform: `rotateX(${(cx + tx) / 2}deg) rotateY(${(cy + ty) / 2}deg) rotateZ(25deg)`, offset: 0.45 },
+          { transform: `rotateX(${tx}deg) rotateY(${ty}deg)` }
+        ], { duration: dur, easing: 'cubic-bezier(.2,.6,.3,1)', fill: 'forwards' });
+        dice[i].animate([
+          { transform: 'translateY(0) scale(1)' },
+          { transform: 'translateY(-90px) scale(1.12)', offset: 0.35 },
+          { transform: 'translateY(0) scale(1)', offset: 0.7 },
+          { transform: 'translateY(-14px) scale(1.02)', offset: 0.85 },
+          { transform: 'translateY(0) scale(1)' }
+        ], { duration: dur, easing: 'ease-in-out' });
+        return a.finished.then(() => {
+          pose[i] = [((tx % 360) + 360) % 360, ((ty % 360) + 360) % 360];
+          cubes[i].style.transform = `rotateX(${pose[i][0]}deg) rotateY(${pose[i][1]}deg)`;
+          a.cancel();
+        });
+      }
 
-        const result = [0, 1, 2].map(() => rng.pick(FACES).id);
-        const sel = [...picked];
-        pending = { result, per, total, sel };
-        dice.forEach((d) => d.classList.add('rolling'));
-        const shuffle = setInterval(() => {
-          dice.forEach((d) => { if (d.classList.contains('rolling')) d.firstElementChild.src = IMG + rng.pick(FACES).src; });
-          sound.play('dice');
-        }, 80);
-        for (let i = 0; i < 3; i++) {
-          await sleep(i === 0 ? 700 : 380);
-          if (!alive) { clearInterval(shuffle); return; }
-          dice[i].classList.remove('rolling');
-          dice[i].firstElementChild.src = IMG + byId[result[i]].src;
-          dice[i].animate([{ transform: 'scale(1.18) rotate(-6deg)' }, { transform: 'scale(1)' }], { duration: 300, easing: 'cubic-bezier(.2,1.6,.4,1)' });
-          if (picked.has(result[i])) { sound.play('gem', { i: 3 + i * 2 }); ui.burst(dice[i], { n: 16 }); } else sound.play('reelStop', { i });
-        }
-        clearInterval(shuffle);
+      async function roll() {
+        const stake = total();
+        if (rolling || !stake) return;
+        if (!wallet.place(stake)) return;
+        rolling = true;
+        lastBets = { ...bets };
+        boxes.forEach((b) => { b.classList.remove('win', 'lose'); b.querySelector('.dbet__hits').textContent = ''; });
+        dice.forEach((d) => d.classList.remove('match'));
+        paint();
+        sound.play('dice');
+
+        const idx = [0, 1, 2].map(() => rng.int(0, 5));
+        const result = idx.map((k) => FACES[k].id);
+        pending = { result, stake, placed: { ...bets } };
+        const hits = {};
+        let streak = 0;
+        const rattle = setInterval(() => sound.play('dice'), 260);
+        await Promise.all(idx.map((k, i) => tumble(i, k, 1100 + i * 320).then(() => {
+          if (!alive) return;
+          if (i === 2) clearInterval(rattle);
+          sound.play('reelStop', { i });
+          const id = result[i];
+          if (lastBets[id]) {
+            hits[id] = (hits[id] || 0) + 1;
+            // chaque dé gagnant monte d'un cran : le 3e sonne bien plus fort que le 1er
+            sound.play('streak', { i: streak * 4 + 2 });
+            streak++;
+            dice[i].classList.add('match');
+            ui.burst(dice[i], { n: 10 + streak * 8, spread: 1 + streak * 0.3 });
+            const box = boxOf(id);
+            box.querySelector('.dbet__hits').textContent = '×' + PAY[hits[id]];
+            box.animate([{ transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'cubic-bezier(.2,1.6,.4,1)' });
+          }
+        })));
+        clearInterval(rattle);
+        if (!alive) return;
 
         pending = null;
-        const pay = payout(result, per, sel);
-        settle('dice', total, pay);
-        if (pay >= total * 3) ui.flash(stage);
-        dice.forEach((d, i) => { if (picked.has(result[i])) d.classList.add('match'); });
-        sel.forEach((id) => {
-          const n = result.filter((r) => r === id).length;
-          if (n) stage.querySelector(`.face[data-id="${id}"] .face__hits`).textContent = '×' + PAY[n];
+        const pay = payout(result, lastBets);
+        settle('dice', stake, pay, { silent: true });
+        lastOut.set(pay > 0 ? `<span class="pos">+${fmt(pay)}</span>` : '0');
+        let delay = 0;
+        Object.entries(lastBets).forEach(([id, v]) => {
+          const box = boxOf(id);
+          const n = hits[id] || 0;
+          if (n) {
+            box.classList.add('win');
+            setTimeout(() => { if (!alive) return; ui.burst(box, { n: 14 + n * 8 }); ui.floatText(box, '+' + fmt(v * PAY[n])); sound.play('coin'); }, delay);
+            delay += 160;
+          } else box.classList.add('lose');
         });
-        ui.result(stage, pay > 0 ? { win: true, mult: pay / total, amount: pay } : { win: false, mult: 0 });
+        if (pay > 0) {
+          sound.play('win', { x: pay / stake });
+          ui.result(stage, { win: true, mult: pay / stake, amount: pay });
+          if (Object.values(hits).some((n) => n === 3)) { ui.shake(stage, 2); ui.coinRain(stage, 30); sound.play('jackpot'); }
+        } else {
+          sound.play('lose');
+          ui.result(stage, { win: false, mult: 0 });
+        }
+        await sleep(1000);
+        if (!alive) return;
+        bets = {};
+        undo.length = 0;
         rolling = false;
-        betIn.disable(false);
+        boxes.forEach((b) => b.classList.remove('lose'));
         paint();
       }
       rollBtn.addEventListener('click', roll);
@@ -124,7 +247,7 @@
       return () => {
         alive = false;
         window.removeEventListener('keydown', onKey);
-        if (pending) settle('dice', pending.total, payout(pending.result, pending.per, pending.sel));
+        if (pending) settle('dice', pending.stake, payout(pending.result, pending.placed), { silent: true });
       };
     }
   });

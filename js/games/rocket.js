@@ -111,8 +111,6 @@
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 16;
         ctx.stroke();
         ctx.shadowBlur = 0;
 

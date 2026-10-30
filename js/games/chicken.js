@@ -158,7 +158,7 @@
           game.pos = i;
           game.busy = false;
           lanes[i].insertAdjacentHTML('beforeend', `<span class="lane__barrier">${ui.icon('flag')}</span>`);
-          sound.play('step', { i });
+          sound.play('streak', { i });
           const cover = lanes[i].querySelector('.lane__cover');
           ui.burst(cover, { n: 10 + i });
           ui.floatText(cover, fmtMult(mult(game.lvl, i + 1)));

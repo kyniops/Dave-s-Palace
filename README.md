@@ -16,7 +16,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 | **DaveRoulette** | Roulette européenne en canvas (bille physique, déflecteurs), jetons animés | 97,3 % |
 | **DaveJack** | Blackjack 6 jeux : doubler, séparer, blackjack payé 3:2 | ≈ 99,4 % |
 | **DaveChicken** | Traverse la route voie après voie, 4 difficultés | 99 % |
-| **DaveDice** | Parie sur la bande (AXB, Olman, Sauce Blanche, Sévaré, Slymefire, Tdam), 3 dés | 95,8 % |
+| **DaveDice** | Pose des jetons sur un ou plusieurs membres de la bande, 3 dés en 3D : ×2 / ×3 / ×12 par case | 95,8 % |
 | **DaveFlip** | DaveCoin ou JPZ, enchaîne les victoires ×1,98 | 99 % |
 
 ## Fonctionnalités

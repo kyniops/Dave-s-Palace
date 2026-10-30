@@ -17,7 +17,7 @@
     { n: 0.000022, size: [1.3, 2.1], speed: 0.018, alpha: [0.7, 1], depth: 22 }
   ];
   // Quelques étoiles teintées pour éviter le blanc uniforme
-  const TINTS = ['255,255,255', '255,255,255', '255,255,255', '214,228,255', '255,236,214', '200,255,61'];
+  const TINTS = ['255,255,255', '255,255,255', '255,255,255', '226,232,245', '245,240,230'];
   const rand = (a, b) => a + Math.random() * (b - a);
 
   function resize() {

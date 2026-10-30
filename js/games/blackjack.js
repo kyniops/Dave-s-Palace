@@ -21,11 +21,16 @@
   }
   const isBJ = (cards) => cards.length === 2 && score(cards).total === 21;
 
+  // Cartes déjà posées sur la table : elles ne rejouent pas l'animation de distribution
+  // quand la main est redessinée (seule la nouvelle carte glisse depuis le sabot).
+  const shown = new WeakSet();
   function cardHtml(c, hidden) {
-    if (hidden) return '<div class="card back"></div>';
+    const dealt = shown.has(c) ? ' dealt' : '';
+    shown.add(c);
+    if (hidden) return `<div class="card back${dealt}"></div>`;
     const red = c.s === '♥' || c.s === '♦';
     const mid = FACES[c.r] ? `<img src="${IMG}${FACES[c.r]}" alt="">` : c.s;
-    return `<div class="card${red ? ' red' : ''}"><div class="card__c tl">${c.r}<span>${c.s}</span></div><div class="card__mid">${mid}</div><div class="card__c br">${c.r}<span>${c.s}</span></div></div>`;
+    return `<div class="card${red ? ' red' : ''}${dealt}"><div class="card__c tl">${c.r}<span>${c.s}</span></div><div class="card__mid">${mid}</div><div class="card__c br">${c.r}<span>${c.s}</span></div></div>`;
   }
 
   DP.games.register({
@@ -82,7 +87,7 @@
         return `<div class="bj__hand ${opts.cls || ''}">
           <div class="bj__cards">${cards.map((c, i) => cardHtml(c, opts.hideHole && i === 1)).join('')}</div>
           ${cards.length ? `<div class="bj__total ${bust ? 'bust' : label === 'BJ' || s.total === 21 ? 'bj21' : ''}">${label}</div>` : ''}
-          ${opts.bet ? `<div class="bj__bet">${DP.ui.chip ? `<span class="bj__chip">${DP.ui.chip(opts.bet)}</span>` : ui.coin('coin--xs')}<span class="num">${fmt(opts.bet)}</span></div>` : ''}
+          ${opts.bet ? `<div class="bj__bet"><span class="bj__chip">${DP.chips.svg(opts.bet)}</span><span class="num">${fmt(opts.bet)}</span></div>` : ''}
         </div>`;
       }
 
@@ -107,9 +112,7 @@
       }
 
       // Seule la dernière carte ajoutée doit être animée : on coupe l'animation des autres.
-      function freezeOld() { stage.querySelectorAll('.card').forEach((c) => (c.style.animation = 'none')); }
       async function give(target) {
-        freezeOld();
         target.push(draw());
         sound.play('card');
         render();
@@ -237,7 +240,6 @@
       async function finish() {
         st.phase = 'dealer';
         st.hideHole = false;
-        freezeOld();
         render();
         const flip = dealerEl.querySelectorAll('.card')[1];
         if (flip) { flip.classList.add('flip'); sound.play('cardFlip'); }
@@ -275,7 +277,6 @@
         // On garde les cartes affichées jusqu'à la prochaine donne
         dealerEl.innerHTML = renderHand(ended.dealer);
         playerEl.innerHTML = ended.hands.map((h) => renderHand(h.cards, { bet: h.bet, split: ended.hands.length > 1, cls: h.result === 'win' || h.result === 'bj' ? 'done-win' : h.result === 'lose' ? 'done-lose' : '' })).join('');
-        freezeOld();
       }
 
       dealBtn.addEventListener('click', deal);

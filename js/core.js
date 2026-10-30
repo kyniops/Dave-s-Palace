@@ -297,10 +297,21 @@
             noise({ d, v: 0.06, type: 'highpass', f: 1500, f2: 8000, a: 0.3, rev: 0.3 });
             break;
           }
-          case 'gem': { // progression : chaque gemme sonne plus haut
-            const s = PENTA[Math.min(i, PENTA.length - 1)];
-            bell(hz(s), 0, 0.14, 0.45);
-            if (i >= 4) sparkle(0.03, Math.min(8, i));
+          case 'gem':
+          case 'streak': { // progression : chaque réussite monte d'un cran et ajoute une couche
+            const lvl = Math.min(i, 15);
+            const MAJOR = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24, 26];
+            const s = MAJOR[lvl];
+            const v = 0.1 + lvl * 0.008;
+            noise({ d: 0.025, v: 0.1 + lvl * 0.01, type: 'bandpass', f: Math.min(9000, hz(s) * 4), q: 5 });   // attaque
+            if (lvl >= 5) tone({ f: hz(s - 5), f2: hz(s), d: 0.05, v: v * 0.6, type: 'triangle', rev: 0 });    // petite note d'élan
+            bell(hz(s), lvl >= 5 ? 0.04 : 0, v, 0.4 + lvl * 0.04);
+            if (lvl >= 2) tone({ f: hz(s + 12), d: 0.3, v: v * 0.4, type: 'triangle', t: 0.02, rev: 0.3 });   // octave
+            if (lvl >= 3) sparkle(0.03, Math.min(14, lvl + 1));
+            if (lvl >= 4) [4, 7].forEach((k) => tone({ f: hz(s + k), d: 0.6, v: v * 0.3, type: 'triangle', t: 0.05, rev: 0.45 })); // accord
+            if (lvl >= 6) tone({ f: hz(s - 24), d: 0.4, v: 0.13, rev: 0.1 });                                 // basse
+            if (lvl >= 8) noise({ d: 0.5, v: 0.06 + lvl * 0.006, type: 'highpass', f: 1500, f2: 9000, a: 0.05, rev: 0.35 }); // souffle
+            if (lvl >= 11) arp([12, 16, 19, 24].map((k) => k + s - 12), 0.04, 0.12, 0.07, 0.3);             // cascade
             break;
           }
           case 'step': {
@@ -499,12 +510,12 @@
       el.animate([{ transform: 'translate(0,0)' }, { transform: `translate(${-a}px,${a / 2}px)` }, { transform: `translate(${a}px,${-a / 2}px)` }, { transform: `translate(${-a / 2}px,${-a}px)` }, { transform: `translate(${a / 2}px,${a}px)` }, { transform: 'translate(0,0)' }],
         { duration: 380 + level * 60, easing: 'ease-out' });
     },
-    flash(el, color = 'rgba(200,255,61,.35)') {
+    /** Bref éclair blanc neutre (pas de halo coloré). */
+    flash(el) {
       const f = document.createElement('i');
       f.className = 'fx-flash';
-      f.style.background = `radial-gradient(circle, ${color}, transparent 70%)`;
       el.appendChild(f);
-      f.animate([{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 0 }], { duration: 700, easing: 'ease-out' }).finished.then(() => f.remove());
+      f.animate([{ opacity: 0 }, { opacity: 0.12, offset: 0.12 }, { opacity: 0 }], { duration: 450, easing: 'ease-out' }).finished.then(() => f.remove());
     },
     coinRain(el, n = 30) {
       for (let i = 0; i < n; i++) {
@@ -604,6 +615,75 @@
     }
   };
 
+  /* ---------- Jetons de casino (partagés : roulette, dés…) ---------- */
+  const chips = {
+    LIST: [
+      { v: 1, c: '#5b6378', e: '#e9ecf2', ink: '#fff' },
+      { v: 5, c: '#e5484d', e: '#fff', ink: '#fff' },
+      { v: 10, c: '#3d6bff', e: '#fff', ink: '#fff' },
+      { v: 25, c: '#12a06e', e: '#fff', ink: '#fff' },
+      { v: 100, c: '#15171f', e: '#c8ff3d', ink: '#c8ff3d' },
+      { v: 500, c: '#ffb547', e: '#15171f', ink: '#1f1300' },
+      { v: 1000, c: '#c8ff3d', e: '#15171f', ink: '#0d1200' }
+    ],
+    of(v) { return [...chips.LIST].reverse().find((c) => v >= c.v) || chips.LIST[0]; },
+    short(v) { return v >= 1000 ? round2(v / 1000) + 'k' : String(round2(v)); },
+    /** Jeton en SVG : bord à encoches, anneau pointillé, valeur au centre. */
+    svg(v, cls = '') {
+      const c = chips.of(v), t = chips.short(v);
+      const notches = Array.from({ length: 6 }, (_, i) => `<rect x="46" y="2" width="8" height="14" rx="2" fill="${c.e}" transform="rotate(${i * 60} 50 50)"/>`).join('');
+      return `<svg class="chip-svg ${cls}" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="52" r="48" fill="rgba(0,0,0,.45)"/>
+        <circle cx="50" cy="50" r="48" fill="${c.c}"/>${notches}
+        <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
+        <circle cx="50" cy="50" r="33" fill="${c.c}" stroke="${c.e}" stroke-width="2.5" stroke-dasharray="5 4"/>
+        <circle cx="50" cy="50" r="27" fill="rgba(255,255,255,.08)"/>
+        <ellipse cx="38" cy="30" rx="20" ry="9" fill="rgba(255,255,255,.18)" transform="rotate(-25 38 30)"/>
+        <text x="50" y="51" fill="${c.ink}" font-family="Geist Mono, monospace" font-weight="600" font-size="${t.length > 3 ? 19 : 24}" text-anchor="middle" dominant-baseline="central">${t}</text>
+      </svg>`;
+    },
+    /** Pile de jetons pour un montant donné. */
+    stack(v) {
+      const layers = Math.min(4, 1 + Math.floor(Math.log10(v / chips.of(v).v + 1) * 3));
+      return Array.from({ length: layers }, (_, i) => `<i style="--k:${i}">${chips.svg(v)}</i>`).join('');
+    },
+    /** Sélecteur de jetons (rack). */
+    rack(parent, { value = 10, onChange } = {}) {
+      const node = ui.el(`<div class="field"><div class="field__head"><label>Jeton</label></div>
+        <div class="chip-rack">${chips.LIST.map((c) => `<button type="button" class="chip-btn" data-chip="${c.v}" aria-label="Jeton ${c.v}">${chips.svg(c.v)}</button>`).join('')}</div></div>`);
+      parent.appendChild(node);
+      const btns = [...node.querySelectorAll('.chip-btn')];
+      let cur = value;
+      const paint = () => btns.forEach((b) => b.classList.toggle('on', +b.dataset.chip === cur));
+      node.addEventListener('click', (e) => {
+        const b = e.target.closest('.chip-btn');
+        if (!b || b.disabled) return;
+        cur = +b.dataset.chip;
+        sound.play('chip');
+        paint();
+        onChange && onChange(cur);
+      });
+      paint();
+      return {
+        get: () => cur,
+        disable(d) { btns.forEach((b) => (b.disabled = d)); },
+        btnFor: (v) => btns.find((b) => +b.dataset.chip === v) || btns[0]
+      };
+    },
+    /** Un jeton s'envole d'un élément vers un autre. */
+    fly(fromEl, toEl, v, ms = 380) {
+      const from = fromEl.getBoundingClientRect(), to = toEl.getBoundingClientRect();
+      const f = ui.el(`<div class="chip-fly">${chips.svg(v)}</div>`);
+      f.style.left = from.left + from.width / 2 + 'px';
+      f.style.top = from.top + from.height / 2 + 'px';
+      ui._fxLayer().appendChild(f);
+      const dx = to.left + to.width / 2 - (from.left + from.width / 2), dy = to.top + to.height / 2 - (from.top + from.height / 2);
+      return f.animate([{ transform: 'translate(-50%,-50%) scale(1)' },
+        { transform: `translate(calc(-50% + ${dx * 0.5}px), calc(-50% + ${dy * 0.5 - 60}px)) scale(1.1) rotate(180deg)`, offset: 0.5 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.62) rotate(360deg)` }], { duration: ms, easing: 'cubic-bezier(.3,.7,.4,1)' }).finished.then(() => f.remove());
+    }
+  };
+
   /* ---------- Registre des jeux ---------- */
   const games = {
     list: [],
@@ -613,5 +693,5 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, stats, settle, sound, ui, games, on, off, emit, sleep };
+  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, stats, settle, sound, ui, chips, games, on, off, emit, sleep };
 })();
