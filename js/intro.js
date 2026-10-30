@@ -159,7 +159,6 @@
               <button type="button" class="btn btn--ghost btn--lg js-login js-mag">Se connecter${I('chevron-right', 'i--sm')}</button>
             </div>
           </div>
-          <div class="ix-king"><div class="orbit orbit-spin"></div><div class="orbit orbit-spin rev" style="width:150%;height:150%"></div><img src="${IMG}jpz.png" alt="Jean-Pascal Zadi"></div>
           <a class="ix-scroll" href="#ix-casino"><span>Découvrir</span><i></i></a>
         </section>
 
@@ -187,7 +186,12 @@
         </section>
 
         <section class="ix-sec ix-sec--split ix-daily">
-          <div class="ix-dwheel" data-ix><div class="ix-dwheel__disc"></div><img src="${IMG}jppz.jpg" alt=""></div>
+          <div class="ix-dwheel" data-ix><div class="dwheel">
+            <canvas></canvas>
+            <div class="wheel-spot"></div>
+            <div class="gem-pointer"><svg viewBox="0 0 40 52"><path d="M20 52 L4 18 L12 4 H28 L36 18 Z" fill="#ffc145"/><path d="M20 52 L12 18 L20 6 L28 18 Z" fill="#fff3c8" opacity=".7"/><path d="M4 18 H36" stroke="#7a4b00" stroke-width="1.5"/></svg></div>
+            <div class="dwheel__hub"><img src="${IMG}jppz.jpg" alt="JPZ"></div>
+          </div></div>
           <div class="ix-head" data-ix><span class="ix-eyebrow">04 · Chaque jour</span><h2>Une roue gratuite toutes les 12 heures</h2><p>Jusqu’à 5 000 DaveCoins à chaque rotation, et des codes promo à activer depuis ton compte.</p></div>
         </section>
 
@@ -216,7 +220,6 @@
     if (!reduced) {
       root.querySelectorAll('.ix-title i').forEach((el) => el.animate([{ transform: 'translateY(110%) rotate(8deg)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 1000, delay: 500 + (+el.style.getPropertyValue('--i')) * 60, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
       root.querySelectorAll('.js-hero-in').forEach((el, i) => el.animate([{ transform: 'translateY(24px)', opacity: 0, filter: 'blur(6px)' }, { transform: 'none', opacity: 1, filter: 'none' }], { duration: 900, delay: 1100 + i * 140, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
-      root.querySelector('.ix-king').animate([{ transform: 'translateY(80px) scale(.8)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 1400, delay: 900, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' });
     }
     M().magnetic(root.querySelectorAll('.js-mag'), 0.2);
     DP.emit('lobby'); // dessine les illustrations en canvas (roues) des cartes de jeux
@@ -254,8 +257,30 @@
       jpRaf = jpShown !== t ? requestAnimationFrame(jpTick) : 0;
     };
     const offJp = on('jackpot', () => { if (!jpRaf) jpRaf = requestAnimationFrame(jpTick); });
-    const lights = ui.bulbs(root.querySelector('.ix-dwheel'), 28);
+    // la vraie roue quotidienne, qui tourne doucement
+    const dw = root.querySelector('.ix-dwheel .dwheel');
+    const lights = ui.bulbs(dw, 30);
     window.addEventListener('resize', lights.size);
+    const wc = dw.querySelector('canvas'), wg = wc.getContext('2d');
+    let wAng = 0, wRaf = 0, wLast = performance.now();
+    const wDraw = () => {
+      const S = Math.round(wc.clientWidth * Math.min(2, devicePixelRatio || 1));
+      if (!S || !window.DP_DRAW_DAILY) return;
+      if (wc.width !== S) wc.width = wc.height = S;
+      DP_DRAW_DAILY(wg, S, wAng, null);
+    };
+    const wLoop = (now) => {
+      wAng += (now - wLast) * 0.00025; wLast = now;
+      wDraw();
+      wRaf = requestAnimationFrame(wLoop);
+    };
+    wDraw();
+    if (document.fonts) document.fonts.ready.then(wDraw);
+    const wio = new IntersectionObserver(([e]) => {
+      cancelAnimationFrame(wRaf); wRaf = 0;
+      if (e.isIntersecting && !reduced) { wLast = performance.now(); wRaf = requestAnimationFrame(wLoop); }
+    });
+    wio.observe(dw);
 
     return () => {
       gal && gal.destroy();
@@ -264,6 +289,8 @@
       cancelAnimationFrame(jpRaf);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', lights.size);
+      wio.disconnect();
+      cancelAnimationFrame(wRaf);
     };
   }
 

@@ -259,6 +259,8 @@
     g.restore();
   }
 
+  window.DP_DRAW_DAILY = drawDaily; // réutilisée par la page de présentation
+
   function openBonus() {
     sound.play('click');
     const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true">
