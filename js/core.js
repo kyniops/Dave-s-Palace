@@ -8,8 +8,9 @@
 
   const IMG = 'assets/img/';
   const START_BALANCE = 1000;
-  const DAILY_BONUS = 1000;
-  const DAILY_COOLDOWN = 24 * 3600 * 1000;
+  const DAILY_COOLDOWN = 12 * 3600 * 1000; // roue quotidienne : une rotation toutes les 12 h
+  // Cases de la roue quotidienne : [gain, poids]
+  const DAILY_WHEEL = [[100, 18], [500, 8], [150, 16], [1000, 4], [200, 14], [2500, 1.5], [100, 18], [750, 6], [250, 12], [5000, 0.5]];
   const RESCUE_AMOUNT = 500;
   const RESCUE_COOLDOWN = 3600 * 1000;
 
@@ -124,12 +125,20 @@
       const last = parseInt(store.get(bonus._key('bonus'), '0'), 10) || 0;
       return Math.max(0, last + DAILY_COOLDOWN - Date.now());
     },
-    claimDaily() {
+    /** Tire la case de la roue quotidienne (sans encore créditer). */
+    drawDaily() {
+      const total = DAILY_WHEEL.reduce((a, s) => a + s[1], 0);
+      let r = rng.float() * total;
+      for (let i = 0; i < DAILY_WHEEL.length; i++) { r -= DAILY_WHEEL[i][1]; if (r < 0) return i; }
+      return 0;
+    },
+    claimDaily(index) {
       if (bonus.dailyLeft() > 0) return 0;
+      const amount = DAILY_WHEEL[index][0];
       store.set(bonus._key('bonus'), String(Date.now()));
-      wallet.credit(DAILY_BONUS);
+      wallet.credit(amount);
       emit('bonus');
-      return DAILY_BONUS;
+      return amount;
     },
     rescueLeft() {
       const last = parseInt(store.get(bonus._key('rescue'), '0'), 10) || 0;
@@ -143,7 +152,7 @@
       emit('bonus');
       return RESCUE_AMOUNT;
     },
-    DAILY_BONUS, RESCUE_AMOUNT
+    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT
   };
 
   /* ---------- Statistiques ---------- */
@@ -375,7 +384,67 @@
           case 'flip': noise({ d: 0.5, v: 0.08, type: 'bandpass', f: 2500, f2: 6000, q: 6 }); for (let k = 0; k < 7; k++) tone({ f: 2200 + k * 90, t: k * 0.07, d: 0.03, v: 0.03, rev: 0 }); break;
           case 'dice': for (let k = 0; k < 5; k++) noise({ t: k * 0.05 + Math.random() * 0.02, d: 0.03, v: 0.18, type: 'bandpass', f: 1200 + Math.random() * 900, q: 3 }); break;
           case 'pop': tone({ f: 500, f2: 1100, d: 0.07, v: 0.1, rev: 0.1 }); break;
+          case 'count': tone({ f: 400 + (o.k || 0) * 900, d: 0.04, v: 0.05, type: 'square', rev: 0.05 }); break;
+          case 'slam':
+            [0, 4, 7, 12, 16, 19, 24].forEach((st) => tone({ f: hz(st - 12), d: 1.6, v: 0.06, type: 'triangle', rev: 0.6 }));
+            tone({ f: 110, f2: 40, d: 0.6, v: 0.4, rev: 0.2 });
+            noise({ d: 0.8, v: 0.25, type: 'lowpass', f: 3000, f2: 200, rev: 0.4 });
+            sparkle(0.1, 18);
+            break;
         }
+      },
+      /** Bruit des rouleaux qui tournent : cliquetis rapide + souffle. set(n) = rouleaux encore en rotation. */
+      reels(total = 5) {
+        if (!ready()) return { set() {}, stop() {} };
+        const g = ctx.createGain(); g.gain.value = 0.0001;
+        const nz = ctx.createBufferSource(); nz.buffer = noiseBuf; nz.loop = true;
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = 1.2;
+        // le cliquetis vient d'une modulation d'amplitude rapide (les symboles qui défilent)
+        const am = ctx.createGain(); am.gain.value = 0.5;
+        const lfo = ctx.createOscillator(); lfo.type = 'square'; lfo.frequency.value = 17;
+        const lfoAmt = ctx.createGain(); lfoAmt.gain.value = 0.5;
+        lfo.connect(lfoAmt).connect(am.gain);
+        const hum = ctx.createOscillator(); hum.type = 'triangle'; hum.frequency.value = 92;
+        const humG = ctx.createGain(); humG.gain.value = 0.25;
+        nz.connect(bp).connect(am).connect(g);
+        hum.connect(humG).connect(g);
+        out(g, 0.05);
+        const t0 = ctx.currentTime;
+        [nz, lfo, hum].forEach((n) => n.start(t0));
+        g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.12);
+        return {
+          set(n) {
+            const now = ctx.currentTime;
+            g.gain.setTargetAtTime(n > 0 ? 0.05 + 0.11 * (n / total) : 0.0001, now, 0.05);
+            lfo.frequency.setTargetAtTime(9 + 8 * (n / total), now, 0.1);
+          },
+          stop() {
+            const now = ctx.currentTime;
+            g.gain.cancelScheduledValues(now);
+            g.gain.setTargetAtTime(0.0001, now, 0.04);
+            [nz, lfo, hum].forEach((n) => n.stop(now + 0.3));
+          }
+        };
+      },
+      /** Musique de bonus en boucle (basse + arpège) pendant les free spins. */
+      fsMusic() {
+        if (!ready()) return { stop() {} };
+        let alive = true, step = 0;
+        const BPM = 132, beat = 60 / BPM;
+        const prog = [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]];
+        const tick = () => {
+          if (!alive || api.muted) return;
+          const chord = prog[Math.floor(step / 8) % prog.length];
+          const s = step % 8;
+          if (s % 2 === 0) tone({ f: hz(chord[0] - 24), d: beat * 0.9, v: 0.07, type: 'triangle', rev: 0.1 });
+          tone({ f: hz(chord[s % 3] + (s >= 4 ? 12 : 0)), d: beat * 0.45, v: 0.04, type: 'square', rev: 0.25 });
+          if (s % 4 === 2) noise({ d: 0.05, v: 0.05, type: 'highpass', f: 7000 });
+          if (s % 4 === 0) tone({ f: 120, f2: 50, d: 0.12, v: 0.12, rev: 0 });
+          step++;
+        };
+        const id = setInterval(tick, beat * 500);
+        tick();
+        return { stop() { alive = false; clearInterval(id); } };
       },
       /** Son continu (moteur de fusée) : renvoie { set(m), stop() }. */
       engine() {

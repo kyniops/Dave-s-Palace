@@ -30,7 +30,9 @@
   const SEG = 360 / SEGS.length;
   const BOTS = [
     { name: 'Olman', img: 'olman.png' }, { name: 'Tdam', img: 'tdam.png' }, { name: 'Sévaré', img: 'sevare.png' },
-    { name: 'Slymefire', img: 'slymefire.png' }, { name: 'AXB', img: 'axb.png' }, { name: 'Sauce Blanche', img: 'sauceblanche.png' }
+    { name: 'Slymefire', img: 'slymefire.png' }, { name: 'AXB', img: 'axb.png' }, { name: 'Sauce Blanche', img: 'sauceblanche.png' },
+    { name: 'Billy', img: 'billy.jpg' }, { name: 'Carl', img: 'carl.jpg' }, { name: 'Linkay', img: 'linkay.jpg' }, { name: 'Lucasco', img: 'lucasco.jpg' },
+    { name: 'Petit Bonnin', img: 'petitbonnin.jpg' }, { name: 'Yohan', img: 'yohan.jpg' }
   ];
 
   function drawWheel(g, S, ang, coinImg, highlight) {

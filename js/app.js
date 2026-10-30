@@ -187,17 +187,45 @@
     const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000);
     return (h ? h + 'h ' : '') + String(m).padStart(2, '0') + 'm ' + String(s).padStart(2, '0') + 's';
   }
+  /* Roue quotidienne : dessin du disque (cases alternées, la case 5 000 en or) */
+  function drawDaily(g, S, ang, hi) {
+    const W = bonus.DAILY_WHEEL, n = W.length, seg = (Math.PI * 2) / n, R = S / 2;
+    g.clearRect(0, 0, S, S);
+    g.save(); g.translate(R, R); g.rotate(ang);
+    W.forEach(([v], i) => {
+      const a0 = i * seg - seg / 2 - Math.PI / 2, a1 = a0 + seg;
+      g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R * 0.96, a0, a1); g.closePath();
+      g.fillStyle = v >= 5000 ? '#ffc145' : v >= 1000 ? '#ff6b2c' : i % 2 ? '#141822' : '#1d2230';
+      g.globalAlpha = hi != null && hi !== i ? 0.35 : 1;
+      g.fill(); g.globalAlpha = 1;
+      g.strokeStyle = '#05060a'; g.lineWidth = 2; g.stroke();
+      g.save(); g.rotate(i * seg);
+      g.fillStyle = v >= 1000 ? '#120600' : '#f1f2f5';
+      g.font = `700 ${R * 0.1}px "Chakra Petch", sans-serif`;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(fmt(v), 0, -R * 0.68);
+      g.restore();
+    });
+    for (let i = 0; i < n; i++) {
+      const a = i * seg + seg / 2 - Math.PI / 2;
+      g.beginPath(); g.arc(Math.cos(a) * R * 0.92, Math.sin(a) * R * 0.92, R * 0.022, 0, Math.PI * 2); g.fillStyle = '#f1f2f5'; g.fill();
+    }
+    g.restore();
+  }
+
   function openBonus() {
     sound.play('click');
     const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true">
-      <div class="modal__card">
+      <div class="modal__card modal__card--wheel">
         <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
-        <h3>${I('gift')}Bonus</h3>
-        <div class="modal__hero"><img src="${IMG}jpz.png" alt=""><p class="muted" style="margin:0">Le roi te dépanne : un bonus chaque jour, et un coup de pouce si ton solde tombe à zéro.</p></div>
-        <div class="bonus-row">
-          <div><strong>${I('timer', 'i--sm')}Bonus quotidien</strong><span>+${fmt(bonus.DAILY_BONUS)} ${ui.coin('coin--xs')} toutes les 24 h</span></div>
-          <button class="btn btn--primary" data-b="daily" type="button"></button>
+        <h3>${I('gift')}Roue quotidienne</h3>
+        <p class="muted" style="margin:0 0 16px">Une rotation gratuite toutes les 12 h. Jusqu’à <strong class="num" style="color:var(--coin)">${fmt(bonus.DAILY_MAX)}</strong> DaveCoins.</p>
+        <div class="dwheel">
+          <canvas></canvas>
+          <div class="dwheel__pointer"><svg viewBox="0 0 24 22"><path d="M0 0h24L12 22z" fill="currentColor"/></svg></div>
+          <div class="dwheel__hub"><img src="${IMG}jppz.jpg" alt="JPZ"></div>
         </div>
+        <button class="btn btn--primary btn--lg btn--block dwheel__btn" data-b="daily" type="button"></button>
         <div class="bonus-row">
           <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde est à 0 (1 fois / heure)</span></div>
           <button class="btn btn--ghost" data-b="rescue" type="button"></button>
@@ -205,25 +233,83 @@
       </div>
     </div>`);
     document.body.appendChild(modal);
+    const card = modal.querySelector('.modal__card');
+    const box = modal.querySelector('.dwheel');
+    const cv = box.querySelector('canvas');
+    const g = cv.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const S = box.clientWidth;
+    cv.width = cv.height = Math.round(S * dpr);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    let ang = 0, spinning = false, hi = null, idleRaf = 0;
+    const W = bonus.DAILY_WHEEL, seg = (Math.PI * 2) / W.length;
+    drawDaily(g, S, ang, hi);
+    if (document.fonts) document.fonts.ready.then(() => drawDaily(g, S, ang, hi));
+    // la roue tourne doucement tant qu'on n'a pas lancé
+    let lt = performance.now();
+    const idle = (now) => {
+      if (!modal.isConnected) return;
+      if (!spinning && hi == null) { ang += (now - lt) * 0.0002; drawDaily(g, S, ang, hi); }
+      lt = now;
+      idleRaf = requestAnimationFrame(idle);
+    };
+    idleRaf = requestAnimationFrame(idle);
+
     const daily = modal.querySelector('[data-b=daily]');
     const rescue = modal.querySelector('[data-b=rescue]');
     const paint = () => {
       if (!modal.isConnected) { clearInterval(timer); return; }
       const d = bonus.dailyLeft();
-      daily.disabled = d > 0;
-      daily.textContent = d > 0 ? countdown(d) : 'Récupérer';
+      daily.disabled = d > 0 || spinning;
+      daily.innerHTML = spinning ? 'La roue tourne…' : d > 0 ? `Prochaine rotation dans <span class="num">${countdown(d)}</span>` : `${I('play', 'i--sm')}Tourner la roue`;
       const r = bonus.rescueLeft();
       rescue.disabled = !bonus.canRescue();
       rescue.textContent = wallet.get() >= 1 ? 'Solde > 0' : r > 0 ? countdown(r) : 'Récupérer';
     };
     paint();
     const timer = setInterval(paint, 1000);
-    const close = () => { clearInterval(timer); modal.remove(); };
+    const close = () => { if (spinning) return; clearInterval(timer); cancelAnimationFrame(idleRaf); modal.remove(); };
     modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
     modal.querySelector('.modal__close').addEventListener('click', close);
-    daily.addEventListener('click', () => { const g = bonus.claimDaily(); if (g) { sound.play('jackpot'); ui.toast(`+${fmt(g)} DaveCoins, merci le roi !`, 'win'); } paint(); });
-    rescue.addEventListener('click', () => { const g = bonus.claimRescue(); if (g) { sound.play('coin'); ui.toast(`+${fmt(g)} DaveCoins, reviens plus fort !`, 'win'); } paint(); });
+
+    daily.addEventListener('click', () => {
+      if (spinning || bonus.dailyLeft() > 0) return;
+      const idx = bonus.drawDaily();
+      spinning = true; hi = null; paint();
+      sound.play('whoosh');
+      // angle final : la case idx s'arrête sous le pointeur, avec 6 tours complets
+      const from = ang;
+      const base = from - (from % (Math.PI * 2)) + Math.PI * 2 * 6;
+      const to = base + (Math.PI * 2 - idx * seg) + (rng.float() - 0.5) * seg * 0.6;
+      const t0 = performance.now(), dur = 5200;
+      let lastSeg = -1;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur);
+        ang = from + (to - from) * (1 - Math.pow(1 - k, 3.4));
+        const sIdx = Math.floor((ang + seg / 2) / seg);
+        if (sIdx !== lastSeg) { lastSeg = sIdx; sound.play('tick', { p: 2 * (1 - k) }); }
+        drawDaily(g, S, ang, null);
+        if (k < 1 && modal.isConnected) { requestAnimationFrame(step); return; }
+        // récompense
+        hi = idx;
+        drawDaily(g, S, ang, hi);
+        const gain = bonus.claimDaily(idx);
+        spinning = false;
+        paint();
+        const big = gain >= 1000;
+        sound.play(big ? 'jackpot' : 'win', { x: gain / 100 });
+        if (big) sound.play('slam');
+        ui.burst(box, { n: big ? 70 : 30, colors: ['#ffc145', '#ff6b2c', '#ffffff'], spread: big ? 2.4 : 1.4 });
+        ui.coinRain(card, big ? 60 : 25);
+        ui.shake(card, big ? 2 : 1);
+        ui.floatText(box, '+' + fmt(gain));
+        ui.toast(`Roue quotidienne : +${fmt(gain)} DaveCoins`, 'win');
+      };
+      requestAnimationFrame(step);
+    });
+    rescue.addEventListener('click', () => { const g2 = bonus.claimRescue(); if (g2) { sound.play('coin'); ui.toast(`+${fmt(g2)} DaveCoins, reviens plus fort !`, 'win'); } paint(); });
   }
+
 
   /* ---------- Lobby ---------- */
   function renderLobby(view) {
@@ -236,10 +322,10 @@
         <div class="hero__text">
           <div class="hero__code">${new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(user)} · ${games.list.length} jeux en ligne</div>
           <h1 class="js-split">Le roi t’attend <em>en orbite</em></h1>
-          <p>Machines à sous, table, caisses et roue en direct. Ton bonus quotidien de ${fmt(bonus.DAILY_BONUS)} DaveCoins t’attend dans le coffre.</p>
+          <p>Machines à sous, table, caisses et roue en direct. Ta roue quotidienne t’attend : jusqu’à ${fmt(bonus.DAILY_MAX)} DaveCoins toutes les 12 h.</p>
           <div class="hero__cta">
             <a class="btn btn--primary btn--lg js-mag" href="#/jeu/${featured.id}">${I('play', 'i--sm')}Jouer à ${featured.name}</a>
-            <button class="btn btn--ghost btn--lg hero-bonus js-mag" type="button">${I('gift', 'i--sm')}Bonus du jour</button>
+            <button class="btn btn--ghost btn--lg hero-bonus js-mag" type="button">${I('gift', 'i--sm')}Roue du jour</button>
           </div>
         </div>
         <div class="hero__art"><div class="orbit orbit-spin o1"></div><div class="orbit orbit-spin rev o2"></div><div class="king"><img src="${IMG}jpz.png" alt="Jean-Pascal Zadi"></div></div>
@@ -302,7 +388,8 @@
   }
 
   function tickerHtml() {
-    const crew = [['Olman', 'olman.png'], ['Tdam', 'tdam.png'], ['Sévaré', 'sevare.png'], ['Slymefire', 'slymefire.png'], ['AXB', 'axb.png'], ['Sauce Blanche', 'sauceblanche.png']];
+    const crew = [['Olman', 'olman.png'], ['Tdam', 'tdam.png'], ['Sévaré', 'sevare.png'], ['Slymefire', 'slymefire.png'], ['AXB', 'axb.png'], ['Sauce Blanche', 'sauceblanche.png'],
+      ['Billy', 'billy.jpg'], ['Carl', 'carl.jpg'], ['Linkay', 'linkay.jpg'], ['Lucasco', 'lucasco.jpg'], ['Petit Bonnin', 'petitbonnin.jpg'], ['Yohan', 'yohan.jpg'], ['Tddam', 'tddam.jpg']];
     return Array.from({ length: 10 }, () => {
       const [name, img] = rng.pick(crew);
       const g = rng.pick(games.list);

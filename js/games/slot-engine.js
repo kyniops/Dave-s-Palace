@@ -6,35 +6,35 @@
 
   // pays = gains en multiple de la mise PAR LIGNE pour 3, 4, 5 symboles alignés depuis la gauche
   const SYMBOLS = {
-    wild:   { kind: 'wild',    img: 'jpz.png',          pays: [60, 300, 1200] },
-    scat:   { kind: 'scatter', img: 'davecoin.png' },
-    casino: { kind: 'high',    img: 'casino.png',       pays: [50, 180, 700] },
-    axb:    { kind: 'high',    img: 'axb.png',          pays: [35, 120, 500] },
-    sauce:  { kind: 'high',    img: 'sauceblanche.png', pays: [35, 120, 500] },
-    tdam:   { kind: 'mid',     img: 'tdam.png',         pays: [25, 70, 250] },
-    slyme:  { kind: 'mid',     img: 'slymefire.png',    pays: [25, 70, 250] },
-    sevare: { kind: 'mid',     img: 'sevare.png',       pays: [18, 60, 180] },
-    olman:  { kind: 'mid',     img: 'olman.png',        pays: [18, 60, 180] },
-    A:      { kind: 'low',     glyph: 'A', pays: [12, 35, 120] },
-    K:      { kind: 'low',     glyph: 'K', pays: [12, 35, 120] },
-    Q:      { kind: 'low',     glyph: 'Q', pays: [10, 30, 100] }
+    wild:      { kind: 'wild',    img: 'jpz.png',         pays: [60, 300, 1200] },
+    scat:      { kind: 'scatter', img: 'jpz2.jpg' },
+    casino:    { kind: 'high',    img: 'casino.png',      pays: [50, 180, 700] },
+    lucasco:   { kind: 'high',    img: 'lucasco.jpg',     pays: [35, 120, 500] },
+    olmanaura: { kind: 'high',    img: 'olmanaura.jpg',   pays: [35, 120, 500] },
+    tddam:     { kind: 'mid',     img: 'tddam.jpg',       pays: [25, 70, 250] },
+    billy:     { kind: 'mid',     img: 'billy.jpg',       pays: [25, 70, 250] },
+    linkay:    { kind: 'mid',     img: 'linkay.jpg',      pays: [18, 60, 180] },
+    yohan:     { kind: 'mid',     img: 'yohan.jpg',       pays: [18, 60, 180] },
+    A:         { kind: 'low',     glyph: 'A', pays: [12, 35, 120] },
+    K:         { kind: 'low',     glyph: 'K', pays: [12, 35, 120] },
+    Q:         { kind: 'low',     glyph: 'Q', pays: [10, 30, 100] }
   };
 
   // Nombre d'exemplaires de chaque symbole sur chaque rouleau (rouleau 1 → 5).
   // Réglé pour un RTP de 96,1 % (calcul exact : voir README), ~35 % de tours gagnants, bonus ≈ 1 tour sur 180.
   const WEIGHTS = {
-    wild:   [0, 5, 5, 5, 5],
-    scat:   [2, 2, 2, 2, 2],
-    casino: [3, 3, 3, 3, 3],
-    axb:    [4, 4, 4, 4, 4],
-    sauce:  [4, 4, 4, 4, 4],
-    tdam:   [5, 5, 5, 5, 5],
-    slyme:  [5, 5, 5, 5, 5],
-    sevare: [6, 6, 6, 6, 6],
-    olman:  [6, 6, 6, 6, 6],
-    A:      [10, 10, 10, 10, 10],
-    K:      [10, 10, 10, 10, 10],
-    Q:      [11, 11, 11, 11, 11]
+    wild:      [0, 5, 5, 5, 5],
+    scat:      [2, 2, 2, 2, 2],
+    casino:    [3, 3, 3, 3, 3],
+    lucasco:   [4, 4, 4, 4, 4],
+    olmanaura: [4, 4, 4, 4, 4],
+    tddam:     [5, 5, 5, 5, 5],
+    billy:     [5, 5, 5, 5, 5],
+    linkay:    [6, 6, 6, 6, 6],
+    yohan:     [6, 6, 6, 6, 6],
+    A:         [10, 10, 10, 10, 10],
+    K:         [10, 10, 10, 10, 10],
+    Q:         [11, 11, 11, 11, 11]
   };
 
   const LINES = [
@@ -47,8 +47,7 @@
   // Scatters : free spins accordés et gain direct (× mise totale) selon le nombre visible
   const SCATTER = { 3: { spins: 15, pay: 2 }, 4: { spins: 20, pay: 10 }, 5: { spins: 25, pay: 50 } };
   const FS_MULT = 2;         // tous les gains sont doublés pendant les free spins
-  const BONUS_BUY = 30;      // prix de l'achat du bonus (15 free spins), en multiple de la mise — RTP ≈ 95 %
-
+  
   /** Générateur pseudo-aléatoire à graine (les rouleaux sont identiques à chaque chargement). */
   function mulberry32(a) {
     return function () {
@@ -124,7 +123,7 @@
     return { lines, scatter, total: Math.round(total * 100) / 100 };
   }
 
-  const api = { SYMBOLS, WEIGHTS, LINES, SCATTER, FS_MULT, BONUS_BUY, STRIPS, spin, visible, evaluate, linePay };
+  const api = { SYMBOLS, WEIGHTS, LINES, SCATTER, FS_MULT, STRIPS, spin, visible, evaluate, linePay };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.DaveSlot = api;
 })(typeof window !== 'undefined' ? window : globalThis);

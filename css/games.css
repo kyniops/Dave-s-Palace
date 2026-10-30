@@ -373,10 +373,6 @@
 /* =================== DaveCases =================== */
 .cases-stage { justify-content: flex-start; }
 .cases { display: flex; flex-direction: column; gap: 18px; width: 100%; }
-.cases__head { display: flex; align-items: center; gap: 14px; }
-.cases__head img { width: 52px; height: 52px; border-radius: 0; object-fit: cover; object-position: top; border: 1px solid var(--line-3); }
-.cases__head h3 { font-family: var(--display); font-size: 18px; letter-spacing: -.02em; }
-.cases__head b { color: var(--text); font-weight: 500; }
 .cases__strips { display: flex; flex-direction: column; gap: 10px; }
 .strip-row { display: flex; align-items: center; gap: 10px; border-radius: var(--r-lg); transition: background .3s; }
 .strip-row.lead .ptag { border-color: var(--line-3); }
@@ -404,19 +400,7 @@
 .drop .loot { width: 100%; height: 112px; }
 .drop__pct { font-size: 12px; color: var(--text); }
 .drop__rar { font-size: 11px; color: var(--r); font-weight: 600; }
-.case-pick { display: grid; gap: 6px; }
-.case-opt { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 0; border: 1px solid var(--line-2); background: var(--surface); text-align: left; font-size: 13px; font-weight: 600; transition: border-color .15s, background .15s; }
-.case-opt img { width: 36px; height: 36px; border-radius: 0; object-fit: cover; object-position: top; }
-.case-opt b { font-weight: 500; color: var(--muted); }
-.case-opt:hover:not(:disabled) { border-color: var(--line-3); }
-.case-opt.on { border-color: var(--accent); background: var(--accent-soft); }
-.case-opt.on b { color: var(--accent); }
-.case-opt:disabled { opacity: .5; }
 .stack-sm { display: flex; flex-direction: column; gap: 14px; }
-.art-case { display: grid; place-items: center; }
-.case-box { position: relative; width: 120px; height: 96px; border-radius: 0; background: linear-gradient(180deg, #2a3042, #151926); border: 1px solid var(--line-3); display: grid; place-items: center; box-shadow: 0 20px 30px -12px rgba(0,0,0,.9); }
-.case-box::before { content: ''; position: absolute; left: 0; right: 0; top: 34%; height: 8px; background: #ffc65c; }
-.case-box img { position: relative; width: 58px; height: 58px; border-radius: 50%; object-fit: cover; object-position: top; border: 3px solid #ffc65c; background: #0b0d15; }
 @media (max-width: 600px) { .ptag { width: 70px; font-size: 11px; } .ptag img { width: 28px; height: 28px; } .loot { width: 86px; } .strip { height: 116px; } }
 
 /* =================== DaveTower =================== */
@@ -480,3 +464,95 @@
 .wbet.lose { opacity: .4; }
 .wdot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); border: 1px solid rgba(255,255,255,.25); }
 @media (max-width: 700px) { .wbets { grid-template-columns: 1fr 1fr; } }
+
+/* =================== DaveMachine : bonus Free JPZ =================== */
+.sym.s-scat img { border-radius: 50%; object-fit: cover; object-position: top; box-shadow: 0 0 0 3px var(--coin), 0 8px 18px rgba(0,0,0,.6); }
+.fs-intro--jpz { flex-direction: row; gap: 28px; align-items: center; text-align: left; }
+.fs-intro--jpz img { width: min(260px, 38vw); aspect-ratio: 1; object-fit: cover; object-position: 30% 20%; clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px); box-shadow: 0 0 0 2px var(--coin); animation: jpz-in .7s var(--ease) both; }
+.fs-intro--jpz > div { display: flex; flex-direction: column; }
+.fs-intro--jpz strong { color: var(--coin); }
+@keyframes jpz-in { from { transform: translateX(-40px) rotate(-6deg) scale(.8); opacity: 0; } }
+
+/* ambiance pendant les free spins */
+.stage.fs-on { border-color: rgba(255,193,69,.5); }
+.stage.fs-on::before { content: ''; position: absolute; inset: -50%; z-index: 0; pointer-events: none; background: repeating-conic-gradient(from 0deg, rgba(255,193,69,.07) 0 10deg, transparent 10deg 30deg); animation: fs-rays 14s linear infinite; }
+.stage.fs-on > .slot5 { position: relative; z-index: 1; }
+@keyframes fs-rays { to { transform: rotate(360deg); } }
+.slot5.fs { border-color: var(--coin); animation: fs-frame 1.2s ease-in-out infinite; }
+@keyframes fs-frame { 50% { border-color: var(--accent); } }
+.slot5.fs .slot5__top strong { color: var(--coin); }
+.fs-banner { background: rgba(255,193,69,.1) !important; border-color: rgba(255,193,69,.5) !important; color: #ffe2a8 !important; }
+.fs-banner__count, .fs-banner__count b { color: var(--coin) !important; }
+.fs-banner__mult { background: var(--coin) !important; color: #1f1300 !important; animation: blink 0.8s steps(2) infinite; }
+body.fs-party .topbar::after { background: linear-gradient(90deg, transparent, var(--coin), transparent); animation-duration: 1.6s; }
+body.fs-party .nav-ind { background: var(--coin); }
+body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
+@keyframes fs-wallet { 50% { box-shadow: inset 0 0 0 1px var(--coin); } }
+
+/* fin du bonus : compteur qui monte */
+.fs-sum { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 40px 60px; text-align: center; }
+.fs-sum__rays { position: absolute; left: 50%; top: 50%; width: 640px; height: 640px; margin: -320px 0 0 -320px; background: repeating-conic-gradient(rgba(255,193,69,.12) 0 9deg, transparent 9deg 20deg); -webkit-mask-image: radial-gradient(circle, #000 15%, transparent 65%); mask-image: radial-gradient(circle, #000 15%, transparent 65%); animation: fs-rays 6s linear infinite; z-index: -1; }
+.fs-sum__bulbs { position: absolute; inset: -6px; pointer-events: none; }
+.fs-sum__bulbs i { position: absolute; width: 8px; height: 8px; background: var(--coin); left: calc(50% + 46% * cos(var(--i) * 15deg)); top: calc(50% + 46% * sin(var(--i) * 15deg)); animation: bulb .6s steps(2) infinite; animation-delay: calc(var(--i) * -0.05s); }
+@keyframes bulb { 50% { background: var(--accent); opacity: .4; } }
+.fs-sum__label { font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--coin); }
+.fs-sum__amount { font-family: var(--display); font-size: clamp(54px, 10vw, 104px); font-weight: 700; line-height: 1; color: #fff; }
+.fs-sum__amount.slam { animation: slam .6s cubic-bezier(.2,1.8,.4,1); color: var(--coin); }
+@keyframes slam { from { transform: scale(1.45); } }
+.fs-sum__x { font-style: normal; font-family: var(--display); font-size: 20px; color: var(--accent); }
+.fs-sum__meta { font-size: 13px; color: var(--muted); }
+@media (max-width: 600px) { .fs-intro--jpz { flex-direction: column; text-align: center; } .fs-sum { padding: 24px; } }
+
+/* =================== DaveCases : vitrine et caisses =================== */
+.game.is-list { grid-template-columns: 1fr; }
+.game.is-list .panel { display: none; }
+.vault { width: 100%; align-self: stretch; }
+.vault__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+.vault__head h3 { font-size: var(--t-xl); text-transform: uppercase; }
+.vault__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; perspective: 1200px; }
+.vault__item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 14px 18px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.25)); color: var(--text); transition: transform .5s var(--ease), border-color .3s; transform-style: preserve-3d; }
+.vault__item::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--c) 18%, transparent), transparent 60%); opacity: .6; transition: opacity .3s; pointer-events: none; }
+.vault__item:hover { border-color: var(--c); }
+.vault__item:hover::before { opacity: 1; }
+.vault__item:hover .crate__lid { transform: translateY(-10px) rotate(-5deg); }
+.vault__item:hover .crate { transform: translateY(-6px); }
+.vault__name { position: relative; margin-top: 10px; font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-align: center; }
+.vault__price { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: var(--c); color: #0a0a0a; font-family: var(--display); font-size: 16px; font-weight: 700; clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px); }
+.vault__best { position: relative; font-size: 12px; color: var(--muted); }
+.vault__best b { color: var(--text); }
+
+/* la caisse */
+.crate { --w: 150px; position: relative; width: var(--w); height: calc(var(--w) * .82); transition: transform .5s var(--ease); }
+.crate--lg { --w: 190px; }
+.crate--sm { --w: 112px; }
+.crate__body { position: absolute; left: 0; right: 0; bottom: 0; height: 74%;
+  background:
+    linear-gradient(90deg, var(--c) 0 9%, transparent 9% 91%, var(--c) 91%),
+    radial-gradient(circle, #d9dce4 0 2px, transparent 2.5px) 6% 12% / 100% 100% no-repeat,
+    radial-gradient(circle, #d9dce4 0 2px, transparent 2.5px) 94% 12% / 100% 100% no-repeat,
+    linear-gradient(180deg, #2a2f3e, #141721 60%, #0d0f16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), inset 0 -4px 0 rgba(0,0,0,.4);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px)); }
+.crate__body::after { content: ''; position: absolute; left: 9%; right: 9%; top: 46%; height: 4px; background: rgba(0,0,0,.35); }
+.crate__lid { position: absolute; left: -4%; right: -4%; top: 0; height: 30%; z-index: 2; transform-origin: 10% 100%; transition: transform .5s var(--ease);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 85%, #fff), var(--c) 55%, color-mix(in srgb, var(--c) 70%, #000));
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
+.crate__lid i { position: absolute; left: 50%; top: 22%; width: 34%; height: 4px; transform: translateX(-50%); background: rgba(0,0,0,.3); }
+.crate__lock { position: absolute; left: 50%; top: -2px; z-index: 3; width: 16%; height: 18%; transform: translateX(-50%); background: linear-gradient(180deg, #e9ecf2, #9aa0ae); clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%); }
+.crate__emblem { position: absolute; left: 50%; top: 54%; width: 40%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 3px var(--c), 0 0 0 5px #0d0f16, 0 6px 14px rgba(0,0,0,.7); background: #0d0f16; }
+.crate__emblem img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.crate__shadow { position: absolute; left: 6%; right: 6%; bottom: -14px; height: 12px; border-radius: 50%; background: rgba(0,0,0,.6); filter: blur(6px); z-index: -1; }
+.crate.open .crate__lid { transform: translate(-18%, -160%) rotate(-38deg); opacity: 0; transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .6s ease .2s; }
+.crate.open .crate__body { animation: crate-pop .5s var(--ease); }
+@keyframes crate-pop { 30% { transform: scaleY(.92) scaleX(1.05); } }
+.art-case { display: grid; place-items: center; }
+
+/* page d'une caisse */
+.cases__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cases__hero { display: flex; align-items: center; gap: 30px; padding: 22px 26px 26px; border: 1px solid var(--line); background: radial-gradient(circle at 15% 50%, color-mix(in srgb, var(--c) 16%, transparent), transparent 55%), rgba(0,0,0,.3); }
+.cases__hero h3 { font-size: var(--t-2xl); text-transform: uppercase; }
+.cases__price { display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; font-family: var(--display); font-size: 20px; }
+.cases__price b { color: var(--c); }
+.cases__dropshead { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; }
+.cases__dropshead h4 { margin: 0; font-family: var(--display); font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
+@media (max-width: 600px) { .cases__hero { flex-direction: column; text-align: center; } .crate--lg { --w: 150px; } }

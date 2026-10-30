@@ -405,3 +405,14 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 @media (prefers-reduced-motion: reduce) {
   .orbit-spin, .landing__king img, .hero__art .king img, .ticker__track, .topbar::after { animation: none !important; }
 }
+
+/* ---------- Roue quotidienne ---------- */
+.modal__card--wheel { width: min(440px, 100%); text-align: center; overflow: hidden; }
+.modal__card--wheel h3 { justify-content: center; }
+.dwheel { position: relative; width: min(320px, 76vw); aspect-ratio: 1; margin: 6px auto 18px; }
+.dwheel canvas { width: 100%; height: 100%; display: block; border-radius: 50%; box-shadow: 0 0 0 6px #10131c, 0 0 0 7px var(--line-3), 0 30px 60px -20px rgba(0,0,0,.9); }
+.dwheel__pointer { position: absolute; left: 50%; top: -16px; transform: translateX(-50%); color: var(--accent); z-index: 2; }
+.dwheel__pointer svg { display: block; width: 26px; height: 24px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.7)); }
+.dwheel__hub { position: absolute; inset: 37%; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 4px #10131c, 0 0 0 5px var(--accent); }
+.dwheel__hub img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.dwheel__btn { margin-bottom: 6px; }

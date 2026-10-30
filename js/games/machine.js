@@ -1,4 +1,4 @@
-/* DaveMachine — machine à sous 5×3, 20 lignes, wild JPZ, scatter DaveCoin et free spins ×2.
+/* DaveMachine — machine à sous 5×3, 20 lignes, wild JPZ, cartes Free JPZ (scatter) et free spins ×2.
  * Les maths sont dans slot-engine.js (RTP 96,1 %).
  */
 (function () {
@@ -7,13 +7,14 @@
   const S = window.DaveSlot;
   const ABORT = Symbol('abort');
   const TIERS = [{ x: 100, label: 'Epic win' }, { x: 40, label: 'Mega win' }, { x: 15, label: 'Big win' }];
-  const ROUND = new Set(['axb', 'sauce', 'tdam', 'slyme', 'sevare', 'olman']);
-  const NAMES = { wild: 'JPZ (wild)', scat: 'DaveCoin', casino: 'Casino', axb: 'AXB', sauce: 'Sauce Blanche', tdam: 'Tdam', slyme: 'Slymefire', sevare: 'Sévaré', olman: 'Olman', A: 'A', K: 'K', Q: 'Q' };
+  const ROUND = new Set(['lucasco', 'olmanaura', 'tddam', 'billy', 'linkay', 'yohan', 'scat']);
+  const NAMES = { wild: 'JPZ (wild)', scat: 'Free JPZ', casino: 'La Machine', lucasco: 'Lucasco', olmanaura: 'Olman Aura', tddam: 'Tddam', billy: 'Billy', linkay: 'Linkay', yohan: 'Yohan', A: 'A', K: 'K', Q: 'Q' };
+  const AUTO_COUNTS = [10, 25, 50, 100, Infinity];
 
   function symHtml(k) {
     const d = S.SYMBOLS[k];
     if (d.glyph) return `<div class="sym k-low s-${k}" data-k="${k}"><b>${d.glyph}</b></div>`;
-    const tag = k === 'wild' ? '<span class="sym__tag">Wild</span>' : k === 'scat' ? '<span class="sym__tag">Bonus</span>' : '';
+    const tag = k === 'wild' ? '<span class="sym__tag">Wild</span>' : k === 'scat' ? '<span class="sym__tag">Free</span>' : '';
     return `<div class="sym k-${d.kind} s-${k}${ROUND.has(k) ? ' round' : ''}" data-k="${k}"><img src="${IMG}${d.img}" alt="${NAMES[k]}" draggable="false">${tag}</div>`;
   }
   const miniSym = (k) => {
@@ -24,10 +25,10 @@
   const rulesHtml = () => `
     <p><strong>5 rouleaux, 3 rangées, 20 lignes.</strong> Les gains se lisent de gauche à droite à partir du premier rouleau. Ta mise est répartie sur les 20 lignes.</p>
     <ul>
-      <li><strong>JPZ est le Wild</strong> (rouleaux 2 à 5) : il remplace tous les symboles sauf la DaveCoin.</li>
-      <li><strong>3 DaveCoins ou plus</strong> n’importe où : <strong>15 free spins</strong> (20 pour 4, 25 pour 5) + gain direct ×2 / ×10 / ×50 la mise.</li>
-      <li>Pendant les free spins, <strong>tous les gains sont doublés</strong>. Les DaveCoins qui retombent <strong>ajoutent</strong> des free spins.</li>
-      <li><strong>Acheter le bonus</strong> : ${S.BONUS_BUY}× la mise pour déclencher directement 15 free spins.</li>
+      <li><strong>JPZ couronné est le Wild</strong> (rouleaux 2 à 5) : il remplace tous les symboles sauf la carte Free JPZ.</li>
+      <li><strong>3 cartes Free JPZ ou plus</strong> n’importe où : <strong>15 free spins</strong> (20 pour 4, 25 pour 5) + gain direct ×2 / ×10 / ×50 la mise.</li>
+      <li>Pendant les free spins, <strong>tous les gains sont doublés</strong>. Les cartes Free JPZ qui retombent <strong>ajoutent</strong> des free spins.</li>
+      <li><strong>Tirage auto</strong> : choisis 10, 25, 50, 100 tours ou illimité, et arrête quand tu veux.</li>
     </ul>
     <p class="muted">Table des gains (× la mise totale) pour 3 / 4 / 5 symboles :</p>
     <div class="paytable">${Object.keys(S.SYMBOLS).filter((k) => k !== 'scat').map((k) => `<div>${miniSym(k)}<span>${S.SYMBOLS[k].pays.map((p) => '×' + round2(p / S.LINES.length)).join(' · ')}</span></div>`).join('')}
@@ -49,11 +50,15 @@
       const lineOut = ui.readout(panel, 'Mise par ligne', '');
       const winOut = ui.readout(panel, 'Dernier gain', '—');
       const spinBtn = ui.button(panel, 'Lancer');
+      const autoSeg = ui.segmented(panel, {
+        label: 'Tirage auto', value: 10,
+        options: AUTO_COUNTS.map((n) => ({ value: n === Infinity ? 'inf' : n, label: n === Infinity ? '∞' : String(n) })),
+        onChange: () => {}
+      });
       const row = ui.el('<div class="panel__row"></div>');
       panel.appendChild(row);
-      const autoBtn = ui.button(row, ui.icon('repeat', 'i--sm') + 'Auto', 'btn btn--ghost');
+      const autoBtn = ui.button(row, ui.icon('repeat', 'i--sm') + 'Lancer l’auto', 'btn btn--ghost');
       const turboBtn = ui.button(row, ui.icon('zap', 'i--sm') + 'Turbo', 'btn btn--ghost');
-      const buyBtn = ui.button(panel, '', 'btn btn--ghost btn--block buy-btn');
       panel.appendChild(ui.el('<p class="note">Espace pour lancer · clic sur une annonce pour la passer</p>'));
 
       stage.classList.add('slot-stage');
@@ -111,9 +116,8 @@
       function paintPanel() {
         const bet = betIn.get();
         lineOut.set(`${ui.coin('coin--xs')} ${fmt(round2(bet / S.LINES.length))}`);
-        buyBtn.innerHTML = `${ui.icon('gift', 'i--sm')}Acheter le bonus · <span class="num">${fmt(round2(bet * S.BONUS_BUY))}</span>`;
         spinBtn.disabled = busy;
-        buyBtn.disabled = busy || auto;
+        autoSeg.disable(auto);
         betIn.disable(busy || auto);
       }
       betIn.onChange(paintPanel);
@@ -131,7 +135,9 @@
         const cell = cellSize();
         slot.classList.add('spinning');
         sound.play('spin');
-        // Anticipation : dès que 2 DaveCoins sont visibles, les rouleaux suivants ralentissent
+        const whir = sound.reels(5);
+        let stopped = 0;
+        // Anticipation : dès que 2 cartes Free JPZ sont visibles, les rouleaux suivants ralentissent
         let offset = 0, seen = 0;
         const plan = grid.map((col, r) => {
           const anticip = seen >= 2;
@@ -162,6 +168,7 @@
             reels[r].classList.remove('anticip');
             reels[r].animate([{ transform: 'translateY(8px)' }, { transform: 'translateY(-2px)' }, { transform: 'translateY(0)' }], { duration: 220, easing: 'ease-out' });
             sound.play('reelStop', { i: r });
+            whir.set(5 - ++stopped);
             const sc = [...strip.children].filter((n) => n.dataset.k === 'scat');
             if (sc.length) {
               sc.forEach((n) => { n.classList.add('land'); ui.burst(n, { n: 14, colors: ['#ffc65c', '#ffffff'] }); });
@@ -169,7 +176,7 @@
             }
           });
         });
-        await Promise.all(anims);
+        try { await Promise.all(anims); } finally { whir.stop(); }
         slot.classList.remove('spinning');
         if (!alive) throw ABORT;
       }
@@ -259,58 +266,118 @@
       }
       async function introBonus(spins) {
         sound.play('fs');
-        ui.coinRain(stage, 30);
+        ui.coinRain(stage, 40);
         ui.flash(stage);
-        await overlay(`<div class="fs-intro"><span>Bonus déclenché</span><strong class="num">${spins}</strong><em>free spins · gains ×${S.FS_MULT}</em></div>`, 2800, 'fs-start');
+        ui.shake(slot, 2);
+        await overlay(`<div class="fs-intro fs-intro--jpz"><img src="${IMG}freejpz.jpg" alt=""><div><span>3 cartes Free JPZ</span><strong class="num">${spins}</strong><em>free spins · tous les gains ×${S.FS_MULT}</em></div></div>`, 3200, 'fs-start');
       }
+      // Effets d'ambiance pendant tout le bonus : lumières, pluie de pièces, musique
+      let party = null;
+      function startParty() {
+        stage.classList.add('fs-on');
+        document.body.classList.add('fs-party');
+        const music = sound.fsMusic();
+        const rain = setInterval(() => { if (alive) ui.coinRain(stage, 6); }, 2600);
+        party = { stop() { music.stop(); clearInterval(rain); stage.classList.remove('fs-on'); document.body.classList.remove('fs-party'); } };
+      }
+      function stopParty() { if (party) { party.stop(); party = null; } }
+
+      /** Fin du bonus : le gain total monte avec des tics de plus en plus aigus, lumières et pièces. */
+      async function fsSummary(total, played) {
+        const dur = Math.min(6500, 2200 + Math.sqrt(total / session.bet) * 400);
+        overlayEl.className = 'slot5__overlay summary';
+        overlayEl.innerHTML = `<div class="fs-sum">
+          <div class="fs-sum__rays"></div>
+          <div class="fs-sum__bulbs">${Array.from({ length: 24 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</div>
+          <span class="fs-sum__label">Gain total du bonus</span>
+          <strong class="fs-sum__amount num">0</strong>
+          <em class="fs-sum__x num"></em>
+          <span class="fs-sum__meta">${played} free spins joués</span>
+        </div>`;
+        overlayEl.hidden = false;
+        const amt = overlayEl.querySelector('.fs-sum__amount');
+        const xs = overlayEl.querySelector('.fs-sum__x');
+        let skip = false, last = 0;
+        overlayEl.onclick = () => (skip = true);
+        ui.coinRain(stage, 50);
+        const t0 = performance.now();
+        await new Promise((resolve) => {
+          const step = (now) => {
+            const k = skip ? 1 : Math.min(1, (now - t0) / dur);
+            const e = 1 - Math.pow(1 - k, 2.2);
+            const v = total * e;
+            amt.textContent = fmt(round2(v));
+            xs.textContent = '×' + (v / session.bet).toFixed(1);
+            if (now - last > 55 && k < 1) { last = now; sound.play('count', { k: e }); }
+            if (Math.random() < 0.06 && k < 1) ui.burst(amt, { n: 6, colors: ['#ffc145', '#ffffff', '#ff6b2c'], spread: 1.6 });
+            if (k < 1 && alive) requestAnimationFrame(step); else resolve();
+          };
+          requestAnimationFrame(step);
+        });
+        amt.classList.add('slam');
+        sound.play('slam');
+        ui.shake(slot, 3);
+        ui.flash(stage);
+        ui.burst(amt, { n: 60, colors: ['#ffc145', '#ffffff', '#ff6b2c'], spread: 2.4 });
+        ui.coinRain(stage, 70);
+        await wait(skip ? 900 : 2200);
+        overlayEl.hidden = true;
+        overlayEl.onclick = null;
+      }
+
       async function runBonus() {
         slot.classList.add('fs');
         banner.hidden = false;
         paintBanner();
-        while (session.fsLeft > 0) {
-          session.fsLeft--;
-          session.fsPlayed++;
-          paintBanner();
-          setMsg(`Free spin ${session.fsPlayed} · gains ×${S.FS_MULT}`);
-          const { grid } = S.spin(rng.float);
-          const res = S.evaluate(grid, session.bet, S.FS_MULT);
-          session.win += res.total;
-          session.fsWin += res.total;
-          session.fsLeft += res.scatter.spins;
-          session.fsTotal += res.scatter.spins;
-          await spinReels(grid);
-          await showWins(res, true);
-          paintBanner();
-          if (res.scatter.spins) {
-            sound.play('fs');
-            ui.flash(stage);
-            await overlay(`<div class="fs-intro"><span>Relance !</span><strong class="num">+${res.scatter.spins}</strong><em>free spins ajoutés</em></div>`, 2200, 'fs-start');
+        startParty();
+        try {
+          while (session.fsLeft > 0) {
+            session.fsLeft--;
+            session.fsPlayed++;
+            paintBanner();
+            banner.animate([{ transform: 'scale(1.03)' }, { transform: 'none' }], { duration: 300 });
+            setMsg(`Free spin ${session.fsPlayed} · gains ×${S.FS_MULT}`);
+            const { grid } = S.spin(rng.float);
+            const res = S.evaluate(grid, session.bet, S.FS_MULT);
+            session.win += res.total;
+            session.fsWin += res.total;
+            session.fsLeft += res.scatter.spins;
+            session.fsTotal += res.scatter.spins;
+            await spinReels(grid);
+            if (res.total > 0) {
+              ui.floatText(fsWinEl, '+' + fmt(res.total));
+              if (res.total >= session.bet * 10) { ui.shake(slot, 1); ui.coinRain(stage, 20); }
+            }
+            await showWins(res, true);
+            paintBanner();
+            if (res.scatter.spins) {
+              sound.play('fs');
+              ui.flash(stage);
+              ui.shake(slot, 2);
+              await overlay(`<div class="fs-intro fs-intro--jpz"><img src="${IMG}freejpz.jpg" alt=""><div><span>Relance !</span><strong class="num">+${res.scatter.spins}</strong><em>free spins ajoutés</em></div></div>`, 2400, 'fs-start');
+            }
+            await wait(turbo ? 250 : 450);
           }
-          await wait(turbo ? 250 : 450);
+          await fsSummary(round2(session.fsWin), session.fsPlayed);
+        } finally {
+          stopParty();
+          slot.classList.remove('fs');
+          banner.hidden = true;
         }
-        sound.play('win', { x: 20 });
-        await overlay(`<div class="fs-intro"><span>Bonus terminé</span><strong class="num">${fmt(round2(session.fsWin))}</strong><em>${session.fsPlayed} free spins joués</em></div>`, 2800);
-        slot.classList.remove('fs');
-        banner.hidden = true;
       }
 
       /* ---------- Partie ---------- */
-      async function play(buy = false) {
+      async function play() {
         if (busy) return;
         const bet = betIn.get();
-        const stake = round2(buy ? bet * S.BONUS_BUY : bet);
+        const stake = bet;
         if (!wallet.place(stake)) { stopAuto(); return; }
         betIn.remember();
         busy = true;
         paintPanel();
         session = { bet, stake, win: 0, fsLeft: 0, fsPlayed: 0, fsTotal: 0, fsWin: 0 };
         try {
-          if (buy) {
-            // L'achat équivaut à 3 DaveCoins : gain direct + 15 free spins
-            session.win += S.SCATTER[3].pay * bet;
-            session.fsLeft = session.fsTotal = S.SCATTER[3].spins;
-            await introBonus(session.fsLeft);
-          } else {
+          {
             setMsg('&nbsp;');
             const { grid } = S.spin(rng.float);
             const res = S.evaluate(grid, bet);
@@ -318,7 +385,7 @@
             session.fsLeft = session.fsTotal = res.scatter.spins;
             await spinReels(grid);
             if (res.total > 0) await showWins(res, auto);
-            else setMsg(res.scatter.count === 2 ? 'Presque… 2 DaveCoins !' : 'Pas de gain cette fois');
+            else setMsg(res.scatter.count === 2 ? 'Presque… 2 cartes Free JPZ !' : 'Pas de gain cette fois');
             if (res.scatter.spins) await introBonus(res.scatter.spins);
             else if (!auto) cycleLines(res);
           }
@@ -330,12 +397,16 @@
           settle('machine', s.stake, total, { silent: true });
           winOut.set(total > 0 ? `<span class="pos">+${fmt(total)}</span>` : '0');
           if (total > 0 && s.fsTotal) setMsg(`Total <b class="num">+${fmt(total)}</b>`);
-          await bigWin(total, s.stake);
+          if (!s.fsTotal) await bigWin(total, s.stake);
         } catch (e) {
           if (e !== ABORT) throw e;
           return;
         }
         busy = false;
+        if (auto) {
+          autoLeft--;
+          if (autoLeft <= 0) stopAuto(); else paintAuto();
+        }
         paintPanel();
         if (auto) {
           await sleep(turbo ? 250 : 600);
@@ -343,20 +414,26 @@
         }
       }
 
+      let autoLeft = 0;
+      function paintAuto() {
+        autoBtn.innerHTML = auto ? `${ui.icon('x', 'i--sm')}Stop · <span class="num">${autoLeft === Infinity ? '∞' : autoLeft}</span>` : ui.icon('repeat', 'i--sm') + 'Lancer l’auto';
+        autoBtn.classList.toggle('on', auto);
+      }
       function stopAuto() {
         auto = false;
-        autoBtn.innerHTML = ui.icon('repeat', 'i--sm') + 'Auto';
-        autoBtn.classList.remove('on');
+        autoLeft = 0;
+        paintAuto();
         paintPanel();
       }
       spinBtn.addEventListener('click', () => play());
-      buyBtn.addEventListener('click', () => play(true));
       autoBtn.addEventListener('click', () => {
         if (auto) return stopAuto();
+        const v = autoSeg.get();
+        autoLeft = v === 'inf' ? Infinity : +v;
         auto = true;
-        autoBtn.innerHTML = ui.icon('x', 'i--sm') + 'Stop';
-        autoBtn.classList.add('on');
+        paintAuto();
         paintPanel();
+        sound.play('click');
         if (!busy) play();
       });
       turboBtn.addEventListener('click', () => { turbo = !turbo; turboBtn.classList.toggle('on', turbo); sound.play('click'); });
@@ -371,6 +448,7 @@
       return () => {
         alive = false;
         auto = false;
+        stopParty();
         clearInterval(cycleTimer);
         window.removeEventListener('resize', onResize);
         window.removeEventListener('keydown', onKey);
