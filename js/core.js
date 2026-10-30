@@ -137,6 +137,7 @@
       const amount = DAILY_WHEEL[index][0];
       store.set(bonus._key('bonus'), String(Date.now()));
       wallet.credit(amount);
+      stats.income('daily', amount);
       emit('bonus');
       return amount;
     },
@@ -149,6 +150,7 @@
       if (!bonus.canRescue()) return 0;
       store.set(bonus._key('rescue'), String(Date.now()));
       wallet.credit(RESCUE_AMOUNT);
+      stats.income('rescue', RESCUE_AMOUNT);
       emit('bonus');
       return RESCUE_AMOUNT;
     },
@@ -199,24 +201,57 @@
       used.push({ code, amount, t: Date.now() });
       store.setJson(promo.key(), used);
       wallet.credit(amount);
+      stats.income('promo', amount);
       emit('bonus');
       return { code, amount };
     }
   };
 
   /* ---------- Statistiques ---------- */
+  const dayKey = (t = Date.now()) => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const stats = {
     key() { return 'dp_stats_' + auth.current(); },
-    get() {
+    /** Stats d'un compte (games : détail par jeu, curve : évolution du solde, days : activité par jour, income : bonus, codes, ventes…). */
+    of(name) {
       return Object.assign(
-        { played: 0, wagered: 0, won: 0, biggestWin: 0, biggestMult: 0, perGame: {}, history: [] },
-        store.json(stats.key(), {})
+        { played: 0, wagered: 0, won: 0, wins: 0, biggestWin: 0, biggestMult: 0, perGame: {}, games: {}, days: {}, curve: [], income: {}, history: [], since: null },
+        store.json('dp_stats_' + name, {})
       );
+    },
+    get() { return stats.of(auth.current()); },
+    _point(s) {
+      s.curve.push({ t: Date.now(), b: wallet.get() });
+      if (s.curve.length > 300) s.curve = s.curve.slice(-300);
+      if (!s.since) s.since = Date.now();
+    },
+    _day(s) {
+      const k = dayKey();
+      const keys = Object.keys(s.days).sort();
+      if (keys.length > 60) keys.slice(0, keys.length - 60).forEach((x) => delete s.days[x]);
+      return (s.days[k] = s.days[k] || { n: 0, wagered: 0, won: 0, income: 0 });
+    },
+    /** DaveCoins reçus hors partie : daily, rescue, promo, album, sale. */
+    income(kind, amount) {
+      if (!(amount > 0) || !auth.current()) return;
+      const s = stats.get();
+      s.income[kind] = round2((s.income[kind] || 0) + amount);
+      const d = stats._day(s);
+      d.income = round2(d.income + amount);
+      stats._point(s);
+      store.setJson(stats.key(), s);
+      emit('stats', s);
     },
     record(game, bet, payout) {
       const s = stats.get();
       const mult = bet > 0 ? payout / bet : 0;
       s.played++;
+      if (payout > bet) s.wins++;
+      const g = (s.games[game] = s.games[game] || { n: 0, wagered: 0, won: 0, best: 0 });
+      g.n++; g.wagered = round2(g.wagered + bet); g.won = round2(g.won + payout);
+      if (payout - bet > g.best) g.best = round2(payout - bet);
+      const d = stats._day(s);
+      d.n++; d.wagered = round2(d.wagered + bet); d.won = round2(d.won + payout);
+      stats._point(s);
       s.wagered = round2(s.wagered + bet);
       s.won = round2(s.won + payout);
       if (payout - bet > s.biggestWin) s.biggestWin = round2(payout - bet);
@@ -772,6 +807,7 @@
       inventory._save(d);
       const value = round2(cards.byId[id].value * n);
       wallet.credit(value);
+      stats.income('sale', value);
       return value;
     },
     entries() { return Object.entries(inventory._get().cards).filter(([id]) => cards.byId[id]).map(([id, n]) => ({ card: cards.byId[id], n })); },
@@ -792,6 +828,7 @@
       d.claimed[set.id] = true;
       inventory._save(d);
       wallet.credit(set.reward);
+      stats.income('album', set.reward);
       return set.reward;
     }
   };
@@ -874,5 +911,5 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, promo, jackpot, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
+  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, dayKey, PROMO_CODES, auth, wallet, bonus, promo, jackpot, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
 })();

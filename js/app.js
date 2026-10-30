@@ -24,11 +24,12 @@
     }
     renderShell();
     const view = document.getElementById('view');
-    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page || 'lobby');
+    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page === 'dashboard' ? 'profil' : page || 'lobby');
     if (page === 'caisses') renderGame(view, games.find('cases'), { caseId: arg });
     else if (page === 'jeu' && arg === 'cases') { location.replace('#/caisses'); return; }
     else if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
-    else if (page === 'profil') renderProfile(view);
+    else if (page === 'profil' || page === 'dashboard') renderProfile(view);
+    else if (page === 'admin') unmountView = DP_DASH.admin(view, { rerender: route });
     else if (page === 'inventaire') renderInventory(view);
     else if (page === 'codes') renderCodes(view);
     else renderLobby(view);
@@ -146,9 +147,10 @@
             return list.length ? `<div class="nav-title">${c}</div>` + list.map((g) => `<a class="nav-item" data-nav="${g.id}" href="#/jeu/${g.id}">${I(g.icon)}${g.name}${g.isNew ? '<span class="nav-tag">Nouveau</span>' : ''}</a>`).join('') : '';
           }).join('')}
           <div class="nav-title">Compte</div>
-          <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Profil & stats</a>
+          <a class="nav-item" data-nav="profil" href="#/profil">${I('layout-dashboard')}Dashboard</a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
           <a class="nav-item" data-nav="codes" href="#/codes">${I('ticket')}Codes</a>
+          <a class="nav-item" data-nav="admin" href="#/admin">${I('shield')}Admin</a>
           <button class="nav-item logout" type="button">${I('log-out')}Déconnexion</button>
           <div class="sidebar__foot"><p>Jeu fictif, aucun argent réel. Les DaveCoins n’ont aucune valeur.</p></div>
         </nav>
@@ -676,27 +678,7 @@
 
   /* ---------- Profil ---------- */
   function renderProfile(view) {
-    const s = stats.get();
-    const net = s.won - s.wagered;
-    const fav = Object.entries(s.perGame).sort((a, b) => b[1] - a[1])[0];
-    const favGame = fav && games.find(fav[0]);
-    view.innerHTML = `
-      <div class="page-head">
-        <span class="avatar avatar--lg" data-reveal>${esc(auth.current().charAt(0).toUpperCase())}</span>
-        <div><h1>${esc(auth.current())}</h1><p>Statistiques et historique de ton compte</p></div>
-      </div>
-      <section class="statbar statbar--wide" data-reveal>
-        <div><span>Solde</span><strong>${ui.coin('coin--sm')} ${fmt(wallet.get())}</strong></div>
-        <div><span>Parties</span><strong>${fmt(s.played)}</strong></div>
-        <div><span>Total misé</span><strong>${fmt(s.wagered)}</strong></div>
-        <div><span>Bilan</span><strong class="${net >= 0 ? 'pos' : 'neg'}">${net >= 0 ? '+' : ''}${fmt(net)}</strong></div>
-        <div><span>Plus gros gain</span><strong>${s.biggestWin ? '+' + fmt(s.biggestWin) : '—'}</strong></div>
-        <div><span>Meilleur multiplicateur</span><strong>${s.biggestMult ? fmtMult(s.biggestMult) : '—'}</strong></div>
-        <div><span>Jeu préféré</span><strong>${favGame ? favGame.name : '—'}</strong></div>
-      </section>
-      <div class="section-head"><h2>Historique</h2><span>50 dernières parties</span></div>
-      ${historyTable(s.history)}`;
-    M.reveal(view, '[data-reveal]');
+    unmountView = DP_DASH.player(view, { historyTable, openBonus });
   }
 
   /* ---------- Jeu ---------- */
