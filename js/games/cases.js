@@ -129,6 +129,9 @@
     });
   }
 
+  // Exposé pour la vitrine du lobby
+  DP.cases = { list: CASES, crateHtml, rarity };
+
   DP.games.register({
     id: 'cases',
     name: 'DaveCases',
@@ -143,7 +146,7 @@
       <li><strong>Battle</strong> : tu affrontes 1 à 3 membres de la bande sur 1 à 5 manches avec la même caisse. Le plus gros total remporte <strong>toutes les cartes</strong> de la partie (en cas d’égalité, la valeur est partagée en DaveCoins).</li>
       <li><strong>Collection</strong> : chaque caisse est un album. Possède toutes ses cartes en même temps pour débloquer une récompense unique de ${SET_REWARD}× le prix de la caisse.</li>
       <li>Chaque caisse rend 95 % de son prix en moyenne. Les chances exactes de chaque objet sont affichées sur la page de la caisse.</li></ul>`,
-    mount(root) {
+    mount(root, opts = {}) {
       const { panel, stage } = ui.layout(root);
       const gameEl = root.querySelector('.game');
       let box = null, mode = 'open', count = 1, opps = 1, rounds = 3, busy = false, alive = true;
@@ -185,7 +188,7 @@
       stage.addEventListener('click', (e) => {
         const b = e.target.closest('.vault__item');
         if (b && !busy) { sound.play('whoosh'); showCase(CASES.find((c) => c.id === b.dataset.id)); }
-        if (e.target.closest('.js-back') && !busy) { sound.play('click'); showList(); }
+        if (e.target.closest('.js-back') && !busy) { sound.play('click'); if (location.hash.startsWith('#/caisses/')) history.replaceState(null, '', '#/caisses'); showList(); }
       });
 
       /* ---------- Page d'une caisse ---------- */
@@ -420,7 +423,8 @@
       goBtn.addEventListener('click', () => { if (!busy && box) (mode === 'open' ? openCases : battle)(); });
       const onResize = () => { if (!busy) idleStrips(); };
       window.addEventListener('resize', onResize);
-      showList();
+      const start = CASES.find((c) => c.id === opts.caseId);
+      if (start) showCase(start); else showList();
       paint();
 
       return () => {

@@ -569,3 +569,13 @@ body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
 .lootbox__slot .btn { width: 100%; }
 .lootbox__slot.sold .tcard { opacity: .35; filter: grayscale(.8); }
 .lootbox__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line-2); }
+
+/* =================== DaveTower : portes =================== */
+.door { color: var(--muted); }
+.door .i { width: 26px; height: 26px; stroke-width: 1.5; transition: transform .25s var(--ease), color .2s; }
+.door:not(:disabled):hover .i { color: var(--accent); transform: scale(1.12); }
+.floor.active .door { color: var(--text); }
+.floor.active .door:not(.open) { animation: door-wait 1.6s ease-in-out infinite; }
+.floor.active .door:nth-child(2):not(.open) { animation-delay: .2s; } .floor.active .door:nth-child(3):not(.open) { animation-delay: .4s; } .floor.active .door:nth-child(4):not(.open) { animation-delay: .6s; }
+@keyframes door-wait { 50% { border-color: rgba(255,107,44,.6); } }
+.art-towersvg { width: 62%; height: 86%; }

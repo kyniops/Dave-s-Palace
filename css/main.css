@@ -470,3 +470,24 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
   .tcard__foot b { font-size: 11px; }
   .tcard__count { top: 22px; right: 8px; font-size: 10px; }
 }
+
+/* ---------- Vitrine des caisses dans le lobby ---------- */
+.lobby-vault { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; perspective: 1200px; }
+.lv-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 26px 14px 16px; background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.3)); border: 1px solid var(--line); transition: transform .5s var(--ease), border-color .3s; transform-style: preserve-3d; overflow: hidden; }
+.lv-item::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--c) 22%, transparent), transparent 62%); pointer-events: none; }
+.lv-item:hover { border-color: var(--c); }
+.lv-item:hover .crate__lid { transform: translateY(-10px) rotate(-5deg); }
+.lv-item:hover .crate { transform: translateY(-6px) scale(1.04); }
+.lv-item .crate { --w: 128px; margin-bottom: 8px; }
+.lv-item__name { position: relative; font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-align: center; }
+.lv-item__row { position: relative; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.lv-item__price { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; background: var(--c); color: #0a0a0a; font-family: var(--display); font-weight: 700; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }
+.lv-item__album { font-family: var(--display); font-size: 12px; color: var(--muted); }
+.lv-item__bar { position: relative; width: 100%; height: 3px; background: var(--line-2); }
+.lv-item__bar i { display: block; height: 100%; background: var(--c); }
+@media (max-width: 1100px) { .lobby-vault { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .lobby-vault { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .lv-item .crate { --w: 104px; } }
+
+/* entrée « Caisses » mise en avant dans le menu */
+.nav-item--hero { color: var(--text); font-weight: 600; background: linear-gradient(90deg, rgba(255,107,44,.16), transparent); }
+.nav-item--hero .i { color: var(--accent); }

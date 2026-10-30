@@ -18,12 +18,21 @@
   DP.games.register({
     id: 'tower',
     name: 'DaveTower',
-    icon: 'castle',
+    icon: 'tower-control',
     tagline: 'Grimpe jusqu’au trône de JPZ',
     rtp: '98 %',
     isNew: true,
     hue: 140,
-    art: `<div class="art-tower">${[0, 1, 2, 3].map((r) => `<div>${[0, 1, 2].map((c) => `<i class="${r === 3 ? '' : (r + c) % 3 === 0 ? 'g' : ''}"></i>`).join('')}</div>`).join('')}<img src="${IMG}jpz.png" alt=""></div>`,
+    art: `<svg class="art-towersvg" viewBox="0 0 120 150" aria-hidden="true">
+      <rect x="22" y="40" width="76" height="106" fill="#131722" stroke="rgba(255,255,255,.25)"/>
+      <path d="M22 40 V28 h10 v8 h10 v-8 h12 v8 h12 v-8 h12 v8 h10 v-8 h10 V40" fill="#131722" stroke="rgba(255,255,255,.25)"/>
+      ${[0, 1, 2, 3].map((r) => `<g transform="translate(0 ${54 + r * 22})">${[0, 1, 2].map((c) => {
+        const lit = (r === 3 && c === 1) || (r === 2 && c === 0) || (r === 1 && c === 2);
+        const trap = r === 0 && c === 1;
+        return `<rect x="${31 + c * 21}" y="0" width="16" height="16" fill="${trap ? 'rgba(255,61,90,.25)' : lit ? 'rgba(255,107,44,.25)' : '#1b2030'}" stroke="${trap ? '#ff3d5a' : lit ? '#ff6b2c' : 'rgba(255,255,255,.2)'}"/><rect x="${36 + c * 21}" y="4" width="6" height="12" fill="${trap ? '#ff3d5a' : lit ? '#ff6b2c' : 'rgba(255,255,255,.25)'}" opacity=".8"/>`;
+      }).join('')}</g>`).join('')}
+      <image href="${IMG}jpz.png" x="38" y="-2" width="44" height="44"/>
+    </svg>`,
     rules: `<p>La tour a <strong>${FLOORS} étages</strong>. À chaque étage, choisis une porte : derrière les bonnes portes une DaveCoin, derrière les autres un piège.</p>
       <ul><li>Chaque étage franchi augmente le multiplicateur.</li>
       <li><strong>Facile</strong> : 1 piège sur 4 portes · <strong>Moyen</strong> : 1 sur 3 · <strong>Difficile</strong> : 1 sur 2 · <strong>Extrême</strong> : 2 sur 3.</li>
@@ -55,7 +64,7 @@
           Array.from({ length: FLOORS }, (_, i) => FLOORS - 1 - i).map((f) => `
           <div class="floor" data-f="${f}">
             <span class="floor__mult num">${fmtMult(mult(level, f + 1))}</span>
-            <div class="floor__doors" style="--n:${L.doors}">${Array.from({ length: L.doors }, (_, d) => `<button type="button" class="door" data-f="${f}" data-d="${d}" disabled><i></i></button>`).join('')}</div>
+            <div class="floor__doors" style="--n:${L.doors}">${Array.from({ length: L.doors }, (_, d) => `<button type="button" class="door" data-f="${f}" data-d="${d}" disabled aria-label="Porte ${d + 1}">${ui.icon('door-closed')}</button>`).join('')}</div>
           </div>`).join('');
         floors = [...tower.querySelectorAll('.floor')].reverse(); // floors[0] = rez-de-chaussée
         requestAnimationFrame(() => (wrap.scrollTop = wrap.scrollHeight));

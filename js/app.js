@@ -21,8 +21,10 @@
     }
     renderShell();
     const view = document.getElementById('view');
-    setActiveNav(page === 'jeu' ? arg : page || 'lobby');
-    if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
+    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page || 'lobby');
+    if (page === 'caisses') renderGame(view, games.find('cases'), { caseId: arg });
+    else if (page === 'jeu' && arg === 'cases') { location.replace('#/caisses'); return; }
+    else if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
     else if (page === 'profil') renderProfile(view);
     else if (page === 'inventaire') renderInventory(view);
     else renderLobby(view);
@@ -34,6 +36,7 @@
   const CATS = ['Originaux', 'Table', 'Machines', 'En direct'];
   const CAT_OF = { machine: 'Machines', wheel: 'En direct', roulette: 'Table', blackjack: 'Table' };
   const catOf = (g) => CAT_OF[g.id] || 'Originaux';
+  const casinoGames = () => games.list.filter((g) => g.id !== 'cases');
 
   /* ---------- Page d'accueil / authentification ---------- */
   function renderLanding(mode) {
@@ -122,12 +125,14 @@
         </header>
         <nav class="sidebar">
           <a class="nav-item" data-nav="lobby" href="#/lobby">${I('castle')}Lobby</a>
+          <div class="nav-title">Collection</div>
+          <a class="nav-item nav-item--hero" data-nav="caisses" href="#/caisses">${I('package-open')}Caisses<span class="nav-tag">Ouvrir</span></a>
+          <a class="nav-item" data-nav="inventaire" href="#/inventaire">${I('layers-2')}Inventaire<span class="nav-tag nav-tag--count js-invcount"></span></a>
           ${CATS.map((c) => {
-            const list = games.list.filter((g) => catOf(g) === c);
+            const list = casinoGames().filter((g) => catOf(g) === c);
             return list.length ? `<div class="nav-title">${c}</div>` + list.map((g) => `<a class="nav-item" data-nav="${g.id}" href="#/jeu/${g.id}">${I(g.icon)}${g.name}${g.isNew ? '<span class="nav-tag">Nouveau</span>' : ''}</a>`).join('') : '';
           }).join('')}
           <div class="nav-title">Compte</div>
-          <a class="nav-item" data-nav="inventaire" href="#/inventaire">${I('layers-2')}Inventaire<span class="nav-tag nav-tag--count js-invcount"></span></a>
           <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Profil & stats</a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
           <button class="nav-item logout" type="button">${I('log-out')}Déconnexion</button>
@@ -331,11 +336,11 @@
       <section class="hero" data-reveal>
         <div class="planet"></div>
         <div class="hero__text">
-          <div class="hero__code">${new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(user)} · ${games.list.length} jeux en ligne</div>
+          <div class="hero__code">${new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(user)} · ${DP.cases.list.length} caisses · ${casinoGames().length} jeux</div>
           <h1 class="js-split">Le roi t’attend <em>en orbite</em></h1>
           <p>Gagne des DaveCoins au casino, ouvre des caisses et collectionne les cartes de la bande. Vends tes doubles ou complète les albums pour débloquer leurs récompenses.</p>
           <div class="hero__cta">
-            <a class="btn btn--primary btn--lg js-mag" href="#/jeu/cases">${I('gift', 'i--sm')}Ouvrir des caisses</a>
+            <a class="btn btn--primary btn--lg js-mag" href="#/caisses">${I('package-open', 'i--sm')}Ouvrir des caisses</a>
             <a class="btn btn--ghost btn--lg js-mag" href="#/jeu/${featured.id}">${I('play', 'i--sm')}${featured.name}</a>
             <button class="btn btn--ghost btn--lg hero-bonus js-mag" type="button">${I('gift', 'i--sm')}Roue du jour</button>
           </div>
@@ -353,11 +358,28 @@
       </section>
 
       <div class="section-head" data-reveal>
-        <h2>Les jeux <small class="num">${String(games.list.length).padStart(2, '0')}</small></h2>
+        <h2>Les caisses <small class="num">${String(DP.cases.list.length).padStart(2, '0')}</small></h2>
+        <a href="#/inventaire">Mon inventaire · <span class="num">${inventory.totals().unique}/${Object.keys(cards.byId).length}</span> cartes${I('chevron-right', 'i--sm')}</a>
+      </div>
+      <section class="lobby-vault" data-reveal>
+        ${DP.cases.list.map((c) => {
+          const set = cards.sets.find((x) => x.id === c.id);
+          const pr = inventory.setProgress(set);
+          return `<a class="lv-item" href="#/caisses/${c.id}" style="--c:${c.color}">
+            ${DP.cases.crateHtml(c)}
+            <span class="lv-item__name">${c.name}</span>
+            <span class="lv-item__row"><span class="lv-item__price">${ui.coin('coin--xs')}<b class="num">${fmt(c.price)}</b></span><span class="lv-item__album num">${pr.owned}/${pr.total}</span></span>
+            <span class="lv-item__bar"><i style="width:${pr.owned / pr.total * 100}%"></i></span>
+          </a>`;
+        }).join('')}
+      </section>
+
+      <div class="section-head" data-reveal>
+        <h2>Le casino <small class="num">${String(casinoGames().length).padStart(2, '0')}</small></h2>
         <div class="seg js-filter">${['Tous', ...CATS].map((c) => `<button type="button" data-c="${c}" class="${c === 'Tous' ? 'on' : ''}">${c}</button>`).join('')}</div>
       </div>
       <section class="games-grid">
-        ${games.list.map((g) => `
+        ${casinoGames().map((g) => `
           <a class="game-card" href="#/jeu/${g.id}" data-c="${catOf(g)}" style="--h:${g.hue}">
             <div class="game-card__art">${g.art || `<span class="game-card__icon">${I(g.icon)}</span>`}</div>
             ${g.isNew ? '<span class="badge badge--new">Nouveau</span>' : g.hot ? '<span class="badge badge--hot">Populaire</span>' : ''}
@@ -390,6 +412,7 @@
     M.reveal(view, '[data-reveal]');
     M.onView([...view.querySelectorAll('.game-card')], 250);
     M.tilt(view.querySelectorAll('.game-card'));
+    M.tilt(view.querySelectorAll('.lv-item'), 10);
     M.magnetic(view.querySelectorAll('.js-mag'), 0.18);
     const bal = view.querySelector('.js-bal');
     M.countUp(bal, wallet.get(), fmt);
@@ -437,7 +460,7 @@
       <section class="statbar js-invstats" data-reveal></section>
       <div class="section-head" data-reveal>
         <div class="seg js-tab"><button type="button" data-t="cards" class="on">Mes cartes</button><button type="button" data-t="sets">Collection</button></div>
-        <a href="#/jeu/cases">Ouvrir des caisses${I('chevron-right', 'i--sm')}</a>
+        <a href="#/caisses">Ouvrir des caisses${I('chevron-right', 'i--sm')}</a>
       </div>
       <div class="js-body"></div>`;
     const statsEl = view.querySelector('.js-invstats');
@@ -456,7 +479,7 @@
     function paintCards() {
       let list = inventory.entries();
       if (!list.length) {
-        body.innerHTML = `<div class="empty">${I('gift', 'i--lg')}<strong>Aucune carte pour l’instant</strong>Ouvre ta première caisse : les cartes gagnées arrivent ici.<a class="btn btn--primary" style="margin-top:10px" href="#/jeu/cases">Voir les caisses</a></div>`;
+        body.innerHTML = `<div class="empty">${I('gift', 'i--lg')}<strong>Aucune carte pour l’instant</strong>Ouvre ta première caisse : les cartes gagnées arrivent ici.<a class="btn btn--primary" style="margin-top:10px" href="#/caisses">Voir les caisses</a></div>`;
         return;
       }
       if (rar !== 'all') list = list.filter((x) => x.card.rarity.label === rar);
@@ -573,12 +596,12 @@
   }
 
   /* ---------- Jeu ---------- */
-  function renderGame(view, game) {
+  function renderGame(view, game, opts = {}) {
     view.innerHTML = `
       <div class="game-head" style="--h:${game.hue}">
         <span class="game-head__ico">${I(game.icon, 'i--lg')}</span>
         <div>
-          <nav class="crumbs" aria-label="Fil d’Ariane"><a href="#/lobby">Lobby</a>${I('chevron-right')}<span>${catOf(game)}</span></nav>
+          <nav class="crumbs" aria-label="Fil d’Ariane"><a href="#/lobby">Lobby</a>${I('chevron-right')}<span>${game.id === 'cases' ? 'Collection' : catOf(game)}</span></nav>
           <h1>${game.name}</h1>
           <p>${game.tagline} · <span class="num">RTP ${game.rtp}</span></p>
         </div>
@@ -592,7 +615,7 @@
       document.body.appendChild(modal);
       modal.addEventListener('click', (e) => { if (e.target === modal || e.target.closest('.modal__close')) modal.remove(); });
     });
-    const cleanup = game.mount(view.querySelector('.game-root'));
+    const cleanup = game.mount(view.querySelector('.game-root'), opts);
     unmountView = typeof cleanup === 'function' ? cleanup : null;
     M.reveal(view, '.game-head, .panel, .stage');
     M.splitWords(view.querySelector('.game-head h1'), 80);
