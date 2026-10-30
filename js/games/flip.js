@@ -15,7 +15,6 @@
     icon: 'coins',
     tagline: 'DaveCoin ou JPZ ? Double ou rien',
     rtp: '99 %',
-    isNew: true,
     hue: 75,
     art: `<div class="art-flip"><img class="a" src="${IMG}davecoin.png" alt=""><img class="b" src="${IMG}jpz.png" alt=""></div>`,
     rules: `<p>Choisis un côté et lance la pièce : <strong>DaveCoin</strong> ou <strong>JPZ</strong>, 50/50.</p>

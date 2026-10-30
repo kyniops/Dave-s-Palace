@@ -18,7 +18,6 @@
     icon: 'rocket',
     tagline: 'Encaisse avant que JPZ ne s’écrase',
     rtp: '99 %',
-    isNew: true,
     hue: 160,
     art: `<div class="art-stack"><div class="orbit" style="width:70%;height:70%"></div><img src="${IMG}jpz.png" alt="" style="width:46%;left:27%;top:10%;-webkit-mask-image:radial-gradient(circle at 50% 42%,#000 58%,transparent 72%);mask-image:radial-gradient(circle at 50% 42%,#000 58%,transparent 72%)"><span class="game-card__icon" style="position:absolute;right:12%;bottom:10%;transform:rotate(-8deg)">${DP.ui.icon('rocket')}</span></div>`,
     rules: `<p>Mise, lance la fusée : le multiplicateur grimpe de plus en plus vite… jusqu’à l’explosion.</p>

@@ -18,6 +18,9 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 | **DaveChicken** | Traverse la route voie après voie, 4 difficultés | 99 % |
 | **DaveDice** | Pose des jetons sur un ou plusieurs membres de la bande, 3 dés en 3D : ×2 / ×3 / ×12 par case | 95,8 % |
 | **DaveFlip** | DaveCoin ou JPZ, enchaîne les victoires ×1,98 | 99 % |
+| **DaveCases** | Ouverture de caisses (×1 à ×4) aux objets de la bande, mode Battle contre 1 à 3 bots, chances affichées | 95 % |
+| **DaveTower** | 10 étages, une porte par étage, 4 difficultés, encaissement à tout moment | 98 % |
+| **DaveWheel** | Roue en direct : 12 s de mises, la bande mise avec toi, ×2 / ×3,1 / ×5 / JPZ ×50 | ≈ 96 % |
 
 ## Fonctionnalités
 
