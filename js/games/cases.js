@@ -4,7 +4,7 @@
  */
 (function () {
   'use strict';
-  const { IMG, rng, fmt, wallet, settle, sound, ui, round2, sleep, esc } = DP;
+  const { IMG, rng, fmt, wallet, settle, sound, ui, round2, sleep, esc, cards, inventory } = DP;
   const RTP = 0.95;
 
   const ITEMS = {
@@ -58,6 +58,30 @@
   ];
   const rarity = (m) => RARITY.find((r) => m < r.max) || RARITY[RARITY.length - 1];
   const BOTS = ['olman', 'billy', 'tddam', 'linkay', 'axb', 'yohan'];
+  const SET_REWARD = 10; // album complet = 10× le prix de la caisse
+
+  // Chaque objet de chaque caisse devient une carte à collectionner (id « caisse:objet »).
+  CASES.forEach((c) => {
+    const set = { id: c.id, name: c.name, color: c.color, price: c.price, cover: c.cover, reward: c.price * SET_REWARD, cards: [] };
+    c.drops.forEach((d, i) => {
+      const it = ITEMS[d[0]];
+      const card = { id: `${c.id}:${d[0]}`, key: d[0], name: it.name, img: it.img, flat: !!it.flat, value: round2(c.price * d[1]),
+        mult: d[1], rarity: rarity(d[1]), no: i + 1, of: c.drops.length, set: c.id, setName: c.name, chance: d[2] / c.total };
+      cards.byId[card.id] = card;
+      set.cards.push(card);
+    });
+    cards.sets.push(set);
+  });
+  const cardOf = (box, d) => cards.byId[`${box.id}:${d[0]}`];
+
+  /** Carte à collectionner (cadre de rareté, numéro, valeur de revente). */
+  cards.html = (card, { cls = '', owned = true, count = 0 } = {}) => `<div class="tcard r${card.rarity.lvl} ${card.rarity.lvl >= 10 ? 'holo' : ''} ${owned ? '' : 'missing'} ${cls}" style="--r:${card.rarity.c}" data-card="${card.id}">
+      <div class="tcard__top"><span class="num">#${String(card.no).padStart(2, '0')}/${String(card.of).padStart(2, '0')}</span><span>${card.rarity.label}</span></div>
+      <div class="tcard__img"><img class="${card.flat ? 'flat' : ''}" src="${IMG}${card.img}" alt="" draggable="false"></div>
+      <div class="tcard__name">${owned ? card.name : '???'}</div>
+      <div class="tcard__foot"><span>${card.setName.replace('Caisse ', '')}</span><b class="num">${ui.coin('coin--xs')}${fmt(card.value)}</b></div>
+      ${count > 1 ? `<span class="tcard__count num">×${count}</span>` : ''}
+    </div>`;
 
   function drawItem(box) {
     let r = rng.float() * box.total;
@@ -114,9 +138,10 @@
     isNew: true,
     hue: 30,
     art: `<div class="art-case">${crateHtml(CASES[4], 'crate--sm')}</div>`,
-    rules: `<p>Choisis une caisse dans la vitrine, puis ouvre-la : les objets défilent et s’arrêtent sur ta récompense. Sa valeur en DaveCoins t’est versée.</p>
+    rules: `<p>Choisis une caisse dans la vitrine, puis ouvre-la : les cartes défilent et s’arrêtent sur ta récompense. La carte va dans ton <strong>inventaire</strong> : vends-la tout de suite pour récupérer sa valeur en DaveCoins, ou garde-la pour ta collection.</p>
       <ul><li>Tu peux ouvrir jusqu’à <strong>4 caisses</strong> d’un coup.</li>
-      <li><strong>Battle</strong> : tu affrontes 1 à 3 membres de la bande sur 1 à 5 manches avec la même caisse. Le plus gros total remporte <strong>tous les objets</strong> de la partie (égalité = partage).</li>
+      <li><strong>Battle</strong> : tu affrontes 1 à 3 membres de la bande sur 1 à 5 manches avec la même caisse. Le plus gros total remporte <strong>toutes les cartes</strong> de la partie (en cas d’égalité, la valeur est partagée en DaveCoins).</li>
+      <li><strong>Collection</strong> : chaque caisse est un album. Possède toutes ses cartes en même temps pour débloquer une récompense unique de ${SET_REWARD}× le prix de la caisse.</li>
       <li>Chaque caisse rend 95 % de son prix en moyenne. Les chances exactes de chaque objet sont affichées sur la page de la caisse.</li></ul>`,
     mount(root) {
       const { panel, stage } = ui.layout(root);
@@ -178,8 +203,8 @@
               <p class="muted">Meilleur objet : <b style="color:${rarity(c.best[1]).c}">${ITEMS[c.best[0]].name}</b> · ${fmt(c.price * c.best[1])} DaveCoins</p></div>
           </div>
           <div class="cases__strips"></div>
-          <div class="cases__dropshead"><h4>Contenu de la caisse</h4><span class="muted">Chances exactes · RTP 95 %</span></div>
-          <div class="cases__drops">${[...c.drops].reverse().map((d) => `<div class="drop" style="--r:${rarity(d[1]).c}">${itemCard(c, d)}<span class="drop__pct num">${(d[2] / c.total * 100).toFixed(d[2] / c.total < 0.01 ? 2 : 1)} %</span><span class="drop__rar">${rarity(d[1]).label}</span></div>`).join('')}</div>
+          <div class="cases__dropshead"><h4>Cartes de la caisse</h4><span class="muted">Chances exactes · RTP 95 % · album complet = ${fmt(c.price * SET_REWARD)} DaveCoins</span></div>
+          <div class="cases__drops">${[...c.drops].reverse().map((d) => { const card = cardOf(c, d); const own = inventory.count(card.id); return `<div class="drop">${cards.html(card, { count: own })}<span class="drop__pct num">${(card.chance * 100).toFixed(card.chance < 0.01 ? 2 : 1)} %${own ? ` · <span class="pos">possédée ×${own}</span>` : ''}</span></div>`; }).join('')}</div>
         </div>`;
         DP_MOTION.reveal(stage, '.cases__top, .cases__hero, .cases__dropshead');
         DP_MOTION.onView([...stage.querySelectorAll('.drop')], 200);
@@ -217,6 +242,60 @@
         if (back) back.disabled = false;
       }
 
+      /** Butin : les cartes gagnées se retournent une à une, puis vendre ou garder. */
+      async function showLoot(cardList) {
+        stage.querySelectorAll('.lootbox').forEach((n) => n.remove());
+        const total = round2(cardList.reduce((a, c) => a + c.value, 0));
+        const el = ui.el(`<div class="lootbox">
+          <div class="lootbox__head"><h4>Ton butin · <span class="num">${cardList.length}</span> carte${cardList.length > 1 ? 's' : ''}</h4><span class="muted">Ajouté à ton inventaire</span></div>
+          <div class="lootbox__cards">${cardList.map((c, i) => `<div class="lootbox__slot" data-i="${i}">${cards.html(c)}<button type="button" class="btn btn--ghost btn--sm js-sell1">Vendre · <span class="num">${fmt(c.value)}</span></button></div>`).join('')}</div>
+          <div class="lootbox__actions">
+            <button type="button" class="btn btn--primary js-sellall">${ui.icon('coins', 'i--sm')}Tout vendre · <span class="num js-left">${fmt(total)}</span></button>
+            <button type="button" class="btn btn--ghost js-keep">${ui.icon('layers-2', 'i--sm')}Tout garder</button>
+            <a class="btn btn--ghost" href="#/inventaire">Voir l’inventaire</a>
+          </div>
+        </div>`);
+        stage.querySelector('.cases').appendChild(el);
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        const slots = [...el.querySelectorAll('.lootbox__slot')];
+        slots.forEach((s, i) => s.animate([{ transform: 'rotateY(90deg) translateY(20px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 600, delay: i * 120, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+        let left = cardList.map((c) => c);
+        const paintLeft = () => {
+          const v = round2(left.filter(Boolean).reduce((a, c) => a + c.value, 0));
+          el.querySelector('.js-left').textContent = fmt(v);
+          el.querySelector('.js-sellall').disabled = v === 0 && !left.some(Boolean);
+        };
+        const sellOne = (i) => {
+          const c = left[i];
+          if (!c) return;
+          const got = inventory.sell(c.id, 1);
+          if (!got) { ui.toast('Cette carte n’est plus dans ton inventaire.', 'error'); left[i] = null; return; }
+          left[i] = null;
+          const slot = slots[i];
+          slot.classList.add('sold');
+          slot.querySelector('.js-sell1').disabled = true;
+          slot.querySelector('.js-sell1').innerHTML = 'Vendue';
+          ui.floatText(slot, '+' + fmt(got));
+          sound.play('coin');
+          paintLeft();
+        };
+        el.addEventListener('click', (e) => {
+          const one = e.target.closest('.js-sell1');
+          if (one) { sellOne(+one.closest('.lootbox__slot').dataset.i); return; }
+          if (e.target.closest('.js-sellall')) {
+            let sum = 0;
+            left.forEach((c, i) => { if (c) { const before = wallet.get(); sellOne(i); sum += wallet.get() - before; } });
+            if (sum > 0) { sound.play('cashout'); ui.toast(`Cartes vendues : +${fmt(sum)} DaveCoins`, 'win'); }
+            return;
+          }
+          if (e.target.closest('.js-keep')) {
+            sound.play('chip');
+            ui.toast(`${left.filter(Boolean).length} carte(s) gardée(s) dans ton inventaire`, 'win');
+            el.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(10px)' }], { duration: 300 }).finished.then(() => el.remove());
+          }
+        });
+      }
+
       /** Ouverture de la caisse : elle tremble, le couvercle saute, éclair. */
       async function crackCrate() {
         const crate = stage.querySelector('.js-crate');
@@ -250,7 +329,8 @@
         stage.querySelector('.js-back').disabled = true;
         const wins = Array.from({ length: count }, () => drawItem(box));
         const payout = round2(wins.reduce((a, d) => a + box.price * d[1], 0));
-        pending = { cost: c, payout };
+        const won = wins.map((d) => cardOf(box, d));
+        pending = { cost: c, payout, cards: won.map((x) => x.id) };
         await crackCrate();
         if (!alive) return;
         const stripsEl = stage.querySelector('.cases__strips');
@@ -263,12 +343,13 @@
         pending = null;
         const order = wins.map((d, i) => i).sort((a, b) => wins[a][1] - wins[b][1]);
         for (const i of order) { reveal(cards[i], wins[i]); await sleep(260); if (!alive) return; }
-        settle('cases', c, payout, { silent: true });
-        lastOut.set(`<span class="${payout >= c ? 'pos' : ''}">+${fmt(payout)}</span>`);
-        ui.result(stage, { win: true, mult: payout / c, amount: payout });
+        inventory.add(won.map((x) => x.id));
+        settle('cases', c, payout, { silent: true, credit: false });
+        lastOut.set(`<span class="${payout >= c ? 'pos' : ''}">${fmt(payout)} en cartes</span>`);
         if (payout < c) sound.play('lose');
         stage.querySelector('.js-crate')?.classList.remove('open');
         unlock();
+        await showLoot(won);
       }
 
       async function battle() {
@@ -284,7 +365,10 @@
         const best = Math.max(...totals);
         const winners = totals.map((t, i) => (t === best ? i : -1)).filter((i) => i >= 0);
         const myPay = winners.includes(0) ? round2(pot / winners.length) : 0;
-        pending = { cost: c, payout: myPay };
+        const soloWin = winners.length === 1 && winners[0] === 0;
+        const potCards = draws.flat().map((d) => cardOf(box, d));
+        // victoire seule : toutes les cartes ; égalité : la part du pot en DaveCoins
+        pending = soloWin ? { cost: c, payout: myPay, cards: potCards.map((x) => x.id) } : { cost: c, payout: myPay, coins: true };
         await crackCrate();
         if (!alive) return;
 
@@ -313,7 +397,10 @@
         }
         pending = null;
         rows.forEach((row, p) => row.classList.toggle('winner', winners.includes(p)));
-        settle('cases', c, myPay, { silent: true });
+        if (soloWin) {
+          inventory.add(potCards.map((x) => x.id));
+          settle('cases', c, myPay, { silent: true, credit: false });
+        } else settle('cases', c, myPay, { silent: true });
         lastOut.set(myPay ? `<span class="pos">+${fmt(myPay)}</span>` : '0');
         if (myPay) {
           sound.play('jackpot');
@@ -327,6 +414,7 @@
         sub.innerHTML = `Pot total <b class="num">${fmt(pot)}</b>`;
         stage.querySelector('.js-crate')?.classList.remove('open');
         unlock();
+        if (soloWin) await showLoot(potCards);
       }
 
       goBtn.addEventListener('click', () => { if (!busy && box) (mode === 'open' ? openCases : battle)(); });
@@ -338,7 +426,10 @@
       return () => {
         alive = false;
         window.removeEventListener('resize', onResize);
-        if (pending) settle('cases', pending.cost, pending.payout, { silent: true });
+        if (pending) {
+          if (pending.cards) { inventory.add(pending.cards); settle('cases', pending.cost, pending.payout, { silent: true, credit: false }); }
+          else settle('cases', pending.cost, pending.payout, { silent: true });
+        }
       };
     }
   });

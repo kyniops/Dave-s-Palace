@@ -181,9 +181,10 @@
   };
 
   /** Clôture une partie : crédite le gain, enregistre les stats, joue le son adapté. */
-  function settle(game, bet, payout, { silent = false } = {}) {
+  /** credit:false = la valeur est gagnée sous forme d'objets (cartes) et non versée en DaveCoins. */
+  function settle(game, bet, payout, { silent = false, credit = true } = {}) {
     payout = round2(payout);
-    wallet.credit(payout);
+    if (credit) wallet.credit(payout);
     stats.record(game, bet, payout);
     if (!silent) {
       if (payout > bet) sound.play(payout >= bet * 10 ? 'jackpot' : 'win', { x: payout / bet });
@@ -684,6 +685,56 @@
     }
   };
 
+  /* ---------- Inventaire de cartes ----------
+   * Le catalogue des cartes (cards.byId, cards.sets) est rempli par DaveCases au chargement.
+   * L'inventaire stocke seulement le nombre d'exemplaires de chaque carte.
+   */
+  const cards = { byId: {}, sets: [] };
+  const inventory = {
+    key() { return 'dp_inv_' + auth.current(); },
+    _get() { return Object.assign({ cards: {}, claimed: {} }, store.json(inventory.key(), {})); },
+    _save(d) { store.setJson(inventory.key(), d); emit('inventory', d); },
+    count(id) { return inventory._get().cards[id] || 0; },
+    add(ids) {
+      const d = inventory._get();
+      ids.forEach((id) => (d.cards[id] = (d.cards[id] || 0) + 1));
+      inventory._save(d);
+    },
+    /** Vend n exemplaires d'une carte : retire de l'inventaire et crédite la valeur. */
+    sell(id, n = 1) {
+      const d = inventory._get();
+      const have = d.cards[id] || 0;
+      n = Math.min(n, have);
+      if (n <= 0 || !cards.byId[id]) return 0;
+      d.cards[id] = have - n;
+      if (!d.cards[id]) delete d.cards[id];
+      inventory._save(d);
+      const value = round2(cards.byId[id].value * n);
+      wallet.credit(value);
+      return value;
+    },
+    entries() { return Object.entries(inventory._get().cards).filter(([id]) => cards.byId[id]).map(([id, n]) => ({ card: cards.byId[id], n })); },
+    totals() {
+      const e = inventory.entries();
+      return { copies: e.reduce((a, x) => a + x.n, 0), unique: e.length, value: round2(e.reduce((a, x) => a + x.card.value * x.n, 0)) };
+    },
+    setProgress(set) {
+      const d = inventory._get();
+      const owned = set.cards.filter((c) => d.cards[c.id] > 0).length;
+      return { owned, total: set.cards.length, complete: owned === set.cards.length, claimed: !!d.claimed[set.id] };
+    },
+    /** Récompense unique quand toutes les cartes d'un album sont possédées. */
+    claimSet(set) {
+      const p = inventory.setProgress(set);
+      if (!p.complete || p.claimed) return 0;
+      const d = inventory._get();
+      d.claimed[set.id] = true;
+      inventory._save(d);
+      wallet.credit(set.reward);
+      return set.reward;
+    }
+  };
+
   /* ---------- Jetons de casino (partagés : roulette, dés…) ---------- */
   const chips = {
     LIST: [
@@ -762,5 +813,5 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, stats, settle, sound, ui, chips, games, on, off, emit, sleep };
+  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
 })();

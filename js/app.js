@@ -1,7 +1,7 @@
 /* Dave's Palace — coquille de l'application : routeur, barre du haut, pages. */
 (function () {
   'use strict';
-  const { IMG, auth, wallet, bonus, stats, sound, ui, games, fmt, fmtMult, esc, on, rng } = DP;
+  const { IMG, auth, wallet, bonus, stats, sound, ui, games, fmt, fmtMult, esc, on, rng, cards, inventory } = DP;
   const I = ui.icon;
   const M = window.DP_MOTION;
 
@@ -24,6 +24,7 @@
     setActiveNav(page === 'jeu' ? arg : page || 'lobby');
     if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
     else if (page === 'profil') renderProfile(view);
+    else if (page === 'inventaire') renderInventory(view);
     else renderLobby(view);
     closeSidebar();
   }
@@ -126,6 +127,7 @@
             return list.length ? `<div class="nav-title">${c}</div>` + list.map((g) => `<a class="nav-item" data-nav="${g.id}" href="#/jeu/${g.id}">${I(g.icon)}${g.name}${g.isNew ? '<span class="nav-tag">Nouveau</span>' : ''}</a>`).join('') : '';
           }).join('')}
           <div class="nav-title">Compte</div>
+          <a class="nav-item" data-nav="inventaire" href="#/inventaire">${I('layers-2')}Inventaire<span class="nav-tag nav-tag--count js-invcount"></span></a>
           <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Profil & stats</a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
           <button class="nav-item logout" type="button">${I('log-out')}Déconnexion</button>
@@ -145,7 +147,16 @@
     sb.addEventListener('click', () => { sound.toggle(); paintSound(); sound.play('click'); });
     paintSound();
     refreshTopbar();
+    paintInvCount();
   }
+  function paintInvCount() {
+    const el = document.querySelector('.js-invcount');
+    if (!el) return;
+    const n = inventory.totals().copies;
+    el.textContent = n ? String(n) : '';
+    el.hidden = !n;
+  }
+  on('inventory', paintInvCount);
 
   function closeSidebar() { document.body.classList.remove('nav-open'); }
   function setActiveNav(key) {
@@ -322,9 +333,10 @@
         <div class="hero__text">
           <div class="hero__code">${new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(user)} · ${games.list.length} jeux en ligne</div>
           <h1 class="js-split">Le roi t’attend <em>en orbite</em></h1>
-          <p>Machines à sous, table, caisses et roue en direct. Ta roue quotidienne t’attend : jusqu’à ${fmt(bonus.DAILY_MAX)} DaveCoins toutes les 12 h.</p>
+          <p>Gagne des DaveCoins au casino, ouvre des caisses et collectionne les cartes de la bande. Vends tes doubles ou complète les albums pour débloquer leurs récompenses.</p>
           <div class="hero__cta">
-            <a class="btn btn--primary btn--lg js-mag" href="#/jeu/${featured.id}">${I('play', 'i--sm')}Jouer à ${featured.name}</a>
+            <a class="btn btn--primary btn--lg js-mag" href="#/jeu/cases">${I('gift', 'i--sm')}Ouvrir des caisses</a>
+            <a class="btn btn--ghost btn--lg js-mag" href="#/jeu/${featured.id}">${I('play', 'i--sm')}${featured.name}</a>
             <button class="btn btn--ghost btn--lg hero-bonus js-mag" type="button">${I('gift', 'i--sm')}Roue du jour</button>
           </div>
         </div>
@@ -336,8 +348,8 @@
       <section class="statbar" data-reveal>
         <div><span>Solde</span><strong>${ui.coin('coin--sm')}<b class="js-bal" style="font-weight:inherit">${fmt(wallet.get())}</b></strong></div>
         <div><span>Parties jouées</span><strong class="js-played">${fmt(s.played)}</strong></div>
-        <div><span>Plus gros gain</span><strong class="${s.biggestWin ? 'pos' : ''}">${s.biggestWin ? '+' + fmt(s.biggestWin) : '—'}</strong></div>
-        <div><span>Meilleur multiplicateur</span><strong>${s.biggestMult ? fmtMult(s.biggestMult) : '—'}</strong></div>
+        <div><span>Cartes collectées</span><strong><b style="font-weight:inherit">${inventory.totals().unique}</b><small class="muted" style="font-size:15px">/ ${Object.keys(cards.byId).length}</small></strong></div>
+        <div><span>Valeur de l’inventaire</span><strong>${ui.coin('coin--sm')}${fmt(inventory.totals().value)}</strong></div>
       </section>
 
       <div class="section-head" data-reveal>
@@ -410,6 +422,129 @@
           <td class="num ${net > 0 ? 'pos' : net < 0 ? 'neg' : ''}">${net > 0 ? '+' : ''}${fmt(net)}</td>
           <td class="num muted">${new Date(h.t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</td></tr>`;
       }).join('')}</tbody></table></div>`;
+  }
+
+  /* ---------- Inventaire ---------- */
+  function renderInventory(view) {
+    let tab = 'cards', rar = 'all', sort = 'rarity', confirmAll = false;
+    const RARS = ['Commun', 'Rare', 'Épique', 'Légendaire', 'Mythique'];
+    const totalCards = Object.keys(cards.byId).length;
+    view.innerHTML = `
+      <div class="page-head" data-reveal>
+        <span class="game-head__ico">${I('layers-2', 'i--lg')}</span>
+        <div><h1>Inventaire</h1><p>Tes cartes gagnées dans les caisses : vends-les pour récupérer des DaveCoins ou garde-les pour compléter tes albums.</p></div>
+      </div>
+      <section class="statbar js-invstats" data-reveal></section>
+      <div class="section-head" data-reveal>
+        <div class="seg js-tab"><button type="button" data-t="cards" class="on">Mes cartes</button><button type="button" data-t="sets">Collection</button></div>
+        <a href="#/jeu/cases">Ouvrir des caisses${I('chevron-right', 'i--sm')}</a>
+      </div>
+      <div class="js-body"></div>`;
+    const statsEl = view.querySelector('.js-invstats');
+    const body = view.querySelector('.js-body');
+
+    function paintStats() {
+      const t = inventory.totals();
+      const done = cards.sets.filter((st) => inventory.setProgress(st).complete).length;
+      statsEl.innerHTML = `
+        <div><span>Cartes</span><strong class="num">${fmt(t.copies)}</strong></div>
+        <div><span>Cartes différentes</span><strong class="num">${t.unique}<small class="muted" style="font-size:15px">/ ${totalCards}</small></strong></div>
+        <div><span>Valeur de revente</span><strong>${ui.coin('coin--sm')}<b class="num" style="font-weight:inherit">${fmt(t.value)}</b></strong></div>
+        <div><span>Albums complets</span><strong class="num">${done}<small class="muted" style="font-size:15px">/ ${cards.sets.length}</small></strong></div>`;
+    }
+
+    function paintCards() {
+      let list = inventory.entries();
+      if (!list.length) {
+        body.innerHTML = `<div class="empty">${I('gift', 'i--lg')}<strong>Aucune carte pour l’instant</strong>Ouvre ta première caisse : les cartes gagnées arrivent ici.<a class="btn btn--primary" style="margin-top:10px" href="#/jeu/cases">Voir les caisses</a></div>`;
+        return;
+      }
+      if (rar !== 'all') list = list.filter((x) => x.card.rarity.label === rar);
+      const order = { rarity: (a, b) => b.card.rarity.lvl - a.card.rarity.lvl || b.card.value - a.card.value, value: (a, b) => b.card.value - a.card.value, set: (a, b) => a.card.set.localeCompare(b.card.set) || a.card.no - b.card.no };
+      list.sort(order[sort]);
+      const dupValue = inventory.entries().reduce((a, x) => a + x.card.value * (x.n - 1), 0);
+      const allValue = inventory.totals().value;
+      body.innerHTML = `
+        <div class="inv-tools">
+          <div class="seg js-rar">${['all', ...RARS].map((r) => `<button type="button" data-r="${r}" class="${r === rar ? 'on' : ''}">${r === 'all' ? 'Toutes' : r}</button>`).join('')}</div>
+          <div class="seg js-sort">${[['rarity', 'Rareté'], ['value', 'Valeur'], ['set', 'Album']].map(([k, l]) => `<button type="button" data-s="${k}" class="${k === sort ? 'on' : ''}">${l}</button>`).join('')}</div>
+          <div class="inv-tools__sell">
+            <button type="button" class="btn btn--ghost btn--sm js-selldup" ${dupValue ? '' : 'disabled'}>${I('copy', 'i--sm')}Vendre les doublons · <span class="num">${fmt(dupValue)}</span></button>
+            <button type="button" class="btn ${confirmAll ? 'btn--primary' : 'btn--ghost'} btn--sm js-sellall">${I('coins', 'i--sm')}${confirmAll ? 'Confirmer la vente de tout' : 'Tout vendre'} · <span class="num">${fmt(allValue)}</span></button>
+          </div>
+        </div>
+        ${list.length ? `<div class="inv-grid">${list.map((x) => `<div class="inv-slot">${cards.html(x.card, { count: x.n })}<button type="button" class="btn btn--ghost btn--sm js-sell" data-id="${x.card.id}">Vendre · <span class="num">${fmt(x.card.value)}</span></button></div>`).join('')}</div>`
+          : `<div class="empty">${I('layers-2', 'i--lg')}<strong>Aucune carte ${rar.toLowerCase()}</strong>Change de filtre pour voir tes autres cartes.</div>`}`;
+      DP_MOTION.onView([...body.querySelectorAll('.inv-slot')]);
+      DP_MOTION.tilt(body.querySelectorAll('.tcard'), 12);
+    }
+
+    function paintSets() {
+      body.innerHTML = `<div class="albums">${cards.sets.map((st) => {
+        const pr = inventory.setProgress(st);
+        const btn = pr.claimed ? `<span class="album__done">${I('trophy', 'i--sm')}Récompense reçue</span>`
+          : pr.complete ? `<button type="button" class="btn btn--primary btn--sm js-claim" data-set="${st.id}">${I('trophy', 'i--sm')}Récupérer ${fmt(st.reward)}</button>`
+            : `<span class="muted">Album complet : <b class="num" style="color:var(--coin)">${fmt(st.reward)}</b> DaveCoins</span>`;
+        return `<section class="album" style="--c:${st.color}">
+          <div class="album__head">
+            <img src="${IMG}${st.cover}" alt="">
+            <div><h3>${st.name}</h3><div class="album__bar"><i style="width:${pr.owned / pr.total * 100}%"></i></div><span class="muted num">${pr.owned}/${pr.total} cartes</span></div>
+            <div class="album__cta">${btn}</div>
+          </div>
+          <div class="album__cards">${st.cards.map((c) => { const n = inventory.count(c.id); return cards.html(c, { owned: n > 0, count: n }); }).join('')}</div>
+        </section>`;
+      }).join('')}</div>`;
+      DP_MOTION.onView([...body.querySelectorAll('.album')]);
+    }
+
+    const paint = () => { paintStats(); tab === 'cards' ? paintCards() : paintSets(); };
+    view.querySelector('.js-tab').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      tab = b.dataset.t;
+      view.querySelectorAll('.js-tab button').forEach((x) => x.classList.toggle('on', x === b));
+      sound.play('click');
+      paint();
+    });
+    body.addEventListener('click', (e) => {
+      const r = e.target.closest('.js-rar button');
+      if (r) { rar = r.dataset.r; sound.play('click'); paintCards(); return; }
+      const so = e.target.closest('.js-sort button');
+      if (so) { sort = so.dataset.s; sound.play('click'); paintCards(); return; }
+      const one = e.target.closest('.js-sell');
+      if (one) {
+        const got = inventory.sell(one.dataset.id, 1);
+        if (got) { sound.play('coin'); ui.floatText(one, '+' + fmt(got)); }
+        paint();
+        return;
+      }
+      if (e.target.closest('.js-selldup')) {
+        let sum = 0;
+        inventory.entries().forEach((x) => { if (x.n > 1) sum += inventory.sell(x.card.id, x.n - 1); });
+        if (sum) { sound.play('cashout'); ui.toast(`Doublons vendus : +${fmt(sum)} DaveCoins`, 'win'); }
+        paint();
+        return;
+      }
+      if (e.target.closest('.js-sellall')) {
+        // deux clics : le premier demande confirmation
+        if (!confirmAll) { confirmAll = true; sound.play('click'); paintCards(); setTimeout(() => { if (confirmAll) { confirmAll = false; if (view.isConnected && tab === 'cards') paintCards(); } }, 4000); return; }
+        confirmAll = false;
+        let sum = 0;
+        inventory.entries().forEach((x) => (sum += inventory.sell(x.card.id, x.n)));
+        if (sum) { sound.play('jackpot'); ui.coinRain(body, 40); ui.toast(`Inventaire vendu : +${fmt(sum)} DaveCoins`, 'win'); }
+        paint();
+        return;
+      }
+      const claim = e.target.closest('.js-claim');
+      if (claim) {
+        const st = cards.sets.find((x) => x.id === claim.dataset.set);
+        const got = inventory.claimSet(st);
+        if (got) { sound.play('jackpot'); sound.play('slam'); ui.coinRain(body, 60); ui.burst(claim, { n: 50, colors: ['#ffc145', '#ff6b2c', '#ffffff'], spread: 2 }); ui.toast(`Album complet : +${fmt(got)} DaveCoins !`, 'win'); }
+        paint();
+      }
+    });
+    paint();
+    M.reveal(view, '[data-reveal]');
   }
 
   /* ---------- Profil ---------- */

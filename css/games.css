@@ -556,3 +556,16 @@ body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
 .cases__dropshead { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; }
 .cases__dropshead h4 { margin: 0; font-family: var(--display); font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
 @media (max-width: 600px) { .cases__hero { flex-direction: column; text-align: center; } .crate--lg { --w: 150px; } }
+
+/* =================== DaveCases : butin et cartes =================== */
+.cases__drops { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; gap: 12px !important; }
+.drop { gap: 6px; }
+.drop .tcard { width: 100%; }
+.lootbox { position: relative; margin-top: 6px; padding: 18px; border: 1px solid var(--accent); background: linear-gradient(180deg, var(--accent-soft), rgba(0,0,0,.3)); animation: wipe .5s var(--ease); }
+.lootbox__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.lootbox__head h4 { margin: 0; font-family: var(--display); font-size: 16px; letter-spacing: .06em; text-transform: uppercase; }
+.lootbox__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; perspective: 900px; }
+.lootbox__slot { display: flex; flex-direction: column; gap: 8px; transition: opacity .3s; }
+.lootbox__slot .btn { width: 100%; }
+.lootbox__slot.sold .tcard { opacity: .35; filter: grayscale(.8); }
+.lootbox__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line-2); }
