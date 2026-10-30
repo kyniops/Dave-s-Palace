@@ -15,12 +15,12 @@
   DP.games.register({
     id: 'rocket',
     name: 'DaveRocket',
-    icon: '🚀',
+    icon: 'rocket',
     tagline: 'Encaisse avant que JPZ ne s’écrase',
     rtp: '99 %',
     isNew: true,
-    colors: ['#06b6d4', '#1e1b4b'],
-    art: `<div class="art-stack"><img src="${IMG}jpz.png" alt="" style="width:58%;left:21%;top:12%"><span style="position:absolute;right:10%;bottom:6%;font-size:54px">🚀</span></div>`,
+    hue: 160,
+    art: `<div class="art-stack"><div class="orbit" style="width:70%;height:70%"></div><img src="${IMG}jpz.png" alt="" style="width:46%;left:27%;top:10%;-webkit-mask-image:radial-gradient(circle at 50% 42%,#000 58%,transparent 72%);mask-image:radial-gradient(circle at 50% 42%,#000 58%,transparent 72%)"><span class="game-card__icon" style="position:absolute;right:12%;bottom:10%;transform:rotate(-8deg)">${DP.ui.icon('rocket')}</span></div>`,
     rules: `<p>Mise, lance la fusée : le multiplicateur grimpe de plus en plus vite… jusqu’à l’explosion.</p>
       <ul><li>Clique sur <strong>Encaisser</strong> avant le crash pour gagner mise × multiplicateur.</li>
       <li>L’<strong>auto-encaissement</strong> encaisse pour toi dès que le multiplicateur est atteint.</li>
@@ -73,9 +73,9 @@
         const Y = (v) => padT + gh - ((v - 1) / (mMax - 1)) * gh;
 
         // grille
-        ctx.strokeStyle = 'rgba(255,255,255,.06)';
-        ctx.fillStyle = 'rgba(255,255,255,.4)';
-        ctx.font = '600 11px Outfit, sans-serif';
+        ctx.strokeStyle = 'rgba(255,255,255,.05)';
+        ctx.fillStyle = 'rgba(139,145,165,.7)';
+        ctx.font = "500 11px 'Geist Mono', monospace";
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         const stepM = niceStep(mMax - 1);
@@ -89,10 +89,10 @@
 
         if (elapsed <= 0) return;
         // courbe
-        const color = state === 'crashed' ? '#ff4d6d' : '#f5c451';
+        const color = state === 'crashed' ? '#ff5d52' : '#c8ff3d';
         const grad = ctx.createLinearGradient(0, Y(m), 0, Y(1));
-        grad.addColorStop(0, state === 'crashed' ? 'rgba(255,77,109,.35)' : 'rgba(245,196,81,.35)');
-        grad.addColorStop(1, 'rgba(245,196,81,0)');
+        grad.addColorStop(0, state === 'crashed' ? 'rgba(255,93,82,.28)' : 'rgba(200,255,61,.22)');
+        grad.addColorStop(1, 'rgba(200,255,61,0)');
         ctx.beginPath();
         ctx.moveTo(X(0), Y(1));
         const N = 80;
@@ -105,7 +105,7 @@
         ctx.moveTo(X(0), Y(1));
         for (let i = 1; i <= N; i++) { const t = (elapsed * i) / N; ctx.lineTo(X(t), Y(multAt(t))); }
         ctx.strokeStyle = color;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.shadowColor = color;
         ctx.shadowBlur = 16;
@@ -114,7 +114,7 @@
 
         if (round && round.cashMult && round.cashMult <= m) {
           const ct = msFor(round.cashMult);
-          ctx.fillStyle = '#34d77f';
+          ctx.fillStyle = '#ffffff';
           ctx.beginPath(); ctx.arc(X(ct), Y(round.cashMult), 6, 0, Math.PI * 2); ctx.fill();
         }
 
@@ -122,21 +122,84 @@
         const x = X(elapsed), y = Y(m);
         const dx = X(elapsed) - X(elapsed * 0.97), dy = Y(m) - Y(multAt(elapsed * 0.97));
         const ang = Math.atan2(dy, dx);
+        if (state === 'crashed') drawBoom(x, y, boomT);
+        else drawRocket(x, y, ang, performance.now());
+      }
+
+      /** Fusée vue de profil, pointe vers +x. Le hublot montre JPZ. */
+      function drawRocket(x, y, ang, now) {
         ctx.save();
         ctx.translate(x, y);
-        if (state === 'crashed') {
-          ctx.font = '54px serif';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText('💥', 0, 0);
-        } else {
-          ctx.rotate(ang + Math.PI / 4);
-          ctx.font = '42px serif';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText('🚀', 0, 0);
-          ctx.rotate(-(ang + Math.PI / 4));
-          if (pilot.complete && pilot.naturalWidth) ctx.drawImage(pilot, -18, -58, 36, 36);
-        }
+        ctx.rotate(ang);
+        const k = Math.max(1, Math.min(1.5, W / 600));
+        ctx.scale(k, k);
+        // flamme qui vacille
+        const fl = 18 + Math.sin(now / 40) * 4 + Math.random() * 4;
+        const fg = ctx.createLinearGradient(-20, 0, -20 - fl, 0);
+        fg.addColorStop(0, 'rgba(255,255,255,.95)');
+        fg.addColorStop(0.35, 'rgba(200,255,61,.9)');
+        fg.addColorStop(1, 'rgba(200,255,61,0)');
+        ctx.fillStyle = fg;
+        ctx.beginPath(); ctx.moveTo(-20, -6); ctx.quadraticCurveTo(-22 - fl, 0, -20, 6); ctx.closePath(); ctx.fill();
+        // ailerons
+        ctx.fillStyle = '#ff5d52';
+        ctx.beginPath(); ctx.moveTo(-6, -9); ctx.lineTo(-22, -18); ctx.lineTo(-19, -7); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-6, 9); ctx.lineTo(-22, 18); ctx.lineTo(-19, 7); ctx.closePath(); ctx.fill();
+        // corps
+        const bg = ctx.createLinearGradient(0, -10, 0, 10);
+        bg.addColorStop(0, '#ffffff'); bg.addColorStop(1, '#9aa2b6');
+        ctx.fillStyle = bg;
+        ctx.beginPath();
+        ctx.moveTo(-21, -8); ctx.lineTo(8, -10); ctx.quadraticCurveTo(28, -8, 32, 0); ctx.quadraticCurveTo(28, 8, 8, 10); ctx.lineTo(-21, 8);
+        ctx.closePath(); ctx.fill();
+        // pointe
+        ctx.fillStyle = '#c8ff3d';
+        ctx.beginPath(); ctx.moveTo(20, -8); ctx.quadraticCurveTo(29, -6, 32, 0); ctx.quadraticCurveTo(29, 6, 20, 8); ctx.quadraticCurveTo(23, 0, 20, -8); ctx.fill();
+        // hublot : le pilote reste droit quelle que soit l'inclinaison
+        ctx.save();
+        ctx.beginPath(); ctx.arc(4, 0, 7.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#0b0d15'; ctx.fill();
+        ctx.clip();
+        ctx.translate(4, 0);
+        ctx.rotate(-ang);
+        if (pilot.complete && pilot.naturalWidth) ctx.drawImage(pilot, -9, -7, 18, 18);
         ctx.restore();
+        ctx.strokeStyle = '#0b0d15'; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(4, 0, 7.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+
+      /** Explosion : onde de choc + éclats, t de 0 à 1. */
+      const debris = Array.from({ length: 24 }, () => ({ a: rng.float() * Math.PI * 2, v: 30 + rng.float() * 80, r: 1 + rng.float() * 2.5, c: rng.pick(['#ff5d52', '#ffc65c', '#ffffff', '#c8ff3d']) }));
+      function drawBoom(x, y, t) {
+        const e = 1 - Math.pow(1 - t, 3);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.25, 1 - t);
+        ctx.strokeStyle = '#ff5d52';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, 8 + e * 60, 0, Math.PI * 2); ctx.stroke();
+        const r = 26 + e * 22;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(0.4, 'rgba(255,93,82,.6)'); g.addColorStop(1, 'rgba(255,93,82,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        debris.forEach((d) => {
+          ctx.fillStyle = d.c;
+          ctx.beginPath(); ctx.arc(x + Math.cos(d.a) * d.v * e, y + Math.sin(d.a) * d.v * e + 30 * t * t, d.r, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.restore();
+      }
+      let boomT = 1;
+      function animateBoom(el, m) {
+        const t0 = performance.now();
+        const stepB = (now) => {
+          if (!alive || round) return;
+          boomT = Math.min(1, (now - t0) / 900);
+          draw(el, m, 'crashed');
+          if (boomT < 1) requestAnimationFrame(stepB);
+        };
+        boomT = 0;
+        requestAnimationFrame(stepB);
       }
       function niceStep(range) {
         const raw = range / 5;
@@ -161,7 +224,7 @@
         round = { bet, crash: crashPoint(), t0: performance.now(), cashed: false, cashMult: 0, auto: autoVal, over: false };
         betIn.disable(true);
         autoIn.disabled = true;
-        btn.classList.replace('btn--gold', 'btn--green');
+        btn.classList.replace('btn--primary', 'btn--cash');
         stage.querySelectorAll('.result-pop').forEach((n) => n.remove());
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(tick);
@@ -198,7 +261,7 @@
           m = round.crash;
           const el = msFor(m);
           round.over = true;
-          draw(el, m, 'crashed');
+          animateBoom(el, m);
           setMult(m, round.cashed ? `Encaissé à ${round.cashMult.toFixed(2)}×` : 'Crash !', 'crashed');
           if (!round.cashed) { settle('rocket', round.bet, 0); sound.play('boom'); }
           addHistory(round.crash);
@@ -223,7 +286,7 @@
         autoIn.disabled = false;
         btn.disabled = false;
         btn.textContent = 'Décoller';
-        btn.classList.replace('btn--green', 'btn--gold');
+        btn.classList.replace('btn--cash', 'btn--primary');
         winOut.set('—');
       }
 

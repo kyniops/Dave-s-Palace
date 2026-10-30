@@ -10,16 +10,36 @@
     extreme: { label: 'Extrême', p: 0.45, lanes: 15 }
   };
   const mult = (lvl, k) => (k === 0 ? 1 : EDGE / Math.pow(1 - LEVELS[lvl].p, k));
-  const CARS = ['🚗', '🚕', '🚙', '🚌', '🚓', '🏎️', '🚚'];
+  // Sprites SVG maison : poulet de profil et voiture vue de dessus (roule vers le bas).
+  const CHICKEN_SVG = `<svg viewBox="0 0 64 64" aria-hidden="true">
+    <path d="M26 54v6m10-6v6" stroke="#ffb547" stroke-width="3" stroke-linecap="round"/>
+    <path d="M22 60h8m4 0h8" stroke="#ffb547" stroke-width="3" stroke-linecap="round"/>
+    <path d="M14 30c0-10 8-18 18-18 9 0 15 6 15 14v6c0 12-9 22-20 22S10 46 12 36c-6-1-8-8-6-12 3 3 6 4 8 6z" fill="#f4f5f8"/>
+    <path d="M18 38c5 6 13 7 19 1" stroke="#c9ccd6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M29 10c-1-5 3-8 5-5 1-4 6-3 5 1 4-1 5 4 1 6" fill="#ff5d52"/>
+    <path d="M46 24l9 3-9 4z" fill="#ffb547"/>
+    <path d="M45 31c3 1 3 6 0 7-2-1-2-5 0-7z" fill="#ff5d52"/>
+    <circle cx="39" cy="22" r="2.6" fill="#0b0d15"/><circle cx="39.8" cy="21.2" r=".8" fill="#fff"/>
+  </svg>`;
+  const CAR_COLORS = ['#c8ff3d', '#ff5d52', '#4c7dff', '#ffc65c', '#e9ecf2'];
+  const carSvg = (c) => `<svg viewBox="0 0 40 72" aria-hidden="true">
+    <rect x="2" y="12" width="5" height="12" rx="2" fill="#0b0d15"/><rect x="33" y="12" width="5" height="12" rx="2" fill="#0b0d15"/>
+    <rect x="2" y="48" width="5" height="12" rx="2" fill="#0b0d15"/><rect x="33" y="48" width="5" height="12" rx="2" fill="#0b0d15"/>
+    <rect x="5" y="2" width="30" height="68" rx="10" fill="${c}"/>
+    <path d="M9 44h22l-2 10H11z" fill="#0b0d15" opacity=".85"/>
+    <path d="M10 22h20l-3-9H13z" fill="#0b0d15" opacity=".7"/>
+    <rect x="9" y="24" width="22" height="20" rx="3" fill="#000" opacity=".12"/>
+    <circle cx="11" cy="68" r="2" fill="#fff"/><circle cx="29" cy="68" r="2" fill="#fff"/>
+  </svg>`;
 
   DP.games.register({
     id: 'chicken',
     name: 'DaveChicken',
-    icon: '🐔',
+    icon: 'chicken',
     tagline: 'Traverse la route, voie après voie',
     rtp: '99 %',
-    colors: ['#facc15', '#7c2d12'],
-    art: '<span class="game-card__emoji">🐔</span>',
+    hue: 45,
+    art: `<div class="art-road"><span class="chicken-sprite">${CHICKEN_SVG}</span><span class="lane__cover" style="background:radial-gradient(circle,#c8ff3d 0 56%,#9ccc22 57%);color:#0d1200">1.18×</span><span class="lane__cover">1.40×</span></div>`,
     rules: `<p>Chaque voie traversée augmente ton multiplicateur. Mais à chaque voie, une voiture peut surgir…</p>
       <ul><li>Choisis la difficulté : plus c’est dur, plus chaque voie rapporte.</li>
       <li>Clique sur <strong>Avancer</strong> (ou sur la plaque dorée) pour passer la voie suivante.</li>
@@ -36,7 +56,7 @@
       const nextOut = ui.readout(panel, 'Prochaine voie', '—');
       const profitOut = ui.readout(panel, 'Gain actuel', '—');
       const goBtn = ui.button(panel, 'Jouer');
-      const cashBtn = ui.button(panel, 'Encaisser', 'btn btn--green btn--lg btn--block');
+      const cashBtn = ui.button(panel, 'Encaisser', 'btn btn--cash btn--lg btn--block');
       cashBtn.disabled = true;
       panel.appendChild(ui.el('<p class="note">Espace = avancer · Entrée = encaisser</p>'));
 
@@ -52,7 +72,7 @@
         const L = LEVELS[level].lanes;
         road.innerHTML = `<div class="road__side"></div>${Array.from({ length: L }, (_, i) =>
           `<div class="lane" data-i="${i}"><button type="button" class="lane__cover" tabindex="-1">${fmtMult(mult(level, i + 1))}</button></div>`).join('')}
-          <div class="road__side finish"></div><div class="chicken">🐔</div>`;
+          <div class="road__side finish">${ui.icon('flag', 'i--lg')}</div><div class="chicken">${CHICKEN_SVG}</div>`;
         lanes = [...road.querySelectorAll('.lane')];
         chickenEl = road.querySelector('.chicken');
         placeChicken(-1, false);
@@ -119,9 +139,9 @@
           later(() => {
             const car = document.createElement('div');
             car.className = 'car';
-            car.textContent = rng.pick(CARS);
+            car.innerHTML = carSvg(rng.pick(CAR_COLORS));
             lanes[i].appendChild(car);
-            later(() => { chickenEl.textContent = '🍗'; lanes[i].classList.add('dead'); sound.play('boom'); }, 260);
+            later(() => { chickenEl.classList.add('dead'); lanes[i].classList.add('dead'); sound.play('boom'); }, 260);
             later(() => car.remove(), 700);
             end(false);
           }, 300);
@@ -130,7 +150,7 @@
         later(() => {
           game.pos = i;
           game.busy = false;
-          lanes[i].insertAdjacentHTML('beforeend', '<span class="lane__barrier">🚧</span>');
+          lanes[i].insertAdjacentHTML('beforeend', `<span class="lane__barrier">${ui.icon('flag')}</span>`);
           sound.play('gem');
           if (i === LEVELS[game.lvl].lanes - 1) { end(true); return; }
           paint();
@@ -150,7 +170,7 @@
           ui.result(stage, { win: true, mult: m, amount: pay });
         } else {
           settle('chicken', g.bet, 0);
-          later(() => ui.result(stage, { win: false, label: '🍗' }), 400);
+          later(() => ui.result(stage, { win: false, label: 'Écrasé' }), 400);
         }
         paint();
       }
@@ -179,7 +199,7 @@
         const i = rng.pick(choices);
         const car = document.createElement('div');
         car.className = 'car ambient';
-        car.textContent = rng.pick(CARS);
+        car.innerHTML = carSvg(rng.pick(CAR_COLORS));
         lanes[i].appendChild(car);
         later(() => car.remove(), 1700);
       }, 900);

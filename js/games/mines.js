@@ -15,12 +15,12 @@
   DP.games.register({
     id: 'mines',
     name: 'DaveMine',
-    icon: '💣',
+    icon: 'bomb',
     tagline: 'Trouve les DaveCoins, évite les bombes',
     rtp: '99 %',
     hot: true,
-    colors: ['#8b5cf6', '#1e1b4b'],
-    art: `<div class="art-mines">${[1, 0, 1, 0, 2, 1, 1, 1, 0].map((k) => `<i>${k === 1 ? `<img src="${IMG}davecoin.png" alt="">` : k === 2 ? '💣' : ''}</i>`).join('')}</div>`,
+    hue: 4,
+    art: `<div class="art-mines">${[1, 0, 1, 0, 2, 1, 1, 1, 0].map((k) => `<i class="${k === 1 ? 'g' : k === 2 ? 'b' : ''}">${k === 1 ? `<img src="${IMG}davecoin.png" alt="">` : k === 2 ? DP.ui.icon('bomb') : ''}</i>`).join('')}</div>`,
     rules: `<p>Choisis le nombre de bombes cachées dans la grille de 25 cases, puis lance la partie.</p>
       <ul><li>Chaque DaveCoin trouvé augmente ton multiplicateur.</li>
       <li>Plus il y a de bombes, plus chaque case rapporte.</li>
@@ -35,10 +35,10 @@
       const nextOut = ui.readout(panel, 'Prochaine case', '—');
       const profitOut = ui.readout(panel, 'Gain actuel', '—');
       const playBtn = ui.button(panel, 'Jouer');
-      const randBtn = ui.button(panel, 'Case au hasard', 'btn btn--ghost btn--block');
+      const randBtn = ui.button(panel, ui.icon('shuffle', 'i--sm') + 'Case au hasard', 'btn btn--ghost btn--block');
       randBtn.disabled = true;
 
-      stage.innerHTML = `<div class="stage__top"><span></span><div class="pill-row"><span class="pill gold js-mult">1.00×</span></div></div>
+      stage.innerHTML = `<div class="stage__top"><span></span><div class="pill-row"><span class="pill hi js-mult">1.00×</span></div></div>
         <div class="mines-grid idle">${Array.from({ length: CELLS }, (_, i) => `<button class="tile-btn" type="button" data-i="${i}" disabled aria-label="Case ${i + 1}"></button>`).join('')}</div>`;
       const gridEl = stage.querySelector('.mines-grid');
       const tiles = [...gridEl.children];
@@ -67,7 +67,7 @@
       const reveal = (tile, kind, ghost) => {
         tile.classList.add('open', kind);
         if (ghost) tile.classList.add('ghost');
-        tile.innerHTML = kind === 'gem' ? `<img src="${IMG}davecoin.png" alt="DaveCoin">` : '<span class="bomb">💣</span>';
+        tile.innerHTML = kind === 'gem' ? `<img src="${IMG}davecoin.png" alt="DaveCoin">` : ui.icon('bomb');
       };
 
       function start() {
@@ -83,7 +83,7 @@
         betIn.disable(true);
         minesSel.disabled = true;
         randBtn.disabled = false;
-        playBtn.classList.replace('btn--gold', 'btn--green');
+        playBtn.classList.replace('btn--primary', 'btn--cash');
         stage.querySelectorAll('.result-pop').forEach((n) => n.remove());
         paint();
       }
@@ -101,7 +101,7 @@
         randBtn.disabled = true;
         playBtn.disabled = false;
         playBtn.textContent = 'Jouer';
-        playBtn.classList.replace('btn--green', 'btn--gold');
+        playBtn.classList.replace('btn--cash', 'btn--primary');
         const mult = multiplier(g.mines.size, g.picks);
         if (won) {
           const pay = round2(g.bet * mult);

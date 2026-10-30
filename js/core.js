@@ -240,11 +240,17 @@
       return t.content.firstElementChild;
     },
     coin(cls = '') { return `<img class="coin ${cls}" src="${IMG}davecoin.png" alt="DaveCoin">`; },
+    /** Icône SVG (Lucide) en ligne. */
+    icon(name, cls = '') {
+      const body = (window.DP_ICONS || {})[name] || '';
+      return `<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+    },
     toast(text, type = 'info', ms = 2600) {
       let wrap = document.getElementById('toasts');
       if (!wrap) { wrap = ui.el('<div id="toasts" aria-live="polite"></div>'); document.body.appendChild(wrap); }
-      const t = ui.el(`<div class="toast toast--${type}"></div>`);
-      t.textContent = text;
+      const ico = { error: 'triangle-alert', win: 'sparkles', info: 'info' }[type] || 'info';
+      const t = ui.el(`<div class="toast toast--${type}">${ui.icon(ico)}<span></span></div>`);
+      t.querySelector('span').textContent = text;
       wrap.appendChild(t);
       requestAnimationFrame(() => t.classList.add('in'));
       setTimeout(() => { t.classList.remove('in'); setTimeout(() => t.remove(), 300); }, ms);
@@ -254,8 +260,8 @@
       stage.querySelectorAll('.result-pop').forEach((n) => n.remove());
       const partial = win && mult != null && mult < 1; // une partie de la mise seulement est rendue
       const pop = ui.el(`<div class="result-pop ${partial ? '' : win ? 'is-win' : 'is-lose'}">
-        <div class="result-pop__mult">${label || (mult != null ? fmtMult(mult) : '')}</div>
-        <div class="result-pop__amount">${win ? '+' + fmt(amount) + ' ' + ui.coin('coin--sm') : 'Perdu'}</div>
+        <div class="result-pop__mult num">${label || (mult != null ? fmtMult(mult) : '')}</div>
+        <div class="result-pop__amount">${win ? ui.coin('coin--sm') + '<span class="num">' + fmt(amount) + '</span>' : 'Perdu'}</div>
       </div>`);
       stage.appendChild(pop);
       setTimeout(() => pop.classList.add('out'), 1900);
@@ -269,7 +275,7 @@
         const c = document.createElement('i');
         c.className = 'confetti';
         c.style.left = Math.random() * 100 + '%';
-        c.style.background = rng.pick(['#f5c451', '#ffe7a0', '#3ddc84', '#a78bfa', '#ff6b8b']);
+        c.style.background = rng.pick(['#c8ff3d', '#ffffff', '#ffc65c', '#8fb4ff']);
         c.style.animationDelay = Math.random() * 0.4 + 's';
         c.style.animationDuration = 1.2 + Math.random() * 1.2 + 's';
         c.style.transform = `rotate(${Math.random() * 360}deg)`;
@@ -279,7 +285,7 @@
     },
     /** Structure standard d'un jeu : panneau de contrôle + scène. */
     layout(root) {
-      root.innerHTML = '<div class="game"><aside class="panel"></aside><section class="stage"></section></div>';
+      root.innerHTML = '<div class="game"><aside class="panel glass"></aside><section class="stage glass"></section></div>';
       return { panel: root.querySelector('.panel'), stage: root.querySelector('.stage') };
     },
     /** Champ de mise avec raccourcis ½ / 2× / Max. */
@@ -354,7 +360,7 @@
       parent.appendChild(node);
       return { set(v) { node.querySelector('strong').innerHTML = v; }, el: node };
     },
-    button(parent, text, cls = 'btn btn--gold btn--lg btn--block') {
+    button(parent, text, cls = 'btn btn--primary btn--lg btn--block') {
       const b = ui.el(`<button type="button" class="${cls}"></button>`);
       b.innerHTML = text;
       parent.appendChild(b);

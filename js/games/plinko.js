@@ -9,21 +9,24 @@
     16: { low: [16, 9, 2, 1.4, 1.4, 1.2, 1.1, 1, 0.5, 1, 1.1, 1.2, 1.4, 1.4, 2, 9, 16], medium: [110, 41, 10, 5, 3, 1.5, 1, 0.5, 0.3, 0.5, 1, 1.5, 3, 5, 10, 41, 110], high: [1000, 130, 26, 9, 4, 2, 0.2, 0.2, 0.2, 0.2, 0.2, 2, 4, 9, 26, 130, 1000] }
   };
 
-  /** Couleur d'une case : or au centre, rouge vif aux extrémités. */
-  function slotColor(i, n) {
-    const d = Math.abs(i - (n - 1) / 2) / ((n - 1) / 2);
-    const h = 48 - d * 48;
-    return `hsl(${h} 95% ${58 - d * 6}%)`;
+  /** Couleurs d'une case selon son multiplicateur : sombre si ça perd, puis vert, ambre et rouge vers les gros gains. */
+  function slotColor(m) {
+    if (m < 1) return ['#171b27', '#6c7387'];
+    if (m < 2) return ['#262c3d', '#d9dce6'];
+    if (m < 5) return ['#4d6a1c', '#eaffc0'];
+    if (m < 30) return ['#c8ff3d', '#0d1200'];
+    if (m < 200) return ['#ffc65c', '#1f1300'];
+    return ['#ff5d52', '#200402'];
   }
 
   DP.games.register({
     id: 'plinko',
     name: 'PlinkoDave',
-    icon: '🟡',
+    icon: 'plinko',
     tagline: 'Fais tomber la DaveCoin, jusqu’à ×1000',
     rtp: '99 %',
-    colors: ['#ec4899', '#4c1d95'],
-    art: `<svg class="art-plinko" viewBox="0 0 100 90"><circle cx="39.0" cy="14" r="2.2" fill="#fff"/><circle cx="50.0" cy="14" r="2.2" fill="#fff"/><circle cx="61.0" cy="14" r="2.2" fill="#fff"/><circle cx="33.5" cy="25" r="2.2" fill="#fff"/><circle cx="44.5" cy="25" r="2.2" fill="#fff"/><circle cx="55.5" cy="25" r="2.2" fill="#fff"/><circle cx="66.5" cy="25" r="2.2" fill="#fff"/><circle cx="28.0" cy="36" r="2.2" fill="#fff"/><circle cx="39.0" cy="36" r="2.2" fill="#fff"/><circle cx="50.0" cy="36" r="2.2" fill="#fff"/><circle cx="61.0" cy="36" r="2.2" fill="#fff"/><circle cx="72.0" cy="36" r="2.2" fill="#fff"/><circle cx="22.5" cy="47" r="2.2" fill="#fff"/><circle cx="33.5" cy="47" r="2.2" fill="#fff"/><circle cx="44.5" cy="47" r="2.2" fill="#fff"/><circle cx="55.5" cy="47" r="2.2" fill="#fff"/><circle cx="66.5" cy="47" r="2.2" fill="#fff"/><circle cx="77.5" cy="47" r="2.2" fill="#fff"/><circle cx="17.0" cy="58" r="2.2" fill="#fff"/><circle cx="28.0" cy="58" r="2.2" fill="#fff"/><circle cx="39.0" cy="58" r="2.2" fill="#fff"/><circle cx="50.0" cy="58" r="2.2" fill="#fff"/><circle cx="61.0" cy="58" r="2.2" fill="#fff"/><circle cx="72.0" cy="58" r="2.2" fill="#fff"/><circle cx="83.0" cy="58" r="2.2" fill="#fff"/><circle cx="11.5" cy="69" r="2.2" fill="#fff"/><circle cx="22.5" cy="69" r="2.2" fill="#fff"/><circle cx="33.5" cy="69" r="2.2" fill="#fff"/><circle cx="44.5" cy="69" r="2.2" fill="#fff"/><circle cx="55.5" cy="69" r="2.2" fill="#fff"/><circle cx="66.5" cy="69" r="2.2" fill="#fff"/><circle cx="77.5" cy="69" r="2.2" fill="#fff"/><circle cx="88.5" cy="69" r="2.2" fill="#fff"/><image href="${IMG}davecoin.png" x="38" y="-4" width="24" height="16"/>${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<rect x="${7.5 + k * 11}" y="78" width="9" height="8" rx="2" fill="hsl(${48 - Math.abs(k - 3.5) * 13} 95% 58%)"/>`).join('')}</svg>`,
+    hue: 200,
+    art: `<svg class="art-plinko" viewBox="0 0 100 90"><circle cx="39.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="28.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="39.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="72.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="22.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="77.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="17.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="28.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="39.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="72.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="83.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="11.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="22.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="77.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="88.5" cy="69" r="2.2" fill="#cfd5e6"/><image href="${IMG}davecoin.png" x="38" y="-4" width="24" height="16"/>${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<rect x="${7.5 + k * 11}" y="78" width="9" height="8" rx="2" fill="${['#ff5d52', '#ffc65c', '#c8ff3d', '#262c3d', '#262c3d', '#c8ff3d', '#ffc65c', '#ff5d52'][k]}"/>`).join('')}</svg>`,
     rules: `<p>Chaque DaveCoin rebondit sur les picots et finit dans une case qui multiplie ta mise.</p>
       <ul><li><strong>Lignes</strong> : plus il y en a, plus les extrêmes sont rares et gros.</li>
       <li><strong>Risque</strong> : en risque élevé, le centre paie peu mais les bords vont jusqu’à ×1000.</li>
@@ -43,7 +46,7 @@
         onChange: (v) => { rows = v; layout(); }
       });
       const dropBtn = ui.button(panel, 'Lâcher une pièce');
-      const autoBtn = ui.button(panel, 'Auto', 'btn btn--ghost btn--block');
+      const autoBtn = ui.button(panel, ui.icon('repeat', 'i--sm') + 'Auto', 'btn btn--ghost btn--block');
       panel.appendChild(ui.el('<p class="note">Le risque et les lignes se verrouillent tant qu’une pièce tombe.</p>'));
 
       stage.innerHTML = '<div class="plinko-wrap"><canvas></canvas><div class="plinko-last"></div></div>';
@@ -102,9 +105,11 @@
         settle('plinko', b.bet, round2(b.bet * mult));
         if (mult < 1) sound.play('tick'); else if (mult < 3) sound.play('coin');
         slotFlash[b.k] = performance.now();
-        const pill = ui.el(`<span class="pill ${mult >= 1 ? 'good' : 'bad'}">${fmtMult(mult)}</span>`);
-        pill.style.background = slotColor(b.k, b.rows + 1);
-        pill.style.color = '#1a0f00';
+        const pill = ui.el(`<span class="pill">${fmtMult(mult)}</span>`);
+        const [bg, fg] = slotColor(mult);
+        pill.style.background = bg;
+        pill.style.color = fg;
+        pill.style.borderColor = 'transparent';
         lastEl.prepend(pill);
         while (lastEl.children.length > 6) lastEl.lastChild.remove();
         if (mult >= 10) ui.result(stage, { win: true, mult, amount: b.bet * mult });
@@ -157,8 +162,8 @@
             const glow = f ? Math.max(0, 1 - (now - f) / 250) : 0;
             ctx.beginPath();
             ctx.arc(pegX(r, j), pegY(r), pegR * (1 + glow * 0.6), 0, Math.PI * 2);
-            ctx.fillStyle = glow ? `rgba(255, 227, 154, ${0.6 + glow * 0.4})` : 'rgba(255,255,255,0.85)';
-            ctx.shadowColor = glow ? '#f5c451' : 'transparent';
+            ctx.fillStyle = glow ? `rgba(200, 255, 61, ${0.6 + glow * 0.4})` : 'rgba(214,220,235,0.8)';
+            ctx.shadowColor = glow ? '#c8ff3d' : 'transparent';
             ctx.shadowBlur = glow ? 14 : 0;
             ctx.fill();
           }
@@ -167,18 +172,19 @@
         const table = TABLES[rows][risk];
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = `800 ${Math.max(9, Math.min(13, sp * 0.3))}px Outfit, sans-serif`;
+        ctx.font = `500 ${Math.max(9, Math.min(13, sp * 0.3))}px 'Geist Mono', monospace`;
         table.forEach((m, k) => {
           const f = slotFlash[k];
           const bounce = f ? Math.max(0, 1 - (now - f) / 400) : 0;
           const x = slotX(k) - sp * 0.46, w = sp * 0.92, y = slotY + bounce * 6;
-          ctx.fillStyle = slotColor(k, rows + 1);
+          const [bg, fg] = slotColor(m);
+          ctx.fillStyle = bg;
           ctx.beginPath();
           ctx.roundRect ? ctx.roundRect(x, y, w, slotH, 6) : ctx.rect(x, y, w, slotH);
           ctx.fill();
           ctx.fillStyle = 'rgba(0,0,0,.25)';
           ctx.fillRect(x, y + slotH - 4, w, 4);
-          ctx.fillStyle = '#1a0f00';
+          ctx.fillStyle = fg;
           ctx.fillText(m >= 100 ? String(m) : m + '×', slotX(k), y + slotH / 2 - 1);
         });
         balls.forEach((b) => {
@@ -186,7 +192,7 @@
             const ratio = coinImg.naturalHeight / coinImg.naturalWidth;
             ctx.drawImage(coinImg, b.x - ballR * 1.2, b.y - ballR * 1.2 * ratio, ballR * 2.4, ballR * 2.4 * ratio);
           } else {
-            ctx.beginPath(); ctx.arc(b.x, b.y, ballR, 0, Math.PI * 2); ctx.fillStyle = '#f5c451'; ctx.fill();
+            ctx.beginPath(); ctx.arc(b.x, b.y, ballR, 0, Math.PI * 2); ctx.fillStyle = '#c8ff3d'; ctx.fill();
           }
         });
       }
@@ -195,14 +201,14 @@
         if (!auto) return;
         clearInterval(auto);
         auto = null;
-        autoBtn.textContent = 'Auto';
-        autoBtn.classList.replace('btn--gold', 'btn--ghost');
+        autoBtn.innerHTML = ui.icon('repeat', 'i--sm') + 'Auto';
+        autoBtn.classList.remove('on');
       }
       dropBtn.addEventListener('click', drop);
       autoBtn.addEventListener('click', () => {
         if (auto) return stopAuto();
-        autoBtn.textContent = 'Stop';
-        autoBtn.classList.replace('btn--ghost', 'btn--gold');
+        autoBtn.innerHTML = ui.icon('x', 'i--sm') + 'Stop';
+        autoBtn.classList.add('on');
         drop();
         auto = setInterval(() => (alive ? drop() : stopAuto()), 400);
       });

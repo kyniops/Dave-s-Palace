@@ -43,11 +43,11 @@
   DP.games.register({
     id: 'machine',
     name: 'DaveMachine',
-    icon: '🎰',
+    icon: 'cherry',
     tagline: 'La machine à sous du roi, 5 lignes',
     rtp: '96,9 %',
     hot: true,
-    colors: ['#f59e0b', '#7c2d12'],
+    hue: 38,
     art: `<img src="${IMG}casino.png" alt="">`,
     rules: `<p>Mise répartie sur <strong>5 lignes</strong> : 3 horizontales et 2 diagonales.</p>
       <ul><li><strong>3 symboles identiques</strong> sur une ligne : gros gain.</li>
@@ -62,14 +62,14 @@
       const spinBtn = ui.button(panel, 'Lancer');
       const row = ui.el('<div class="panel__row"></div>');
       panel.appendChild(row);
-      const autoBtn = ui.button(row, 'Auto', 'btn btn--ghost');
-      const turboBtn = ui.button(row, 'Turbo', 'btn btn--ghost');
-      panel.appendChild(ui.el('<p class="note">Espace = lancer</p>'));
+      const autoBtn = ui.button(row, ui.icon('repeat', 'i--sm') + 'Auto', 'btn btn--ghost');
+      const turboBtn = ui.button(row, ui.icon('zap', 'i--sm') + 'Turbo', 'btn btn--ghost');
+      panel.appendChild(ui.el('<p class="note">Espace pour lancer</p>'));
 
       stage.innerHTML = `
         <div class="slot">
           <div class="slot__frame">
-            <div class="slot__marquee">♛ DAVE’S PALACE ♛</div>
+            <div class="slot__marquee"><span class="leds"><i></i><i></i><i></i></span><strong>Dave’s Palace</strong><span class="leds"><i></i><i></i><i></i></span></div>
             <div class="slot__window">
               ${[0, 1, 2].map(() => '<div class="reel"><div class="reel__strip"></div></div>').join('')}
               <svg class="slot__lines" preserveAspectRatio="none" viewBox="0 0 300 300">
@@ -86,6 +86,7 @@
       const reels = [...stage.querySelectorAll('.reel')];
       const lineEls = [...stage.querySelectorAll('.slot__lines polyline')];
       const winEl = stage.querySelector('.slot__win');
+      const slotEl = stage.querySelector('.slot');
       const stops = [0, 0, 0].map(() => rng.int(0, strips[0].length - 1));
       let spinning = false, auto = false, turbo = false, alive = true;
       let pending = null; // spin payé mais pas encore réglé
@@ -113,6 +114,8 @@
         betIn.disable(true);
         spinBtn.disabled = true;
         lineEls.forEach((l) => l.classList.remove('show'));
+        slotEl.classList.remove('won');
+        slotEl.classList.add('spinning');
         winEl.textContent = '';
         sound.play('bet');
 
@@ -148,13 +151,15 @@
 
         const { wins, total } = evaluate(grid, bet);
         pending = null;
+        slotEl.classList.remove('spinning');
+        slotEl.classList.toggle('won', total > 0);
         settle('machine', bet, total);
         if (total > 0) {
           wins.forEach((w) => {
             lineEls[w.line].classList.add('show');
             LINES[w.line].slice(0, w.count).forEach((r, reel) => reels[reel].firstElementChild.children[r].classList.add('win'));
           });
-          winEl.innerHTML = `GAGNÉ ${fmt(total)}`;
+          winEl.innerHTML = `${ui.coin('coin--sm')}+${fmt(total)}`;
           winOut.set(`<span class="pos">+${fmt(total)}</span>`);
           if (total >= bet * 5) ui.result(stage, { win: true, mult: total / bet, amount: total });
         } else {
@@ -171,25 +176,22 @@
 
       function stopAuto() {
         auto = false;
-        autoBtn.textContent = 'Auto';
-        autoBtn.classList.remove('btn--gold');
-        autoBtn.classList.add('btn--ghost');
+        autoBtn.innerHTML = ui.icon('repeat', 'i--sm') + 'Auto';
+        autoBtn.classList.remove('on');
         if (!spinning) betIn.disable(false);
       }
       spinBtn.addEventListener('click', spin);
       autoBtn.addEventListener('click', () => {
         if (auto) return stopAuto();
         auto = true;
-        autoBtn.textContent = 'Stop';
-        autoBtn.classList.add('btn--gold');
-        autoBtn.classList.remove('btn--ghost');
+        autoBtn.innerHTML = ui.icon('x', 'i--sm') + 'Stop';
+        autoBtn.classList.add('on');
         betIn.disable(true);
         spin();
       });
       turboBtn.addEventListener('click', () => {
         turbo = !turbo;
-        turboBtn.classList.toggle('btn--gold', turbo);
-        turboBtn.classList.toggle('btn--ghost', !turbo);
+        turboBtn.classList.toggle('on', turbo);
         sound.play('click');
       });
       const onKey = (e) => {

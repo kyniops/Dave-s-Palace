@@ -12,11 +12,11 @@
   DP.games.register({
     id: 'flip',
     name: 'DaveFlip',
-    icon: '🪙',
+    icon: 'coins',
     tagline: 'DaveCoin ou JPZ ? Double ou rien',
     rtp: '99 %',
     isNew: true,
-    colors: ['#eab308', '#3f2a00'],
+    hue: 75,
     art: `<div class="art-flip"><img class="a" src="${IMG}davecoin.png" alt=""><img class="b" src="${IMG}jpz.png" alt=""></div>`,
     rules: `<p>Choisis un côté et lance la pièce : <strong>DaveCoin</strong> ou <strong>JPZ</strong>, 50/50.</p>
       <ul><li>Chaque bonne réponse multiplie ton gain par <strong>×1,98</strong>.</li>
@@ -30,7 +30,7 @@
       panel.appendChild(sidesEl);
       const multOut = ui.readout(panel, 'Multiplicateur', '1.00×');
       const flipBtn = ui.button(panel, 'Lancer la pièce');
-      const cashBtn = ui.button(panel, 'Encaisser', 'btn btn--green btn--lg btn--block');
+      const cashBtn = ui.button(panel, 'Encaisser', 'btn btn--cash btn--lg btn--block');
       cashBtn.disabled = true;
 
       stage.innerHTML = `<div class="flip-scene"><div class="flip-coin">

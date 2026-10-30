@@ -17,11 +17,11 @@
   DP.games.register({
     id: 'dice',
     name: 'DaveDice',
-    icon: '🎲',
+    icon: 'dices',
     tagline: 'Parie sur la bande, 3 dés, jusqu’à ×12',
     rtp: '95,8 %',
-    colors: ['#0ea5e9', '#312e81'],
-    art: `<div class="art-stack">${['sevare', 'tdam', 'axb'].map((k, i) => `<img src="${IMG}${byId[k].src}" alt="" style="width:34%;aspect-ratio:1;object-fit:cover;border-radius:16px;border:3px solid #fff;left:${8 + i * 28}%;top:${22 + (i % 2) * 14}%;transform:rotate(${-12 + i * 12}deg)">`).join('')}</div>`,
+    hue: 265,
+    art: `<div class="art-stack">${['sevare', 'tdam', 'axb'].map((k, i) => `<img src="${IMG}${byId[k].src}" alt="" style="width:34%;aspect-ratio:1;object-fit:cover;border-radius:16px;border:5px solid #1a1f2e;outline:1px solid rgba(255,255,255,.25);left:${8 + i * 28}%;top:${22 + (i % 2) * 14}%;transform:rotate(${-12 + i * 12}deg)">`).join('')}</div>`,
     rules: `<p>Sélectionne un ou plusieurs membres de la bande : ta mise est placée sur <strong>chacun</strong> d’eux.</p>
       <ul><li>Le visage sort sur <strong>1 dé</strong> : ×2</li>
       <li>Sur <strong>2 dés</strong> : ×3</li>
@@ -32,15 +32,15 @@
       const betIn = ui.betInput(panel, { label: 'Mise par visage', gameId: 'dice', initial: 10 });
       const totalOut = ui.readout(panel, 'Mise totale', '0');
       const rollBtn = ui.button(panel, 'Lancer les dés');
-      const clearBtn = ui.button(panel, 'Désélectionner', 'btn btn--ghost btn--block');
+      const clearBtn = ui.button(panel, ui.icon('x', 'i--sm') + 'Désélectionner', 'btn btn--ghost btn--block');
       panel.appendChild(ui.el(`<div class="readout" style="flex-direction:column;align-items:stretch;gap:4px">
         <span style="display:flex;justify-content:space-between"><span>1 dé</span><strong>×2</strong></span>
         <span style="display:flex;justify-content:space-between"><span>2 dés</span><strong>×3</strong></span>
-        <span style="display:flex;justify-content:space-between"><span>3 dés</span><strong class="gold">×12</strong></span></div>`));
+        <span style="display:flex;justify-content:space-between"><span>3 dés</span><strong class="accent">×12</strong></span></div>`));
 
       stage.innerHTML = `<div class="dice-stage">
         <div class="dice-row">${[0, 1, 2].map(() => `<div class="die"><img src="${IMG}${rng.pick(FACES).src}" alt=""></div>`).join('')}</div>
-        <div class="faces">${FACES.map((f) => `<button type="button" class="face" data-id="${f.id}"><img src="${IMG}${f.src}" alt=""><span>${f.name}</span><b class="face__hits"></b></button>`).join('')}</div>
+        <div class="faces">${FACES.map((f) => `<button type="button" class="face" data-id="${f.id}"><img src="${IMG}${f.src}" alt=""><span>${f.name}</span><i class="face__check">${ui.icon('check', 'i--sm')}</i><b class="face__hits"></b></button>`).join('')}</div>
       </div>`;
       const dice = [...stage.querySelectorAll('.die')];
       const faceBtns = [...stage.querySelectorAll('.face')];

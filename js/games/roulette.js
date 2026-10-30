@@ -7,10 +7,10 @@
   const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
   const color = (n) => (n === 0 ? 'green' : RED.has(n) ? 'red' : 'black');
   const CHIPS = [
-    { v: 1, c: '#6b7280' }, { v: 5, c: '#dc2626' }, { v: 10, c: '#2563eb' }, { v: 25, c: '#16a34a' },
-    { v: 100, c: '#111827' }, { v: 500, c: '#7c3aed' }, { v: 1000, c: '#c98a16' }
+    { v: 1, c: '#3a4157', ink: '#fff' }, { v: 5, c: '#ff5d52', ink: '#fff' }, { v: 10, c: '#4c7dff', ink: '#fff' }, { v: 25, c: '#14936a', ink: '#fff' },
+    { v: 100, c: '#e9ecf2', ink: '#0b0d15' }, { v: 500, c: '#ffc65c', ink: '#1f1300' }, { v: 1000, c: '#c8ff3d', ink: '#0d1200' }
   ];
-  const chipColor = (v) => [...CHIPS].reverse().find((c) => v >= c.v)?.c || CHIPS[0].c;
+  const chipFor = (v) => [...CHIPS].reverse().find((c) => v >= c.v) || CHIPS[0];
   const short = (v) => (v >= 1000 ? round2(v / 1000) + 'k' : String(round2(v)));
 
   /** Renvoie le multiplicateur (mise incluse) d'un pari pour le numéro sorti. */
@@ -38,19 +38,19 @@
       const t = ((ang - 90) * Math.PI) / 180;
       return [50 + rad * Math.cos(t), 50 + rad * Math.sin(t)];
     };
-    const fill = { red: '#c81e36', black: '#17151f', green: '#12985a' };
+    const fill = { red: '#c9303e', black: '#11141d', green: '#14936a' };
     let s = '<svg viewBox="0 0 100 100">';
     ORDER.forEach((n, i) => {
       const a0 = i * a - a / 2, a1 = i * a + a / 2;
       const [x0, y0] = pt(a0, R), [x1, y1] = pt(a1, R), [x2, y2] = pt(a1, r), [x3, y3] = pt(a0, r);
-      s += `<path d="M${x0},${y0} A${R},${R} 0 0 1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 0 0 ${x3},${y3} Z" fill="${fill[color(n)]}" stroke="#c98a16" stroke-width=".35"/>`;
+      s += `<path d="M${x0},${y0} A${R},${R} 0 0 1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 0 0 ${x3},${y3} Z" fill="${fill[color(n)]}" stroke="rgba(255,255,255,.28)" stroke-width=".3"/>`;
       const [tx, ty] = pt(i * a, 44.5);
       s += `<text x="${tx}" y="${ty}" fill="#fff" font-size="3.6" font-weight="800" font-family="Outfit,sans-serif" text-anchor="middle" dominant-baseline="central" transform="rotate(${i * a} ${tx} ${ty})">${n}</text>`;
     });
-    s += `<circle cx="50" cy="50" r="${r}" fill="#2a1c0a" stroke="#c98a16" stroke-width=".8"/>`;
+    s += `<circle cx="50" cy="50" r="${r}" fill="#0b0d15" stroke="rgba(255,255,255,.3)" stroke-width=".6"/>`;
     for (let i = 0; i < 8; i++) {
       const [x, y] = pt(i * 45, r - 0.5);
-      s += `<line x1="50" y1="50" x2="${x}" y2="${y}" stroke="#c98a16" stroke-width="1.2" opacity=".7"/>`;
+      s += `<line x1="50" y1="50" x2="${x}" y2="${y}" stroke="rgba(255,255,255,.12)" stroke-width=".6"/>`;
     }
     return s + '</svg>';
   }
@@ -68,7 +68,7 @@
     ['1–12', '13–24', '25–36'].forEach((t, i) => {
       h += `<button type="button" class="rcell out" data-bet="dz:${i + 1}" style="grid-column:${2 + i * 4}/span 4;grid-row:4">${t}</button>`;
     });
-    [['low', '1–18'], ['even', 'Pair'], ['red', '◆'], ['black', '◆'], ['odd', 'Impair'], ['high', '19–36']].forEach(([k, t], i) => {
+    [['low', '1–18'], ['even', 'Pair'], ['red', 'Rouge'], ['black', 'Noir'], ['odd', 'Impair'], ['high', '19–36']].forEach(([k, t], i) => {
       const cls = k === 'red' ? 'red' : k === 'black' ? 'black' : 'out';
       h += `<button type="button" class="rcell ${cls}" data-bet="${k}" style="grid-column:${2 + i * 2}/span 2;grid-row:5">${t}</button>`;
     });
@@ -78,11 +78,11 @@
   DP.games.register({
     id: 'roulette',
     name: 'DaveRoulette',
-    icon: '🎡',
+    icon: 'roulette',
     tagline: 'Roulette européenne, le vrai frisson',
     rtp: '97,3 %',
-    colors: ['#dc2626', '#14532d'],
-    art: '<span class="game-card__emoji">🎡</span>',
+    hue: 352,
+    art: `<div class="art-wheel">${wheelSvg()}</div>`,
     rules: `<p>Choisis un jeton, clique sur le tapis pour miser, puis lance la roue.</p>
       <ul><li><strong>Numéro plein</strong> : paie 35 pour 1 (×36).</li>
       <li><strong>Douzaine / colonne (2:1)</strong> : paie 2 pour 1 (×3).</li>
@@ -94,15 +94,15 @@
       let wheelRot = 0;
 
       panel.appendChild(ui.el(`<div class="field"><div class="field__head"><label>Jeton</label></div>
-        <div class="chip-rack">${CHIPS.map((c) => `<button type="button" class="chip" data-chip="${c.v}" style="--chip:${c.c}">${short(c.v)}</button>`).join('')}</div></div>`));
+        <div class="chip-rack">${CHIPS.map((c) => `<button type="button" class="chip" data-chip="${c.v}" style="--chip:${c.c};--chip-ink:${c.ink}">${short(c.v)}</button>`).join('')}</div></div>`));
       const totalOut = ui.readout(panel, 'Mise totale', '0');
       const row1 = ui.el('<div class="panel__row"></div>');
       const row2 = ui.el('<div class="panel__row"></div>');
       panel.append(row1, row2);
-      const undoBtn = ui.button(row1, '↶ Annuler', 'btn btn--ghost btn--sm');
-      const clearBtn = ui.button(row1, 'Effacer', 'btn btn--ghost btn--sm');
+      const undoBtn = ui.button(row1, ui.icon('rotate-ccw', 'i--sm') + 'Annuler', 'btn btn--ghost btn--sm');
+      const clearBtn = ui.button(row1, ui.icon('trash-2', 'i--sm') + 'Effacer', 'btn btn--ghost btn--sm');
       const dblBtn = ui.button(row2, '×2', 'btn btn--ghost btn--sm');
-      const rebetBtn = ui.button(row2, 'Rejouer', 'btn btn--ghost btn--sm');
+      const rebetBtn = ui.button(row2, ui.icon('refresh-cw', 'i--sm') + 'Rejouer', 'btn btn--ghost btn--sm');
       const spinBtn = ui.button(panel, 'Lancer la roue');
       const lastOut = ui.readout(panel, 'Dernier gain', '—');
 
@@ -110,7 +110,7 @@
         <div class="stage__top"><div class="roulette-result"></div><div class="pill-row js-hist"></div></div>
         <div class="roulette">
           <div class="wheel-box">
-            <div class="wheel-pointer"></div>
+            <div class="wheel-pointer"><svg viewBox="0 0 18 16"><path d="M0 0h18L9 16z" fill="currentColor"/></svg></div>
             <div class="wheel">${wheelSvg()}<div class="wheel__hub"><img src="${IMG}jpz.png" alt=""></div></div>
             <div class="ball-orbit"><i></i></div>
           </div>
@@ -132,7 +132,9 @@
           let ch = c.querySelector('.chip');
           if (v) {
             if (!ch) { ch = document.createElement('span'); ch.className = 'chip'; c.appendChild(ch); }
-            ch.style.setProperty('--chip', chipColor(v));
+            const cf = chipFor(v);
+            ch.style.setProperty('--chip', cf.c);
+            ch.style.setProperty('--chip-ink', cf.ink);
             ch.textContent = short(v);
           } else if (ch) ch.remove();
         });

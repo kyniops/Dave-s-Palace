@@ -31,11 +31,11 @@
   DP.games.register({
     id: 'blackjack',
     name: 'DaveJack',
-    icon: '🃏',
+    icon: 'spade',
     tagline: 'Blackjack royal, bats le croupier',
     rtp: '99,4 %',
-    colors: ['#16a34a', '#052e16'],
-    art: `<div class="art-stack"><div class="card" style="position:absolute;left:22%;top:16%;transform:rotate(-12deg);animation:none"><div class="card__c tl">A<span>♠</span></div><div class="card__mid">♠</div></div><div class="card red" style="position:absolute;left:44%;top:14%;transform:rotate(10deg);animation:none"><div class="card__c tl">K<span>♥</span></div><div class="card__mid"><img src="${IMG}jpz.png" alt=""></div></div></div>`,
+    hue: 220,
+    art: `<div class="art-cards"><div class="card" style="left:14%;top:14%;transform:rotate(-12deg)"><div class="card__c tl">A<span>♠</span></div><div class="card__mid">♠</div></div><div class="card red" style="left:42%;top:10%;transform:rotate(9deg)"><div class="card__c tl">K<span>♥</span></div><div class="card__mid"><img src="${IMG}jpz.png" alt=""></div></div></div>`,
     rules: `<p>Approche-toi le plus possible de 21 sans dépasser, et fais mieux que le croupier.</p>
       <ul><li><strong>Blackjack</strong> (As + figure/10 d’entrée) : paie 3 pour 2.</li>
       <li><strong>Doubler</strong> : double la mise, une seule carte de plus.</li>
@@ -48,17 +48,17 @@
       const dealBtn = ui.button(panel, 'Distribuer');
       const actions = ui.el('<div class="panel__row" style="flex-wrap:wrap"></div>');
       panel.appendChild(actions);
-      const hitBtn = ui.button(actions, 'Tirer', 'btn btn--ghost');
-      const standBtn = ui.button(actions, 'Rester', 'btn btn--ghost');
+      const hitBtn = ui.button(actions, ui.icon('plus', 'i--sm') + 'Tirer', 'btn btn--ghost');
+      const standBtn = ui.button(actions, ui.icon('hand', 'i--sm') + 'Rester', 'btn btn--ghost');
       const actions2 = ui.el('<div class="panel__row"></div>');
       panel.appendChild(actions2);
-      const dblBtn = ui.button(actions2, 'Doubler', 'btn btn--ghost');
-      const splitBtn = ui.button(actions2, 'Séparer', 'btn btn--ghost');
+      const dblBtn = ui.button(actions2, ui.icon('coins', 'i--sm') + 'Doubler', 'btn btn--ghost');
+      const splitBtn = ui.button(actions2, ui.icon('split', 'i--sm') + 'Séparer', 'btn btn--ghost');
       const shoeOut = ui.readout(panel, 'Cartes dans le sabot', '');
 
       stage.innerHTML = `<div class="bj">
         <div class="bj__zone"><div class="bj__label">Croupier</div><div class="bj__hands js-dealer"></div></div>
-        <div class="bj__msg"></div>
+        <div style="text-align:center"><div class="bj__msg"></div><div class="bj__payline">Blackjack paie 3:2 · croupier reste à 17</div></div>
         <div class="bj__zone"><div class="bj__hands js-player"></div><div class="bj__label" style="margin:8px 0 0">Toi</div></div>
       </div>`;
       const dealerEl = stage.querySelector('.js-dealer');
@@ -71,7 +71,7 @@
       let alive = true;
 
       const draw = () => {
-        if (shoe.length < 60) { shoe = newShoe(); ui.toast('Nouveau sabot mélangé 🃏'); }
+        if (shoe.length < 60) { shoe = newShoe(); ui.toast('Nouveau sabot mélangé'); }
         return shoe.pop();
       };
 
