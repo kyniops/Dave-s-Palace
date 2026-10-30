@@ -16,7 +16,10 @@
     window.scrollTo(0, 0);
 
     if (!auth.current()) {
-      renderLanding(page === 'inscription' ? 'register' : 'login');
+      // présentation d'abord ; la page de connexion vit sur #/connexion et #/inscription
+      if (page === 'connexion' || page === 'inscription') renderLanding(page === 'inscription' ? 'register' : 'login');
+      else if (window.DP_INTRO) unmountView = DP_INTRO.render(app);
+      else renderLanding('login');
       return;
     }
     renderShell();
@@ -44,6 +47,7 @@
     document.body.className = 'is-landing';
     app.innerHTML = `
       <div class="landing">
+        <button type="button" class="btn btn--ghost btn--sm back-intro">${I('arrow-left', 'i--sm')}Présentation</button>
         <div class="planet"></div>
         <div class="landing__hero">
           <div class="brand">${brand()}</div>
@@ -97,7 +101,8 @@
       form.pass.autocomplete = reg ? 'new-password' : 'current-password';
       err.textContent = '';
     };
-    tabs.forEach((t) => t.addEventListener('click', () => { mode = t.dataset.m; paint(); sound.play('click'); }));
+    tabs.forEach((t) => t.addEventListener('click', () => { mode = t.dataset.m; paint(); sound.play('click'); history.replaceState(null, '', mode === 'register' ? '#/inscription' : '#/connexion'); }));
+    app.querySelector('.back-intro').addEventListener('click', () => (window.DP_INTRO ? DP_INTRO.transitionTo('#/') : (location.hash = '#/')));
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const fn = mode === 'register' ? auth.register : auth.login;

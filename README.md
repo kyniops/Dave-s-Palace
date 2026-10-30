@@ -26,6 +26,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 
 - **Boucle principale** : gagne des DaveCoins au casino, ouvre des caisses, récupère des cartes de la bande plus ou moins rares (Commun, Peu commun, Rare, Épique, Légendaire, Mythique). Vends-les pour récupérer des DaveCoins ou garde-les dans ton **inventaire** pour compléter les 5 albums (album complet = 10× le prix de la caisse, une fois).
 
+- **Page de présentation** animée avant la connexion : galaxie 3D (three.js) qui plonge au scroll, sections révélées en motion design, volet de transition vers l'inscription / la connexion
 - Comptes locaux (inscription / connexion), **1 000 DaveCoins** offerts au départ
 - Roue quotidienne toutes les 12 h (100 à 5 000 DaveCoins) + dépannage si ton solde tombe à 0
 - Page **Codes** : codes promo qui donnent des DaveCoins, une fois par compte
@@ -49,6 +50,8 @@ js/icons.js           icônes SVG (Lucide + icônes maison)
 css/games.css         mise en page des jeux + styles de chaque jeu
 js/core.js            portefeuille, comptes, stats, sons, composants UI
 js/app.js             routeur, accueil, lobby, profil
+js/intro.js           page de présentation (galaxie three.js, transitions)
+css/intro.css         styles de la page de présentation
 js/games/*.js         un fichier par jeu (slot-engine.js = maths de DaveMachine, testables sous Node)
 ```
 
