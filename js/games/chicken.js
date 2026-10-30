@@ -21,7 +21,7 @@
     <path d="M45 31c3 1 3 6 0 7-2-1-2-5 0-7z" fill="#ff5d52"/>
     <circle cx="39" cy="22" r="2.6" fill="#0b0d15"/><circle cx="39.8" cy="21.2" r=".8" fill="#fff"/>
   </svg>`;
-  const CAR_COLORS = ['#c8ff3d', '#ff5d52', '#4c7dff', '#ffc65c', '#e9ecf2'];
+  const CAR_COLORS = ['#ff6b2c', '#ff5d52', '#4c7dff', '#ffc65c', '#e9ecf2'];
   const carSvg = (c) => `<svg viewBox="0 0 40 72" aria-hidden="true">
     <rect x="2" y="12" width="5" height="12" rx="2" fill="#0b0d15"/><rect x="33" y="12" width="5" height="12" rx="2" fill="#0b0d15"/>
     <rect x="2" y="48" width="5" height="12" rx="2" fill="#0b0d15"/><rect x="33" y="48" width="5" height="12" rx="2" fill="#0b0d15"/>
@@ -39,7 +39,7 @@
     tagline: 'Traverse la route, voie après voie',
     rtp: '99 %',
     hue: 45,
-    art: `<div class="art-road"><span class="chicken-sprite">${CHICKEN_SVG}</span><span class="lane__cover" style="background:radial-gradient(circle,#c8ff3d 0 56%,#9ccc22 57%);color:#0d1200">1.18×</span><span class="lane__cover">1.40×</span></div>`,
+    art: `<div class="art-road"><span class="chicken-sprite">${CHICKEN_SVG}</span><span class="lane__cover" style="background:radial-gradient(circle,#ff6b2c 0 56%,#c4471a 57%);color:#1a0700">1.18×</span><span class="lane__cover">1.40×</span></div>`,
     rules: `<p>Chaque voie traversée augmente ton multiplicateur. Mais à chaque voie, une voiture peut surgir…</p>
       <ul><li>Choisis la difficulté : plus c’est dur, plus chaque voie rapporte.</li>
       <li>Clique sur <strong>Avancer</strong> (ou sur la plaque dorée) pour passer la voie suivante.</li>

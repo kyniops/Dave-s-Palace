@@ -28,7 +28,7 @@
   const RARITY = [
     { max: 1, label: 'Commun', c: '#6c7387', lvl: 0 },
     { max: 2.5, label: 'Rare', c: '#4c7dff', lvl: 3 },
-    { max: 10, label: 'Épique', c: '#c8ff3d', lvl: 6 },
+    { max: 10, label: 'Épique', c: '#ff6b2c', lvl: 6 },
     { max: 100, label: 'Légendaire', c: '#ffc65c', lvl: 10 },
     { max: Infinity, label: 'Mythique', c: '#ff5d52', lvl: 14 }
   ];

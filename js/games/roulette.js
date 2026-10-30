@@ -99,7 +99,7 @@
     for (let i = 0; i < 8; i++) {
       const a = (i * Math.PI) / 4;
       g.beginPath(); g.moveTo(Math.cos(a) * R * 0.17, Math.sin(a) * R * 0.17); g.lineTo(Math.cos(a) * R * 0.48, Math.sin(a) * R * 0.48);
-      g.strokeStyle = i % 2 ? 'rgba(255,255,255,.05)' : 'rgba(200,255,61,.25)'; g.lineWidth = R * 0.006; g.stroke();
+      g.strokeStyle = i % 2 ? 'rgba(255,255,255,.05)' : 'rgba(255,107,44,.25)'; g.lineWidth = R * 0.006; g.stroke();
     }
     // tourelle chromée (croix + boules)
     const chrome = (x, y, r) => {
@@ -116,7 +116,7 @@
       chrome(Math.cos(a) * R * 0.31, Math.sin(a) * R * 0.31, R * 0.035);
     }
     chrome(0, 0, R * 0.1);
-    g.beginPath(); g.arc(0, 0, R * 0.035, 0, Math.PI * 2); g.fillStyle = '#c8ff3d'; g.fill();
+    g.beginPath(); g.arc(0, 0, R * 0.035, 0, Math.PI * 2); g.fillStyle = '#ff6b2c'; g.fill();
     return c;
   }
 
@@ -126,7 +126,7 @@
     rim.addColorStop(0, '#0b0d14'); rim.addColorStop(0.55, '#1e2333'); rim.addColorStop(0.8, '#2c3246'); rim.addColorStop(1, '#0d1018');
     g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fillStyle = rim; g.fill();
     g.beginPath(); g.arc(0, 0, R * 0.985, 0, Math.PI * 2); g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = R * 0.01; g.stroke();
-    g.beginPath(); g.arc(0, 0, R * 0.9, 0, Math.PI * 2); g.strokeStyle = 'rgba(200,255,61,.18)'; g.lineWidth = R * 0.006; g.stroke();
+    g.beginPath(); g.arc(0, 0, R * 0.9, 0, Math.PI * 2); g.strokeStyle = 'rgba(255,107,44,.18)'; g.lineWidth = R * 0.006; g.stroke();
     // déflecteurs
     for (let i = 0; i < 8; i++) {
       const a = rad(i * 45 + 22.5);

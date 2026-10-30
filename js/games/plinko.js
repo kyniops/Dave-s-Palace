@@ -13,8 +13,8 @@
   function slotColor(m) {
     if (m < 1) return ['#171b27', '#6c7387'];
     if (m < 2) return ['#262c3d', '#d9dce6'];
-    if (m < 5) return ['#4d6a1c', '#eaffc0'];
-    if (m < 30) return ['#c8ff3d', '#0d1200'];
+    if (m < 5) return ['#7a3313', '#fff0e6'];
+    if (m < 30) return ['#ff6b2c', '#1a0700'];
     if (m < 200) return ['#ffc65c', '#1f1300'];
     return ['#ff5d52', '#200402'];
   }
@@ -26,7 +26,7 @@
     tagline: 'Fais tomber la DaveCoin, jusqu’à ×1000',
     rtp: '99 %',
     hue: 200,
-    art: `<svg class="art-plinko" viewBox="0 0 100 90"><circle cx="39.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="28.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="39.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="72.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="22.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="77.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="17.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="28.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="39.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="72.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="83.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="11.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="22.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="77.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="88.5" cy="69" r="2.2" fill="#cfd5e6"/><image href="${IMG}davecoin.png" x="38" y="-4" width="24" height="16"/>${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<rect x="${7.5 + k * 11}" y="78" width="9" height="8" rx="2" fill="${['#ff5d52', '#ffc65c', '#c8ff3d', '#262c3d', '#262c3d', '#c8ff3d', '#ffc65c', '#ff5d52'][k]}"/>`).join('')}</svg>`,
+    art: `<svg class="art-plinko" viewBox="0 0 100 90"><circle cx="39.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="14" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="25" r="2.2" fill="#cfd5e6"/><circle cx="28.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="39.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="72.0" cy="36" r="2.2" fill="#cfd5e6"/><circle cx="22.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="77.5" cy="47" r="2.2" fill="#cfd5e6"/><circle cx="17.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="28.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="39.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="50.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="61.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="72.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="83.0" cy="58" r="2.2" fill="#cfd5e6"/><circle cx="11.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="22.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="33.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="44.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="55.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="66.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="77.5" cy="69" r="2.2" fill="#cfd5e6"/><circle cx="88.5" cy="69" r="2.2" fill="#cfd5e6"/><image href="${IMG}davecoin.png" x="38" y="-4" width="24" height="16"/>${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<rect x="${7.5 + k * 11}" y="78" width="9" height="8" rx="2" fill="${['#ff5d52', '#ffc65c', '#ff6b2c', '#262c3d', '#262c3d', '#ff6b2c', '#ffc65c', '#ff5d52'][k]}"/>`).join('')}</svg>`,
     rules: `<p>Chaque DaveCoin rebondit sur les picots et finit dans une case qui multiplie ta mise.</p>
       <ul><li><strong>Lignes</strong> : plus il y en a, plus les extrêmes sont rares et gros.</li>
       <li><strong>Risque</strong> : en risque élevé, le centre paie peu mais les bords vont jusqu’à ×1000.</li>
@@ -198,7 +198,7 @@
             const ratio = coinImg.naturalHeight / coinImg.naturalWidth;
             ctx.drawImage(coinImg, b.x - ballR * 1.2, b.y - ballR * 1.2 * ratio, ballR * 2.4, ballR * 2.4 * ratio);
           } else {
-            ctx.beginPath(); ctx.arc(b.x, b.y, ballR, 0, Math.PI * 2); ctx.fillStyle = '#c8ff3d'; ctx.fill();
+            ctx.beginPath(); ctx.arc(b.x, b.y, ballR, 0, Math.PI * 2); ctx.fillStyle = '#ff6b2c'; ctx.fill();
           }
         });
       }

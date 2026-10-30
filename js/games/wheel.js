@@ -7,7 +7,7 @@
   const TYPES = [
     { id: 'grey', label: 'Gris', mult: 2, n: 25, c: '#3a4157', ink: '#fff' },
     { id: 'blue', label: 'Bleu', mult: 3.1, n: 16, c: '#4c7dff', ink: '#fff' },
-    { id: 'green', label: 'Vert', mult: 5, n: 10, c: '#c8ff3d', ink: '#0d1200' },
+    { id: 'green', label: 'Vert', mult: 5, n: 10, c: '#3ee68b', ink: '#04150b' },
     { id: 'jpz', label: 'JPZ', mult: 50, n: 1, c: '#ffc65c', ink: '#1f1300' }
   ];
   const BY = Object.fromEntries(TYPES.map((t) => [t.id, t]));

@@ -92,10 +92,10 @@
           return;
         }
         // courbe
-        const color = state === 'crashed' ? '#ff5d52' : '#c8ff3d';
+        const color = state === 'crashed' ? '#ff5d52' : '#ff6b2c';
         const grad = ctx.createLinearGradient(0, Y(m), 0, Y(1));
-        grad.addColorStop(0, state === 'crashed' ? 'rgba(255,93,82,.28)' : 'rgba(200,255,61,.22)');
-        grad.addColorStop(1, 'rgba(200,255,61,0)');
+        grad.addColorStop(0, state === 'crashed' ? 'rgba(255,93,82,.28)' : 'rgba(255,107,44,.22)');
+        grad.addColorStop(1, 'rgba(255,107,44,0)');
         ctx.beginPath();
         ctx.moveTo(X(0), Y(1));
         const N = 80;
@@ -138,8 +138,8 @@
         const fl = 18 + Math.sin(now / 40) * 4 + Math.random() * 4;
         const fg = ctx.createLinearGradient(-20, 0, -20 - fl, 0);
         fg.addColorStop(0, 'rgba(255,255,255,.95)');
-        fg.addColorStop(0.35, 'rgba(200,255,61,.9)');
-        fg.addColorStop(1, 'rgba(200,255,61,0)');
+        fg.addColorStop(0.35, 'rgba(255,107,44,.9)');
+        fg.addColorStop(1, 'rgba(255,107,44,0)');
         ctx.fillStyle = fg;
         ctx.beginPath(); ctx.moveTo(-20, -6); ctx.quadraticCurveTo(-22 - fl, 0, -20, 6); ctx.closePath(); ctx.fill();
         // ailerons
@@ -154,7 +154,7 @@
         ctx.moveTo(-21, -8); ctx.lineTo(8, -10); ctx.quadraticCurveTo(28, -8, 32, 0); ctx.quadraticCurveTo(28, 8, 8, 10); ctx.lineTo(-21, 8);
         ctx.closePath(); ctx.fill();
         // pointe
-        ctx.fillStyle = '#c8ff3d';
+        ctx.fillStyle = '#ff6b2c';
         ctx.beginPath(); ctx.moveTo(20, -8); ctx.quadraticCurveTo(29, -6, 32, 0); ctx.quadraticCurveTo(29, 6, 20, 8); ctx.quadraticCurveTo(23, 0, 20, -8); ctx.fill();
         // hublot : le pilote reste droit quelle que soit l'inclinaison
         ctx.save();
@@ -171,7 +171,7 @@
       }
 
       /** Explosion : onde de choc + éclats, t de 0 à 1. */
-      const debris = Array.from({ length: 24 }, () => ({ a: rng.float() * Math.PI * 2, v: 30 + rng.float() * 80, r: 1 + rng.float() * 2.5, c: rng.pick(['#ff5d52', '#ffc65c', '#ffffff', '#c8ff3d']) }));
+      const debris = Array.from({ length: 24 }, () => ({ a: rng.float() * Math.PI * 2, v: 30 + rng.float() * 80, r: 1 + rng.float() * 2.5, c: rng.pick(['#ff5d52', '#ffc65c', '#ffffff', '#ff6b2c']) }));
       function drawBoom(x, y, t) {
         const e = 1 - Math.pow(1 - t, 3);
         ctx.save();
@@ -302,7 +302,7 @@
         if (ms > round.ms) {
           round.ms = ms;
           sound.play('gem', { i: ms + 3 });
-          ui.flash(stage, 'rgba(200,255,61,.18)');
+          ui.flash(stage, 'rgba(255,107,44,.18)');
           multEl.animate([{ transform: 'translate(-50%,-50%) scale(1.25)' }, { transform: 'translate(-50%,-50%) scale(1)' }], { duration: 400, easing: 'cubic-bezier(.2,1.6,.4,1)' });
         }
         if (m - lastBeep > 0.1) { lastBeep = m; sound.play('tick', { p: Math.min(4, Math.log(m) * 2) }); }

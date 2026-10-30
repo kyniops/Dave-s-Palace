@@ -1,8 +1,9 @@
 /* Dave's Palace — coquille de l'application : routeur, barre du haut, pages. */
 (function () {
   'use strict';
-  const { IMG, auth, wallet, bonus, stats, sound, ui, games, fmt, fmtMult, esc, on } = DP;
+  const { IMG, auth, wallet, bonus, stats, sound, ui, games, fmt, fmtMult, esc, on, rng } = DP;
   const I = ui.icon;
+  const M = window.DP_MOTION;
 
   const app = document.getElementById('app');
   let unmountView = null;
@@ -41,16 +42,17 @@
         <div class="planet"></div>
         <div class="landing__hero">
           <div class="brand">${brand()}</div>
-          <h1>Le casino de Jean&#8209;Pascal Zadi. <span>En orbite.</span></h1>
-          <p class="landing__tag">${games.list.length} jeux originaux joués en DaveCoins : machines à sous, table, caisses et roue en direct.</p>
-          <ul class="landing__facts">
-            <li>${I('gift', 'i--sm')}1 000 DaveCoins à l’inscription</li>
-            <li>${I('timer', 'i--sm')}Bonus de 1 000 chaque jour</li>
-            <li>${I('percent', 'i--sm')}Taux de retour affiché sur chaque jeu</li>
+          <div class="landing__code" data-reveal>Station Palace · Accès membres</div>
+          <h1 class="js-split">Le casino <span class="o">en orbite</span></h1>
+          <p class="landing__tag" data-reveal>Le palace de Jean&#8209;Pascal Zadi. ${games.list.length} jeux originaux, des machines à sous à la roue en direct, joués en DaveCoins.</p>
+          <ul class="landing__facts" data-reveal>
+            <li><strong class="num">${games.list.length}</strong><span>Jeux</span></li>
+            <li><strong class="num">1 000</strong><span>Coins offerts</span></li>
+            <li><strong class="num">99 %</strong><span>RTP max</span></li>
           </ul>
         </div>
-        <img class="landing__king" src="${IMG}jpz.png" alt="">
-        <div class="auth-card">
+        <div class="landing__king"><div class="orbit orbit-spin"></div><img src="${IMG}jpz.png" alt=""></div>
+        <div class="auth-card" data-reveal>
           <div class="seg seg--tabs">
             <button type="button" data-m="login">Connexion</button>
             <button type="button" data-m="register">Inscription</button>
@@ -65,6 +67,9 @@
           </form>
         </div>
       </div>`;
+    M.splitWords(app.querySelector('.js-split'), 150);
+    M.reveal(app, '[data-reveal]', 350);
+    M.magnetic(app.querySelectorAll('.btn--primary'), 0.15);
 
     const form = app.querySelector('form');
     const err = form.querySelector('.auth-form__error');
@@ -72,11 +77,11 @@
     const paint = () => {
       tabs.forEach((t) => t.classList.toggle('on', t.dataset.m === mode));
       const reg = mode === 'register';
-      form.querySelector('h2').textContent = reg ? 'Créer un compte' : 'Connexion';
+      form.querySelector('h2').textContent = reg ? 'Embarquement' : 'Connexion';
       form.querySelector('.auth-form__sub').innerHTML = reg
         ? `Tu reçois <strong class="num">1 000</strong> ${ui.coin('coin--xs')} pour commencer.`
         : 'Connecte-toi pour retrouver tes DaveCoins.';
-      form.querySelector('button[type=submit]').textContent = reg ? 'Créer mon compte' : 'Se connecter';
+      form.querySelector('button[type=submit]').innerHTML = (reg ? 'Créer mon compte' : 'Entrer au Palace') + I('chevron-right', 'i--sm');
       form.pass.autocomplete = reg ? 'new-password' : 'current-password';
       err.textContent = '';
     };
@@ -145,6 +150,8 @@
   function closeSidebar() { document.body.classList.remove('nav-open'); }
   function setActiveNav(key) {
     document.querySelectorAll('.nav-item[data-nav]').forEach((n) => n.classList.toggle('on', n.dataset.nav === key));
+    const nav = document.querySelector('.sidebar');
+    if (nav) M.navIndicator(nav);
   }
 
   /* Animation du solde */
@@ -224,29 +231,31 @@
     const s = stats.get();
     const featured = games.list.find((g) => g.hot) || games.list[0];
     view.innerHTML = `
-      <section class="banner">
-        <div class="banner__stars"></div>
+      <section class="hero" data-reveal>
         <div class="planet"></div>
-        <div class="banner__text">
-          <h1>${new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(user)}</h1>
-          <p>${games.list.length} jeux disponibles. Ton bonus quotidien de ${fmt(bonus.DAILY_BONUS)} DaveCoins t’attend dans le coffre.</p>
-          <div class="banner__cta">
-            <a class="btn btn--primary btn--lg" href="#/jeu/${featured.id}">${I('play', 'i--sm')}Jouer à ${featured.name}</a>
-            <button class="btn btn--ghost btn--lg hero-bonus" type="button">${I('gift', 'i--sm')}Récupérer le bonus</button>
+        <div class="hero__text">
+          <div class="hero__code">${new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(user)} · ${games.list.length} jeux en ligne</div>
+          <h1 class="js-split">Le roi t’attend <em>en orbite</em></h1>
+          <p>Machines à sous, table, caisses et roue en direct. Ton bonus quotidien de ${fmt(bonus.DAILY_BONUS)} DaveCoins t’attend dans le coffre.</p>
+          <div class="hero__cta">
+            <a class="btn btn--primary btn--lg js-mag" href="#/jeu/${featured.id}">${I('play', 'i--sm')}Jouer à ${featured.name}</a>
+            <button class="btn btn--ghost btn--lg hero-bonus js-mag" type="button">${I('gift', 'i--sm')}Bonus du jour</button>
           </div>
         </div>
-        <div class="banner__art"><img src="${IMG}jpz.png" alt="Jean-Pascal Zadi"></div>
+        <div class="hero__art"><div class="orbit orbit-spin o1"></div><div class="orbit orbit-spin rev o2"></div><div class="king"><img src="${IMG}jpz.png" alt="Jean-Pascal Zadi"></div></div>
       </section>
 
-      <section class="statbar">
+      <div class="ticker" data-reveal><div class="ticker__track">${tickerHtml()}${tickerHtml()}</div></div>
+
+      <section class="statbar" data-reveal>
         <div><span>Solde</span><strong>${ui.coin('coin--sm')}<b class="js-bal" style="font-weight:inherit">${fmt(wallet.get())}</b></strong></div>
-        <div><span>Parties jouées</span><strong>${fmt(s.played)}</strong></div>
+        <div><span>Parties jouées</span><strong class="js-played">${fmt(s.played)}</strong></div>
         <div><span>Plus gros gain</span><strong class="${s.biggestWin ? 'pos' : ''}">${s.biggestWin ? '+' + fmt(s.biggestWin) : '—'}</strong></div>
         <div><span>Meilleur multiplicateur</span><strong>${s.biggestMult ? fmtMult(s.biggestMult) : '—'}</strong></div>
       </section>
 
-      <div class="section-head">
-        <h2>Jeux</h2>
+      <div class="section-head" data-reveal>
+        <h2>Les jeux <small class="num">${String(games.list.length).padStart(2, '0')}</small></h2>
         <div class="seg js-filter">${['Tous', ...CATS].map((c) => `<button type="button" data-c="${c}" class="${c === 'Tous' ? 'on' : ''}">${c}</button>`).join('')}</div>
       </div>
       <section class="games-grid">
@@ -273,12 +282,33 @@
       const b = e.target.closest('button');
       if (!b) return;
       filter.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
-      view.querySelectorAll('.game-card').forEach((c) => (c.hidden = b.dataset.c !== 'Tous' && c.dataset.c !== b.dataset.c));
+      const cards = [...view.querySelectorAll('.game-card')];
+      cards.forEach((c) => (c.hidden = b.dataset.c !== 'Tous' && c.dataset.c !== b.dataset.c));
+      // les cartes restantes se replacent en cascade
+      cards.filter((c) => !c.hidden).forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(16px) scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: i * 40, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
       sound.play('click');
     });
+    M.splitWords(view.querySelector('.js-split'), 200);
+    M.reveal(view, '[data-reveal]');
+    M.onView([...view.querySelectorAll('.game-card')], 250);
+    M.tilt(view.querySelectorAll('.game-card'));
+    M.magnetic(view.querySelectorAll('.js-mag'), 0.18);
+    const bal = view.querySelector('.js-bal');
+    M.countUp(bal, wallet.get(), fmt);
+    M.countUp(view.querySelector('.js-played'), s.played, (v) => fmt(Math.round(v)));
     view.querySelector('.hero-bonus').addEventListener('click', openBonus);
     unmountView = on('balance', () => { const b = view.querySelector('.js-bal'); if (b) b.textContent = fmt(wallet.get()); });
     DP.emit('lobby');
+  }
+
+  function tickerHtml() {
+    const crew = [['Olman', 'olman.png'], ['Tdam', 'tdam.png'], ['Sévaré', 'sevare.png'], ['Slymefire', 'slymefire.png'], ['AXB', 'axb.png'], ['Sauce Blanche', 'sauceblanche.png']];
+    return Array.from({ length: 10 }, () => {
+      const [name, img] = rng.pick(crew);
+      const g = rng.pick(games.list);
+      const amount = rng.pick([12, 40, 75, 150, 320, 640, 1200, 2500]) * (rng.float() < 0.1 ? 10 : 1);
+      return `<span class="ticker__item"><i class="ticker__dot"></i><img src="${IMG}${img}" alt=""><b>${name}</b> gagne <span class="pos num">+${fmt(amount)}</span> sur ${g.name}</span>`;
+    }).join('');
   }
 
   function historyTable(rows) {
@@ -303,10 +333,10 @@
     const favGame = fav && games.find(fav[0]);
     view.innerHTML = `
       <div class="page-head">
-        <span class="avatar avatar--lg">${esc(auth.current().charAt(0).toUpperCase())}</span>
+        <span class="avatar avatar--lg" data-reveal>${esc(auth.current().charAt(0).toUpperCase())}</span>
         <div><h1>${esc(auth.current())}</h1><p>Statistiques et historique de ton compte</p></div>
       </div>
-      <section class="statbar statbar--wide">
+      <section class="statbar statbar--wide" data-reveal>
         <div><span>Solde</span><strong>${ui.coin('coin--sm')} ${fmt(wallet.get())}</strong></div>
         <div><span>Parties</span><strong>${fmt(s.played)}</strong></div>
         <div><span>Total misé</span><strong>${fmt(s.wagered)}</strong></div>
@@ -317,6 +347,7 @@
       </section>
       <div class="section-head"><h2>Historique</h2><span>50 dernières parties</span></div>
       ${historyTable(s.history)}`;
+    M.reveal(view, '[data-reveal]');
   }
 
   /* ---------- Jeu ---------- */
@@ -341,9 +372,13 @@
     });
     const cleanup = game.mount(view.querySelector('.game-root'));
     unmountView = typeof cleanup === 'function' ? cleanup : null;
+    M.reveal(view, '.game-head, .panel, .stage');
+    M.splitWords(view.querySelector('.game-head h1'), 80);
+    M.magnetic(view.querySelectorAll('.panel .btn--lg'), 0.08);
   }
 
   window.addEventListener('hashchange', route);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal').forEach((m) => m.remove()); });
+  M.splash(I('crown'));
   route();
 })();

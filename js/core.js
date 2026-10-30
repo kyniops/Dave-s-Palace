@@ -459,7 +459,7 @@
         const c = document.createElement('i');
         c.className = 'confetti';
         c.style.left = Math.random() * 100 + '%';
-        c.style.background = rng.pick(['#c8ff3d', '#ffffff', '#ffc65c', '#8fb4ff']);
+        c.style.background = rng.pick(['#ff6b2c', '#ffffff', '#ffc65c', '#8fb4ff']);
         c.style.animationDelay = Math.random() * 0.4 + 's';
         c.style.animationDuration = 1.2 + Math.random() * 1.2 + 's';
         c.style.transform = `rotate(${Math.random() * 360}deg)`;
@@ -474,7 +474,7 @@
       return l;
     },
     /** Éclat de particules depuis le centre d'un élément (ou d'un point {x, y} écran). */
-    burst(target, { n = 12, colors = ['#c8ff3d', '#ffffff', '#ffc65c'], spread = 1, size = 6 } = {}) {
+    burst(target, { n = 12, colors = ['#ff6b2c', '#ffffff', '#ffc65c'], spread = 1, size = 6 } = {}) {
       if (!target) return;
       const r = target.getBoundingClientRect ? target.getBoundingClientRect() : { left: target.x, top: target.y, width: 0, height: 0 };
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
@@ -622,9 +622,9 @@
       { v: 5, c: '#e5484d', e: '#fff', ink: '#fff' },
       { v: 10, c: '#3d6bff', e: '#fff', ink: '#fff' },
       { v: 25, c: '#12a06e', e: '#fff', ink: '#fff' },
-      { v: 100, c: '#15171f', e: '#c8ff3d', ink: '#c8ff3d' },
+      { v: 100, c: '#15171f', e: '#ff6b2c', ink: '#ff6b2c' },
       { v: 500, c: '#ffb547', e: '#15171f', ink: '#1f1300' },
-      { v: 1000, c: '#c8ff3d', e: '#15171f', ink: '#0d1200' }
+      { v: 1000, c: '#ff6b2c', e: '#15171f', ink: '#1a0700' }
     ],
     of(v) { return [...chips.LIST].reverse().find((c) => v >= c.v) || chips.LIST[0]; },
     short(v) { return v >= 1000 ? round2(v / 1000) + 'k' : String(round2(v)); },
