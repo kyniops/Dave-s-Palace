@@ -80,7 +80,7 @@
         const from = rot;
         const base = from - (from % 360) + 360 * 5;
         rot = base + (outcome === 'jpz' ? 180 : 0);
-        sound.play('coin');
+        sound.play('flip');
         const a = coin.animate(
           [{ transform: `rotateY(${from}deg) translateY(0)` }, { transform: `rotateY(${(from + rot) / 2}deg) translateY(-60px)`, offset: 0.5 }, { transform: `rotateY(${rot}deg) translateY(0)` }],
           { duration: 1300, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }
@@ -96,10 +96,14 @@
         streakEl.insertAdjacentHTML('beforeend', `<span class="pill ${ok ? 'good' : 'bad'}">${SIDES[outcome].label}</span>`);
         if (ok) {
           run.wins++;
-          sound.play('gem');
+          sound.play('gem', { i: run.wins + 1 });
+          ui.burst(coin, { n: 14 + run.wins * 4, spread: 1.3 });
+          ui.floatText(coin, fmtMult(Math.pow(STEP, run.wins)));
+          coin.parentElement.animate([{ transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 350, easing: 'cubic-bezier(.2,1.6,.4,1)' });
           if (run.wins >= MAX_STREAK) return cashout();
         } else {
           settle('flip', run.bet, 0);
+          ui.shake(stage, 1);
           ui.result(stage, { win: false, label: SIDES[outcome].label });
           run = null;
         }

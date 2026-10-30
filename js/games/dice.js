@@ -90,20 +90,22 @@
         dice.forEach((d) => d.classList.add('rolling'));
         const shuffle = setInterval(() => {
           dice.forEach((d) => { if (d.classList.contains('rolling')) d.firstElementChild.src = IMG + rng.pick(FACES).src; });
-          sound.play('tick');
+          sound.play('dice');
         }, 80);
         for (let i = 0; i < 3; i++) {
           await sleep(i === 0 ? 700 : 380);
           if (!alive) { clearInterval(shuffle); return; }
           dice[i].classList.remove('rolling');
           dice[i].firstElementChild.src = IMG + byId[result[i]].src;
-          sound.play('chip');
+          dice[i].animate([{ transform: 'scale(1.18) rotate(-6deg)' }, { transform: 'scale(1)' }], { duration: 300, easing: 'cubic-bezier(.2,1.6,.4,1)' });
+          if (picked.has(result[i])) { sound.play('gem', { i: 3 + i * 2 }); ui.burst(dice[i], { n: 16 }); } else sound.play('reelStop', { i });
         }
         clearInterval(shuffle);
 
         pending = null;
         const pay = payout(result, per, sel);
         settle('dice', total, pay);
+        if (pay >= total * 3) ui.flash(stage);
         dice.forEach((d, i) => { if (picked.has(result[i])) d.classList.add('match'); });
         sel.forEach((id) => {
           const n = result.filter((r) => r === id).length;

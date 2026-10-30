@@ -105,11 +105,17 @@
         const mult = multiplier(g.mines.size, g.picks);
         if (won) {
           const pay = round2(g.bet * mult);
-          settle('mines', g.bet, pay);
+          settle('mines', g.bet, pay, { silent: true });
+          sound.play('cashout');
+          sound.play('win', { x: mult });
           ui.result(stage, { win: true, mult, amount: pay });
         } else {
-          settle('mines', g.bet, 0);
+          settle('mines', g.bet, 0, { silent: true });
           sound.play('boom');
+          ui.shake(gridEl, 2);
+          ui.flash(stage, 'rgba(255,93,82,.35)');
+          const hit = gridEl.querySelector('.tile-btn.hit');
+          if (hit) ui.burst(hit, { n: 26, colors: ['#ff5d52', '#ffc65c', '#ffffff'], spread: 1.5 });
         }
         paint();
       }
@@ -127,7 +133,10 @@
         }
         game.picks++;
         reveal(tile, 'gem');
-        sound.play('gem');
+        sound.play('gem', { i: game.picks - 1 });
+        ui.burst(tile, { n: 10 + game.picks, colors: ['#c8ff3d', '#ffc65c', '#ffffff'] });
+        ui.floatText(tile, fmtMult(multiplier(game.mines.size, game.picks)));
+        if (game.picks >= 3) multPill.animate([{ transform: 'scale(1.35)' }, { transform: 'scale(1)' }], { duration: 300, easing: 'cubic-bezier(.2,1.6,.4,1)' });
         if (game.picks === CELLS - game.mines.size) { end(true); return; }
         paint();
       }

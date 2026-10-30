@@ -270,6 +270,7 @@
       c.style.setProperty('--my', e.clientY - r.top + 'px');
     }));
     unmountView = on('balance', () => { const b = view.querySelector('.js-bal'); if (b) b.textContent = fmt(wallet.get()); });
+    DP.emit('lobby');
   }
 
   function historyTable(rows) {

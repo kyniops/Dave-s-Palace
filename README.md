@@ -9,11 +9,11 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 
 | Jeu | Principe | RTP |
 |---|---|---|
-| **DaveMachine** | Machine à sous 3 rouleaux, 5 lignes, mode Auto et Turbo | 96,9 % |
+| **DaveMachine** | Machine à sous 5×3, 20 lignes, wild JPZ, 3+ DaveCoins = 15 free spins ×2 (cumulables), achat du bonus | 96,1 % |
 | **DaveMine** | Grille 5×5, trouve les DaveCoins, évite les bombes (1 à 24) | 99 % |
 | **PlinkoDave** | 8/12/16 lignes, 3 niveaux de risque, jusqu’à ×1000 | 99 % |
-| **DaveRocket** | Jeu crash : encaisse avant que JPZ n’explose, auto-encaissement | 99 % |
-| **DaveRoulette** | Roulette européenne : pleins, douzaines, colonnes, chances simples | 97,3 % |
+| **DaveRocket** | Jeu crash avec compte à rebours, encaissement dès 1.01×, auto-encaissement | 99 % |
+| **DaveRoulette** | Roulette européenne en canvas (bille physique, déflecteurs), jetons animés | 97,3 % |
 | **DaveJack** | Blackjack 6 jeux : doubler, séparer, blackjack payé 3:2 | ≈ 99,4 % |
 | **DaveChicken** | Traverse la route voie après voie, 4 difficultés | 99 % |
 | **DaveDice** | Parie sur la bande (AXB, Olman, Sauce Blanche, Sévaré, Slymefire, Tdam), 3 dés | 95,8 % |
@@ -26,7 +26,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 - Profil avec statistiques et historique des 50 dernières parties
 - Tirages avec `crypto.getRandomValues`, gains calculés à partir des probabilités réelles
 - Quitter une page en pleine partie règle la partie (encaissement ou remboursement), aucune mise perdue
-- Sons synthétisés (bouton son pour couper), raccourcis clavier, responsive mobile
+- Sound design 100 % synthétisé (Web Audio : compresseur, réverbération, gammes qui montent à chaque réussite), effets visuels (particules, secousses, pluie de DaveCoins), raccourcis clavier, responsive mobile
 - Direction artistique « espace profond » : champ d'étoiles animé en parallaxe, étoiles filantes, verre fumé, icônes [Lucide](https://lucide.dev) (licence ISC)
 
 Les anciens comptes et soldes (clés `utilisateurs`, `utilisateurCourant`, `davecoin_<pseudo>`) sont repris tels quels.
@@ -42,7 +42,7 @@ js/icons.js           icônes SVG (Lucide + icônes maison)
 css/games.css         mise en page des jeux + styles de chaque jeu
 js/core.js            portefeuille, comptes, stats, sons, composants UI
 js/app.js             routeur, accueil, lobby, profil
-js/games/*.js         un fichier par jeu
+js/games/*.js         un fichier par jeu (slot-engine.js = maths de DaveMachine, testables sous Node)
 ```
 
 ### Ajouter un jeu

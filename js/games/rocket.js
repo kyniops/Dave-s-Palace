@@ -87,7 +87,11 @@
         const stepT = niceStep(tMax / 1000) * 1000;
         for (let t = 0; t <= tMax; t += stepT) ctx.fillText(Math.round(t / 1000) + 's', X(t), H - padB + 16);
 
-        if (elapsed <= 0) return;
+        if (elapsed <= 0) {
+          // fusée posée sur le pas de tir (elle tremble pendant le compte à rebours)
+          if (state === 'pad') drawRocket(X(0) + 30, Y(1) - 16 + (round ? (Math.random() - 0.5) * 2.5 : 0), -0.4, performance.now());
+          return;
+        }
         // courbe
         const color = state === 'crashed' ? '#ff5d52' : '#c8ff3d';
         const grad = ctx.createLinearGradient(0, Y(m), 0, Y(1));
@@ -213,17 +217,25 @@
         multEl.innerHTML = `${m.toFixed(2)}×<small>${sub}</small>`;
       }
 
+      // Encaisser n'est possible qu'à partir de MIN_CASH : récupérer sa mise à 1,00× n'est plus possible.
+      const MIN_CASH = 1.01;
+      const COUNTDOWN = 1600;
+      const MILESTONES = [2, 5, 10, 25, 50, 100];
+      let engine = null;
+
       function launch() {
         const bet = betIn.get();
         const autoVal = parseFloat(autoIn.value) || 0;
-        if (autoVal && autoVal < 1.01) { ui.toast('L’auto-encaissement doit être ≥ 1.01×', 'error'); return; }
+        if (autoVal && autoVal < MIN_CASH) { ui.toast(`L’auto-encaissement doit être ≥ ${MIN_CASH}×`, 'error'); return; }
         if (!wallet.place(bet)) return;
         betIn.remember();
         store.set('dp_rocket_auto', String(autoVal));
         sound.play('bet');
-        round = { bet, crash: crashPoint(), t0: performance.now(), cashed: false, cashMult: 0, auto: autoVal, over: false };
+        const now = performance.now();
+        round = { bet, crash: crashPoint(), t0: now + COUNTDOWN, cashed: false, cashMult: 0, auto: autoVal, over: false, ms: 0 };
         betIn.disable(true);
         autoIn.disabled = true;
+        btn.disabled = true;
         btn.classList.replace('btn--primary', 'btn--cash');
         stage.querySelectorAll('.result-pop').forEach((n) => n.remove());
         cancelAnimationFrame(raf);
@@ -231,12 +243,16 @@
       }
 
       function cashout(m) {
-        if (!round || round.cashed || round.over) return;
+        if (!round || round.cashed || round.over || m < MIN_CASH) return;
         round.cashed = true;
         round.cashedAt = performance.now();
         round.cashMult = round2(m);
         const pay = round2(round.bet * round.cashMult);
-        settle('rocket', round.bet, pay);
+        settle('rocket', round.bet, pay, { silent: true });
+        sound.play('cashout');
+        sound.play('win', { x: round.cashMult });
+        ui.burst(multEl, { n: 30, spread: 1.6 });
+        ui.floatText(multEl, '+' + fmt(pay));
         ui.result(stage, { win: true, mult: round.cashMult, amount: pay });
         btn.disabled = true;
         btn.textContent = 'Encaissé !';
@@ -245,12 +261,25 @@
       let lastBeep = 1;
       function tick(now) {
         if (!alive || !round) return;
+        // Compte à rebours avant le décollage : la mise est engagée, impossible d'encaisser.
+        if (now < round.t0) {
+          const left = Math.ceil((round.t0 - now) / 533);
+          if (left !== round.cd) { round.cd = left; sound.play('tick', { p: 3 - left }); }
+          setMult(1, `Décollage dans ${left}…`, 'countdown');
+          btn.innerHTML = 'Mise engagée';
+          draw(0, 1, 'pad');
+          raf = requestAnimationFrame(tick);
+          return;
+        }
+        if (!engine) { engine = sound.engine(); sound.play('whoosh'); }
         const elapsed = now - round.t0;
         let m = multAt(elapsed);
+        engine.set(m);
         if (round.auto && !round.cashed && m >= round.auto && round.auto <= round.crash) cashout(round.auto);
         // Une fois encaissé, on laisse voler 1,5 s puis on révèle le point de crash.
         const reveal = round.cashed && now - round.cashedAt > 1500;
         if (m >= round.crash || reveal) {
+          engine.stop(); engine = null;
           if (reveal && m < round.crash) {
             draw(elapsed, m, 'flying');
             setMult(round.cashMult, `+${fmt(round.bet * round.cashMult)} · aurait crashé à ${round.crash.toFixed(2)}×`, 'cashed');
@@ -263,17 +292,31 @@
           round.over = true;
           animateBoom(el, m);
           setMult(m, round.cashed ? `Encaissé à ${round.cashMult.toFixed(2)}×` : 'Crash !', 'crashed');
-          if (!round.cashed) { settle('rocket', round.bet, 0); sound.play('boom'); }
+          sound.play('boom');
+          ui.shake(stage, 2);
+          ui.flash(stage, 'rgba(255,93,82,.4)');
+          if (!round.cashed) settle('rocket', round.bet, 0, { silent: true });
           addHistory(round.crash);
           finish();
           return;
         }
-        if (m - lastBeep > 0.25) { lastBeep = m; sound.play('tick'); }
+        // Paliers : flash + son à 2×, 5×, 10×…
+        const ms = MILESTONES.filter((x) => m >= x).length;
+        if (ms > round.ms) {
+          round.ms = ms;
+          sound.play('gem', { i: ms + 3 });
+          ui.flash(stage, 'rgba(200,255,61,.18)');
+          multEl.animate([{ transform: 'translate(-50%,-50%) scale(1.25)' }, { transform: 'translate(-50%,-50%) scale(1)' }], { duration: 400, easing: 'cubic-bezier(.2,1.6,.4,1)' });
+        }
+        if (m - lastBeep > 0.1) { lastBeep = m; sound.play('tick', { p: Math.min(4, Math.log(m) * 2) }); }
         draw(elapsed, m, 'flying');
+        multEl.style.setProperty('--heat', Math.min(1, Math.log(m) / Math.log(20)).toFixed(3));
         if (round.cashed) setMult(m, `Encaissé à ${round.cashMult.toFixed(2)}× · +${fmt(round.bet * round.cashMult)}`, 'cashed');
         else {
-          setMult(m, 'En vol…');
-          btn.innerHTML = `Encaisser ${fmt(round.bet * m)}`;
+          setMult(m, 'En vol…', 'flying');
+          const can = m >= MIN_CASH;
+          btn.disabled = !can;
+          btn.innerHTML = can ? `Encaisser ${fmt(round.bet * m)}` : `Encaisser dès ${MIN_CASH}×`;
           winOut.set(`${ui.coin('coin--xs')} ${fmt(round.bet * m)}`);
         }
         raf = requestAnimationFrame(tick);
@@ -298,28 +341,32 @@
 
       btn.addEventListener('click', () => {
         if (!round) launch();
-        else cashout(multAt(performance.now() - round.t0));
+        else if (performance.now() >= round.t0) cashout(multAt(performance.now() - round.t0));
       });
       const onKey = (e) => {
-        if (e.code === 'Space' && !e.target.closest('input')) { e.preventDefault(); btn.click(); }
+        if (e.code === 'Space' && !e.target.closest('input')) { e.preventDefault(); if (!btn.disabled) btn.click(); }
       };
       window.addEventListener('keydown', onKey);
-      const onResize = () => { size(); if (!round) draw(0, 1); };
+      const onResize = () => { size(); if (!round) draw(0, 1, 'pad'); };
       window.addEventListener('resize', onResize);
       size();
-      draw(0, 1);
-      pilot.onload = () => { if (!round) draw(0, 1); };
+      draw(0, 1, 'pad');
+      pilot.onload = () => { if (!round) draw(0, 1, 'pad'); };
 
       return () => {
         alive = false;
         cancelAnimationFrame(raf);
+        if (engine) engine.stop();
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('resize', onResize);
-        // En quittant en plein vol, on encaisse au multiplicateur courant (forcément < crash).
+        // Quitter ne rembourse jamais : si le vol a dépassé 1.01× on encaisse comme avec le bouton,
+        // sinon la manche se termine sans toi (auto-encaissement s'il est réglé, sinon mise perdue).
         if (round && !round.cashed && !round.over) {
-          const m = Math.min(multAt(performance.now() - round.t0), round.crash);
-          if (m < round.crash) settle('rocket', round.bet, round2(round.bet * m));
-          else settle('rocket', round.bet, 0);
+          const now = performance.now();
+          const m = now >= round.t0 ? multAt(now - round.t0) : 1;
+          if (m >= MIN_CASH && m < round.crash) settle('rocket', round.bet, round2(round.bet * m), { silent: true });
+          else if (round.auto && round.auto <= round.crash) settle('rocket', round.bet, round2(round.bet * round.auto), { silent: true });
+          else settle('rocket', round.bet, 0, { silent: true });
         }
       };
     }

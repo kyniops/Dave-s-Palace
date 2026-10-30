@@ -49,6 +49,7 @@ body::before {
 .space { position: fixed; inset: 0; z-index: -1; width: 100vw; height: 100vh; pointer-events: none; }
 
 img { max-width: 100%; display: block; }
+[hidden] { display: none !important; }
 a { color: inherit; text-decoration: none; }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -317,6 +318,14 @@ h1, h2, h3 { margin: 0; line-height: 1.1; font-weight: 600; }
 .page-head { display: flex; align-items: center; gap: 18px; }
 .page-head h1 { font-family: var(--display); font-size: 30px; letter-spacing: -0.03em; }
 .page-head p { margin: 4px 0 0; color: var(--muted); }
+
+/* ---------- Effets (particules, textes flottants, flash) ---------- */
+#fx { position: fixed; inset: 0; z-index: 95; pointer-events: none; overflow: hidden; }
+.fx-p { position: fixed; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+.fx-p.star { border-radius: 1px; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.fx-float { position: fixed; font-family: var(--mono); font-weight: 500; font-size: 20px; color: var(--accent); text-shadow: 0 0 16px rgba(200,255,61,.7), 0 2px 6px rgba(0,0,0,.8); white-space: nowrap; }
+.fx-float.bad { color: var(--lose); text-shadow: 0 0 16px rgba(255,93,82,.6); }
+.fx-flash { position: absolute; inset: 0; z-index: 25; pointer-events: none; }
 
 /* ---------- Toasts & modales ---------- */
 #toasts { position: fixed; z-index: 100; right: 16px; top: calc(var(--topbar) + env(safe-area-inset-top, 0px) + 12px); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }

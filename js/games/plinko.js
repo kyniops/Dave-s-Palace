@@ -86,6 +86,7 @@
         if (!wallet.place(bet)) { stopAuto(); return; }
         betIn.remember();
         sound.play('pop');
+        sound.play('chip');
         // Trajectoire tirée à l'avance : chaque rangée = gauche ou droite à 50 %.
         const path = Array.from({ length: rows }, () => (rng.float() < 0.5 ? 0 : 1));
         balls.push({ bet, path, rows, risk, seg: -1, t: 0, x: W / 2 + (rng.float() - 0.5) * sp * 0.2, y: -ballR, k: 0, done: false });
@@ -102,8 +103,15 @@
       function land(b) {
         b.done = true;
         const mult = TABLES[b.rows][b.risk][b.k];
-        settle('plinko', b.bet, round2(b.bet * mult));
-        if (mult < 1) sound.play('tick'); else if (mult < 3) sound.play('coin');
+        settle('plinko', b.bet, round2(b.bet * mult), { silent: true });
+        sound.play('land', { x: mult });
+        if (mult >= 2) {
+          const r = canvas.getBoundingClientRect();
+          const sx = r.left + (slotX(b.k) / W) * r.width, sy = r.top + (slotY / H) * r.height;
+          const [bg] = slotColor(mult);
+          ui.burst({ x: sx, y: sy }, { n: Math.min(40, 8 + Math.round(mult * 2)), colors: [bg, '#ffffff'], spread: mult >= 10 ? 1.8 : 1 });
+          if (mult >= 10) ui.shake(stage, mult >= 100 ? 2 : 1);
+        }
         slotFlash[b.k] = performance.now();
         const pill = ui.el(`<span class="pill">${fmtMult(mult)}</span>`);
         const [bg, fg] = slotColor(mult);
@@ -124,7 +132,7 @@
           if (b.seg > 0 && b.seg <= b.rows) b.k += b.path[b.seg - 1];
           if (b.seg >= 0 && b.seg < b.rows) {
             pegFlash.set(b.seg + ':' + (b.k + 1), performance.now());
-            if (b.seg % 2 === 0) sound.play('tick');
+            if (balls.length < 4 || b.seg % 2 === 0) sound.play('peg', { i: b.k + b.seg });
           }
           if (b.seg === b.rows) { b.x = slotX(b.k); b.y = slotY + slotH / 2; land(b); }
         }

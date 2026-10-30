@@ -56,7 +56,7 @@
       const splitBtn = ui.button(actions2, ui.icon('split', 'i--sm') + 'Séparer', 'btn btn--ghost');
       const shoeOut = ui.readout(panel, 'Cartes dans le sabot', '');
 
-      stage.innerHTML = `<div class="bj">
+      stage.innerHTML = `<div class="bj"><div class="bj__shoe" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="bj__zone"><div class="bj__label">Croupier</div><div class="bj__hands js-dealer"></div></div>
         <div style="text-align:center"><div class="bj__msg"></div><div class="bj__payline">Blackjack paie 3:2 · croupier reste à 17</div></div>
         <div class="bj__zone"><div class="bj__hands js-player"></div><div class="bj__label" style="margin:8px 0 0">Toi</div></div>
@@ -82,7 +82,7 @@
         return `<div class="bj__hand ${opts.cls || ''}">
           <div class="bj__cards">${cards.map((c, i) => cardHtml(c, opts.hideHole && i === 1)).join('')}</div>
           ${cards.length ? `<div class="bj__total ${bust ? 'bust' : label === 'BJ' || s.total === 21 ? 'bj21' : ''}">${label}</div>` : ''}
-          ${opts.bet ? `<div class="bj__bet">${ui.coin('coin--xs')} ${fmt(opts.bet)}</div>` : ''}
+          ${opts.bet ? `<div class="bj__bet">${DP.ui.chip ? `<span class="bj__chip">${DP.ui.chip(opts.bet)}</span>` : ui.coin('coin--xs')}<span class="num">${fmt(opts.bet)}</span></div>` : ''}
         </div>`;
       }
 
@@ -113,7 +113,15 @@
         target.push(draw());
         sound.play('card');
         render();
+        const tot = stage.querySelectorAll('.bj__total');
+        tot.forEach((t) => t.animate([{ transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'cubic-bezier(.2,1.6,.4,1)' }));
         await sleep(380);
+      }
+
+      function bustFx() {
+        sound.play('lose');
+        const el = playerEl.querySelectorAll('.bj__hand')[st.cur];
+        if (el) { ui.shake(el, 2); ui.floatText(el, 'Bust', 'bad'); }
       }
 
       async function deal() {
@@ -160,7 +168,10 @@
         await give(h.cards);
         if (!alive) return;
         st.phase = 'player';
-        if (score(h.cards).total >= 21) return next();
+        const t = score(h.cards).total;
+        if (t > 21) bustFx();
+        if (t === 21) sound.play('gem', { i: 7 });
+        if (t >= 21) return next();
         render();
       }
       async function stand() { if (st && st.phase === 'player') { st.phase = 'busy'; await next(); } }
@@ -174,6 +185,7 @@
         st.phase = 'busy';
         await give(h.cards);
         if (!alive) return;
+        if (score(h.cards).total > 21) bustFx();
         await next();
       }
       async function split() {
@@ -217,7 +229,7 @@
           paid += pay;
         });
         paid = round2(paid);
-        settle('blackjack', staked, paid);
+        settle('blackjack', staked, paid, { silent: true });
         st.phase = 'over';
         return { d, dBJ, staked, paid };
       }
@@ -228,7 +240,7 @@
         freezeOld();
         render();
         const flip = dealerEl.querySelectorAll('.card')[1];
-        if (flip) { flip.classList.add('flip'); sound.play('card'); }
+        if (flip) { flip.classList.add('flip'); sound.play('cardFlip'); }
         await sleep(500);
         if (!alive) return;
         if (dealerMustPlay()) {
@@ -243,6 +255,18 @@
         msgEl.textContent = res.includes('bj') ? 'Blackjack !' : st.hands.length > 1
           ? res.map((r) => ({ win: 'Gagné', lose: 'Perdu', push: 'Égalité' }[r])).join(' · ')
           : { win: d > 21 ? 'Le croupier saute, gagné !' : 'Gagné !', lose: score(st.hands[0].cards).total > 21 ? 'Tu as sauté…' : dBJ ? 'Blackjack du croupier' : 'Perdu', push: 'Égalité, mise rendue' }[res[0]];
+        const handsEls = [...playerEl.querySelectorAll('.bj__hand')];
+        if (res.includes('bj')) {
+          sound.play('jackpot');
+          ui.flash(stage);
+          ui.shake(stage, 1);
+          handsEls.forEach((el) => { ui.burst(el, { n: 40, spread: 2 }); ui.floatText(el, 'BLACKJACK'); });
+        } else if (paid > staked) {
+          sound.play('win', { x: paid / staked });
+          handsEls.forEach((el, i) => st.hands[i].result === 'win' && ui.burst(el, { n: 24, spread: 1.4 }));
+        } else if (paid === staked) sound.play('chip');
+        else sound.play('lose');
+        if (d > 21 && !dBJ) ui.floatText(dealerEl, 'Le croupier saute !');
         if (paid > staked) ui.result(stage, { win: true, mult: paid / staked, amount: paid });
         render();
         const ended = st;

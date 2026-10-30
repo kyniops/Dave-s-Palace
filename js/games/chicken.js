@@ -134,14 +134,21 @@
         const i = game.pos + 1;
         game.busy = true;
         placeChicken(i);
-        sound.play('pop');
+        sound.play('whoosh');
         if (i === game.deathAt) {
           later(() => {
             const car = document.createElement('div');
             car.className = 'car';
             car.innerHTML = carSvg(rng.pick(CAR_COLORS));
             lanes[i].appendChild(car);
-            later(() => { chickenEl.classList.add('dead'); lanes[i].classList.add('dead'); sound.play('boom'); }, 260);
+            later(() => {
+              chickenEl.classList.add('dead');
+              lanes[i].classList.add('dead');
+              sound.play('boom');
+              ui.shake(stage, 2);
+              ui.flash(stage, 'rgba(255,93,82,.35)');
+              ui.burst(chickenEl, { n: 30, colors: ['#ffffff', '#ff5d52', '#ffb547'], spread: 1.4 });
+            }, 260);
             later(() => car.remove(), 700);
             end(false);
           }, 300);
@@ -151,7 +158,10 @@
           game.pos = i;
           game.busy = false;
           lanes[i].insertAdjacentHTML('beforeend', `<span class="lane__barrier">${ui.icon('flag')}</span>`);
-          sound.play('gem');
+          sound.play('step', { i });
+          const cover = lanes[i].querySelector('.lane__cover');
+          ui.burst(cover, { n: 10 + i });
+          ui.floatText(cover, fmtMult(mult(game.lvl, i + 1)));
           if (i === LEVELS[game.lvl].lanes - 1) { end(true); return; }
           paint();
         }, 320);
@@ -166,10 +176,12 @@
         if (won) {
           const m = mult(g.lvl, g.pos + 1);
           const pay = round2(g.bet * m);
-          settle('chicken', g.bet, pay);
+          settle('chicken', g.bet, pay, { silent: true });
+          sound.play('cashout');
+          sound.play('win', { x: m });
           ui.result(stage, { win: true, mult: m, amount: pay });
         } else {
-          settle('chicken', g.bet, 0);
+          settle('chicken', g.bet, 0, { silent: true });
           later(() => ui.result(stage, { win: false, label: 'Écrasé' }), 400);
         }
         paint();
