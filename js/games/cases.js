@@ -49,13 +49,21 @@
     c.best = c.drops[c.drops.length - 1];
   });
 
+  // Raretés (couleur du cadre néon) selon le multiplicateur du prix de la caisse
   const RARITY = [
-    { max: 1, label: 'Commun', c: '#7d8496', lvl: 0 },
-    { max: 2.5, label: 'Rare', c: '#4c7dff', lvl: 3 },
-    { max: 10, label: 'Épique', c: '#9a6bff', lvl: 6 },
-    { max: 100, label: 'Légendaire', c: '#ffc145', lvl: 10 },
-    { max: Infinity, label: 'Mythique', c: '#ff3d5a', lvl: 14 }
+    { max: 0.6, label: 'Commun', c: '#e6e9f0', lvl: 0, i: 0 },
+    { max: 1.5, label: 'Peu commun', c: '#8dff3a', lvl: 2, i: 1 },
+    { max: 4, label: 'Rare', c: '#2ea8ff', lvl: 4, i: 2 },
+    { max: 20, label: 'Épique', c: '#c04dff', lvl: 7, i: 3 },
+    { max: 100, label: 'Légendaire', c: '#ffb21e', lvl: 11, i: 4 },
+    { max: Infinity, label: 'Mythique', c: '#ff5ad1', lvl: 14, i: 5, rainbow: true }
   ];
+  // Une règle CSS par rareté pour le cadre (le SVG n'est généré qu'une fois)
+  (() => {
+    const st = document.createElement('style');
+    st.textContent = RARITY.map((r) => `.tcard[data-r="${r.i}"] .tcard__frame{background-image:${DP.cardFrame(r)}}.tcard.compact[data-r="${r.i}"] .tcard__frame{background-image:${DP.cardFrame(r, true)}}`).join('\n');
+    document.head.appendChild(st);
+  })();
   const rarity = (m) => RARITY.find((r) => m < r.max) || RARITY[RARITY.length - 1];
   const BOTS = ['olman', 'billy', 'tddam', 'linkay', 'axb', 'yohan'];
   const SET_REWARD = 10; // album complet = 10× le prix de la caisse
@@ -75,12 +83,17 @@
   const cardOf = (box, d) => cards.byId[`${box.id}:${d[0]}`];
 
   /** Carte à collectionner (cadre de rareté, numéro, valeur de revente). */
-  cards.html = (card, { cls = '', owned = true, count = 0 } = {}) => `<div class="tcard r${card.rarity.lvl} ${card.rarity.lvl >= 10 ? 'holo' : ''} ${owned ? '' : 'missing'} ${cls}" style="--r:${card.rarity.c}" data-card="${card.id}">
-      <div class="tcard__top"><span class="num">#${String(card.no).padStart(2, '0')}/${String(card.of).padStart(2, '0')}</span><span>${card.rarity.label}</span></div>
+  cards.html = (card, { cls = '', owned = true, count = 0, compact = false } = {}) => `<div class="tcard ${compact ? 'compact' : ''} ${owned ? '' : 'missing'} ${cls}" data-r="${card.rarity.i}" style="--r:${card.rarity.c}" data-card="${card.id}">
       <div class="tcard__img"><img class="${card.flat ? 'flat' : ''}" src="${IMG}${card.img}" alt="" draggable="false"></div>
-      <div class="tcard__name">${owned ? card.name : '???'}</div>
-      <div class="tcard__foot"><span>${card.setName.replace('Caisse ', '')}</span><b class="num">${ui.coin('coin--xs')}${fmt(card.value)}</b></div>
-      ${count > 1 ? `<span class="tcard__count num">×${count}</span>` : ''}
+      <div class="tcard__frame"></div>
+      <span class="tcard__gem tl num">${String(card.no).padStart(2, '0')}</span>
+      <span class="tcard__gem tr">${card.rarity.label.charAt(0)}</span>
+      ${count > 1 ? `<span class="tcard__gem br num">×${count}</span>` : ''}
+      <div class="tcard__plate">
+        <span class="tcard__rar">${card.rarity.label}</span>
+        <span class="tcard__name">${owned ? card.name : '???'}</span>
+        <span class="tcard__val">${ui.coin('coin--xs')}<b class="num">${fmt(card.value)}</b></span>
+      </div>
     </div>`;
 
   function drawItem(box) {
@@ -88,14 +101,9 @@
     for (const d of box.drops) { r -= d[2]; if (r < 0) return d; }
     return box.drops[0];
   }
-  function itemCard(box, d, cls = '') {
-    const it = ITEMS[d[0]], rr = rarity(d[1]);
-    return `<div class="loot ${cls}" style="--r:${rr.c}">
-      <img class="${it.flat ? '' : 'round'}" src="${IMG}${it.img}" alt="" draggable="false">
-      <span class="loot__name">${it.name}</span>
-      <span class="loot__val num">${fmt(round2(box.price * d[1]))}</span>
-    </div>`;
-  }
+  // Dans la bande qui défile : la carte néon en version compacte
+  const itemCard = (box, d, cls = '') => cards.html(cards.byId[`${box.id}:${d[0]}`], { compact: true, cls });
+
   /** Caisse dessinée : couvercle, bandes, rivets, serrure et emblème. */
   const crateHtml = (box, cls = '') => `<div class="crate ${cls}" style="--c:${box.color}">
       <div class="crate__lid"><i></i></div>
@@ -207,7 +215,7 @@
           </div>
           <div class="cases__strips"></div>
           <div class="cases__dropshead"><h4>Cartes de la caisse</h4><span class="muted">Chances exactes · RTP 95 % · album complet = ${fmt(c.price * SET_REWARD)} DaveCoins</span></div>
-          <div class="cases__drops">${[...c.drops].reverse().map((d) => { const card = cardOf(c, d); const own = inventory.count(card.id); return `<div class="drop">${cards.html(card, { count: own })}<span class="drop__pct num">${(card.chance * 100).toFixed(card.chance < 0.01 ? 2 : 1)} %${own ? ` · <span class="pos">possédée ×${own}</span>` : ''}</span></div>`; }).join('')}</div>
+          <div class="cases__drops">${[...c.drops].reverse().map((d) => { const card = cardOf(c, d); const own = inventory.count(card.id); return `<div class="drop">${cards.html(card, { count: own, compact: true })}<span class="drop__pct num">${(card.chance * 100).toFixed(card.chance < 0.01 ? 2 : 1)} %${own ? ` · <span class="pos">possédée ×${own}</span>` : ''}</span></div>`; }).join('')}</div>
         </div>`;
         DP_MOTION.reveal(stage, '.cases__top, .cases__hero, .cases__dropshead');
         DP_MOTION.onView([...stage.querySelectorAll('.drop')], 200);

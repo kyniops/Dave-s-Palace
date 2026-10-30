@@ -450,7 +450,7 @@
   /* ---------- Inventaire ---------- */
   function renderInventory(view) {
     let tab = 'cards', rar = 'all', sort = 'rarity', confirmAll = false;
-    const RARS = ['Commun', 'Rare', 'Épique', 'Légendaire', 'Mythique'];
+    const RARS = ['Commun', 'Peu commun', 'Rare', 'Épique', 'Légendaire', 'Mythique'];
     const totalCards = Object.keys(cards.byId).length;
     view.innerHTML = `
       <div class="page-head" data-reveal>
@@ -514,7 +514,7 @@
             <div><h3>${st.name}</h3><div class="album__bar"><i style="width:${pr.owned / pr.total * 100}%"></i></div><span class="muted num">${pr.owned}/${pr.total} cartes</span></div>
             <div class="album__cta">${btn}</div>
           </div>
-          <div class="album__cards">${st.cards.map((c) => { const n = inventory.count(c.id); return cards.html(c, { owned: n > 0, count: n }); }).join('')}</div>
+          <div class="album__cards">${st.cards.map((c) => { const n = inventory.count(c.id); return cards.html(c, { owned: n > 0, count: n, compact: true }); }).join('')}</div>
         </section>`;
       }).join('')}</div>`;
       DP_MOTION.onView([...body.querySelectorAll('.album')]);

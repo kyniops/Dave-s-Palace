@@ -417,27 +417,44 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .dwheel__hub img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .dwheel__btn { margin-bottom: 6px; }
 
-/* ---------- Cartes à collectionner ---------- */
-.tcard { position: relative; display: flex; flex-direction: column; width: 100%; aspect-ratio: 5 / 7; padding: 8px; overflow: hidden; color: var(--text);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--r) 22%, #0c0e15), #090a10 60%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r) 70%, transparent), inset 0 0 0 4px #090a10, inset 0 0 0 5px color-mix(in srgb, var(--r) 35%, transparent);
-  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); transition: transform .4s var(--ease); }
-.tcard__top { display: flex; justify-content: space-between; padding: 4px 6px 6px; font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--r); }
-.tcard__img { position: relative; flex: 1; margin: 0 4px; overflow: hidden; background: #050608; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r) 50%, transparent); }
-.tcard__img img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.tcard__img img.flat { object-fit: contain; padding: 10%; }
-.tcard__name { padding: 8px 6px 2px; font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tcard__foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 2px 6px 4px; font-size: 11px; color: var(--muted); }
-.tcard__foot span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tcard__foot b { display: inline-flex; align-items: center; gap: 4px; font-family: var(--display); font-size: 13px; color: var(--coin); white-space: nowrap; }
-.tcard__count { position: absolute; top: 30px; right: 12px; padding: 2px 7px; background: var(--r); color: #08090d; font-family: var(--display); font-size: 12px; font-weight: 700; }
-/* reflet holographique des Légendaires et Mythiques */
-.tcard.holo::after { content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: .45;
-  background: linear-gradient(115deg, transparent 20%, rgba(255,90,90,.5) 35%, rgba(255,230,90,.5) 42%, rgba(90,255,180,.5) 50%, rgba(90,160,255,.5) 58%, rgba(220,90,255,.5) 65%, transparent 80%);
-  background-size: 300% 300%; animation: holo 4s linear infinite; }
-@keyframes holo { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
-.tcard.missing { filter: grayscale(1) brightness(.35); }
-.tcard.missing .tcard__img img { filter: brightness(0) contrast(2); opacity: .5; }
+/* ---------- Cartes à collectionner (cadres néon) ---------- */
+.tcard { --frame-l: -16%; --frame-t: -7.142857%; position: relative; width: 100%; aspect-ratio: 5 / 7; color: var(--text); transition: transform .45s var(--ease); isolation: isolate; container-type: inline-size; }
+/* fond de carte et fenêtre de la photo */
+.tcard::before { content: ''; position: absolute; inset: 3.4% 4.8%; z-index: -2; background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--r) 22%, #0a0b12), #05060a 75%);
+  clip-path: polygon(7% 0, 93% 0, 100% 5%, 100% 95%, 93% 100%, 7% 100%, 0 95%, 0 5%); }
+.tcard__img { position: absolute; left: 8.8%; top: 6.29%; width: 82.4%; height: 63.43%; z-index: -1; overflow: hidden; background: #05060a;
+  clip-path: polygon(4% 0, 96% 0, 100% 3%, 100% 97%, 96% 100%, 4% 100%, 0 97%, 0 3%); }
+.tcard__img img { width: 100%; height: 100%; object-fit: cover; object-position: top; transition: transform .6s var(--ease); }
+.tcard__img img.flat { object-fit: contain; padding: 12%; }
+.tcard__img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(5,6,10,.85)), linear-gradient(115deg, transparent 35%, rgba(255,255,255,.35) 50%, transparent 65%); background-size: 100% 100%, 250% 100%; background-position: 0 0, 160% 0; transition: background-position .9s var(--ease); }
+.tcard:hover .tcard__img::after { background-position: 0 0, -60% 0; }
+.tcard:hover .tcard__img img { transform: scale(1.06); }
+/* cadre néon (déborde pour les éclats) */
+.tcard__frame { position: absolute; left: var(--frame-l); top: var(--frame-t); width: 132%; height: 114.2857%; pointer-events: none; background-size: 100% 100%; background-repeat: no-repeat; animation: frame-pulse 3.2s ease-in-out infinite; }
+@keyframes frame-pulse { 50% { opacity: .78; } }
+.tcard[data-r="4"] .tcard__frame { animation-duration: 1.8s; }
+.tcard[data-r="5"] .tcard__frame { animation: frame-rainbow 3s linear infinite; }
+@keyframes frame-rainbow { from { filter: hue-rotate(0deg) brightness(1.1); } to { filter: hue-rotate(360deg) brightness(1.1); } }
+/* gemmes : numéro, rareté, nombre d'exemplaires */
+.tcard__gem { position: absolute; width: 13.6%; aspect-ratio: 1; display: grid; place-items: center; transform: translate(-50%, -50%); font-family: var(--display); font-weight: 700; font-size: clamp(8px, 6cqi, 15px); color: var(--r); text-shadow: 0 0 8px var(--r); z-index: 2; }
+.tcard__gem.tl { left: 11.2%; top: 8%; }
+.tcard__gem.tr { left: 88.8%; top: 8%; }
+.tcard__gem.br { left: 88.8%; top: 92%; color: #fff; }
+.tcard[data-r="5"] .tcard__gem { animation: frame-rainbow 3s linear infinite; }
+/* plaque : rareté, nom, valeur */
+.tcard__plate { position: absolute; left: 9.6%; right: 9.6%; top: 71%; height: 19%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; text-align: center; z-index: 2; }
+.tcard__rar { font-family: var(--display); font-size: clamp(7px, 4.6cqi, 11px); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--r); text-shadow: 0 0 10px var(--r); }
+.tcard__name { max-width: 100%; font-family: var(--display); font-size: clamp(9px, 7cqi, 18px); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcard__val { display: inline-flex; align-items: center; gap: 4px; font-family: var(--display); font-size: clamp(8px, 5.6cqi, 14px); color: var(--coin); }
+.tcard__val .coin { width: 1.1em; height: 1.1em; }
+/* cartes manquantes de l'album */
+.tcard.missing .tcard__img img { filter: brightness(0) contrast(2); opacity: .35; }
+.tcard.missing .tcard__frame { filter: grayscale(1) brightness(.45); animation: none; }
+.tcard.missing .tcard__gem, .tcard.missing .tcard__rar { color: var(--dim); text-shadow: none; }
+.tcard.missing .tcard__val { opacity: .4; }
+/* apparition : la carte se retourne et le cadre s'allume */
+.tcard.reveal { animation: card-reveal .9s var(--ease) both; }
+@keyframes card-reveal { 0% { transform: rotateY(180deg) scale(.7); filter: brightness(3); } 60% { filter: brightness(1.6); } 100% { transform: none; filter: none; } }
 
 .nav-tag--count { background: var(--surface-3); color: var(--text); }
 
@@ -445,7 +462,7 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .inv-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
 .inv-tools .seg button { flex: none; padding: 0 12px; }
 .inv-tools__sell { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
-.inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; perspective: 1000px; }
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 34px 46px; padding: 14px 30px; perspective: 1000px; }
 .inv-slot { display: flex; flex-direction: column; gap: 8px; }
 .inv-slot .btn { width: 100%; }
 .albums { display: flex; flex-direction: column; gap: 18px; }
@@ -461,15 +478,6 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .album__cards { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 1100px) { .album__cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .album__head { flex-wrap: wrap; } .inv-tools__sell { margin-left: 0; } .inv-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
-/* cartes étroites : on allège l'en-tête */
-.tcard { container-type: inline-size; }
-@container (max-width: 140px) {
-  .tcard__top { font-size: 8px; letter-spacing: .04em; padding: 3px 4px 5px; }
-  .tcard__name { font-size: 11px; padding: 6px 4px 2px; }
-  .tcard__foot { font-size: 9px; padding: 2px 4px 3px; }
-  .tcard__foot b { font-size: 11px; }
-  .tcard__count { top: 22px; right: 8px; font-size: 10px; }
-}
 
 /* ---------- Vitrine des caisses dans le lobby ---------- */
 .lobby-vault { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; perspective: 1200px; }

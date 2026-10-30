@@ -561,10 +561,10 @@ body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
 .cases__drops { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; gap: 12px !important; }
 .drop { gap: 6px; }
 .drop .tcard { width: 100%; }
-.lootbox { position: relative; margin-top: 6px; padding: 18px; border: 1px solid var(--accent); background: linear-gradient(180deg, var(--accent-soft), rgba(0,0,0,.3)); animation: wipe .5s var(--ease); }
+.lootbox { position: relative; margin-top: 6px; padding: 18px; overflow: hidden; border: 1px solid var(--accent); background: linear-gradient(180deg, var(--accent-soft), rgba(0,0,0,.3)); animation: wipe .5s var(--ease); }
 .lootbox__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .lootbox__head h4 { margin: 0; font-family: var(--display); font-size: 16px; letter-spacing: .06em; text-transform: uppercase; }
-.lootbox__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; perspective: 900px; }
+.lootbox__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 30px 50px; padding: 14px 34px; perspective: 900px; }
 .lootbox__slot { display: flex; flex-direction: column; gap: 8px; transition: opacity .3s; }
 .lootbox__slot .btn { width: 100%; }
 .lootbox__slot.sold .tcard { opacity: .35; filter: grayscale(.8); }
@@ -579,3 +579,11 @@ body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
 .floor.active .door:nth-child(2):not(.open) { animation-delay: .2s; } .floor.active .door:nth-child(3):not(.open) { animation-delay: .4s; } .floor.active .door:nth-child(4):not(.open) { animation-delay: .6s; }
 @keyframes door-wait { 50% { border-color: rgba(255,107,44,.6); } }
 .art-towersvg { width: 62%; height: 86%; }
+
+/* bande d'ouverture : cartes néon compactes */
+.strip { height: 172px !important; }
+.strip__track { column-gap: 12px !important; padding: 12px 0 !important; align-items: center; }
+.strip__track > .tcard { flex: none; width: 106px; height: auto; }
+.strip__track > .tcard.won { animation: card-won .6s var(--ease) forwards; }
+@keyframes card-won { 50% { transform: scale(1.14); filter: brightness(1.6); } 100% { transform: scale(1.08); filter: brightness(1.15); } }
+.strip-row { min-height: 172px; }
