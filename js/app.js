@@ -1,7 +1,7 @@
 /* Dave's Palace — coquille de l'application : routeur, barre du haut, pages. */
 (function () {
   'use strict';
-  const { IMG, auth, wallet, bonus, stats, sound, ui, games, fmt, fmtMult, esc, on, rng, cards, inventory } = DP;
+  const { IMG, auth, wallet, bonus, promo, stats, sound, ui, games, fmt, fmtMult, esc, on, rng, cards, inventory } = DP;
   const I = ui.icon;
   const M = window.DP_MOTION;
 
@@ -27,6 +27,7 @@
     else if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
     else if (page === 'profil') renderProfile(view);
     else if (page === 'inventaire') renderInventory(view);
+    else if (page === 'codes') renderCodes(view);
     else renderLobby(view);
     closeSidebar();
   }
@@ -56,6 +57,13 @@
           </ul>
         </div>
         <div class="landing__king"><div class="orbit orbit-spin"></div><img src="${IMG}jpz.png" alt=""></div>
+        <div class="ringed" aria-hidden="true">
+          <div class="ringed__ring ringed__ring--back"></div>
+          <div class="ringed__ball"></div>
+          <div class="ringed__ring ringed__ring--front"></div>
+          <div class="ringed__orbit"><i></i></div>
+        </div>
+        <div class="landing__card">${cards.byId['royale:charis'] ? cards.html(cards.byId['royale:charis']) : ''}</div>
         <div class="auth-card" data-reveal>
           <div class="seg seg--tabs">
             <button type="button" data-m="login">Connexion</button>
@@ -135,6 +143,7 @@
           <div class="nav-title">Compte</div>
           <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Profil & stats</a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
+          <a class="nav-item" data-nav="codes" href="#/codes">${I('ticket')}Codes</a>
           <button class="nav-item logout" type="button">${I('log-out')}Déconnexion</button>
           <div class="sidebar__foot"><p>Jeu fictif, aucun argent réel. Les DaveCoins n’ont aucune valeur.</p></div>
         </nav>
@@ -568,6 +577,51 @@
     });
     paint();
     M.reveal(view, '[data-reveal]');
+  }
+
+  /* ---------- Codes promo ---------- */
+  function renderCodes(view) {
+    const paintUsed = () => {
+      const used = promo.used();
+      view.querySelector('.js-used').innerHTML = used.length
+        ? `<div class="table-wrap"><table class="history"><thead><tr><th>Code</th><th class="num">Gain</th><th class="num">Date</th></tr></thead><tbody>${used.slice().reverse().map((u) => `<tr><td><span class="g">${I('ticket', 'i--sm')}${esc(u.code.toUpperCase())}</span></td><td class="num pos">+${fmt(u.amount)}</td><td class="num muted">${new Date(u.t).toLocaleDateString('fr-FR')}</td></tr>`).join('')}</tbody></table></div>`
+        : `<div class="empty">${I('ticket', 'i--lg')}<strong>Aucun code utilisé</strong>Les codes que tu actives apparaîtront ici.</div>`;
+    };
+    view.innerHTML = `
+      <div class="page-head" data-reveal>
+        <span class="game-head__ico">${I('ticket', 'i--lg')}</span>
+        <div><h1>Codes</h1><p>Un code te donne des DaveCoins. Chaque code ne fonctionne qu’une fois par compte.</p></div>
+      </div>
+      <form class="code-box" data-reveal novalidate>
+        <label class="field"><span>Ton code</span><input name="code" autocomplete="off" spellcheck="false" maxlength="32" placeholder="Ex. DAVE33"></label>
+        <button class="btn btn--primary btn--lg" type="submit">${I('sparkles', 'i--sm')}Activer</button>
+        <p class="code-box__msg" role="status"></p>
+      </form>
+      <div class="section-head" data-reveal><h2>Codes utilisés</h2></div>
+      <div class="js-used" data-reveal></div>`;
+    const form = view.querySelector('.code-box');
+    const msg = form.querySelector('.code-box__msg');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const r = promo.redeem(form.code.value);
+      if (r.error) {
+        msg.textContent = r.error; msg.className = 'code-box__msg neg';
+        sound.play('error');
+        form.animate([{ transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], { duration: 260 });
+        return;
+      }
+      msg.innerHTML = `Code ${esc(r.code.toUpperCase())} activé : <b class="num">+${fmt(r.amount)}</b> DaveCoins`;
+      msg.className = 'code-box__msg pos';
+      form.code.value = '';
+      sound.play('jackpot');
+      ui.coinRain(view, 50);
+      ui.burst(form.querySelector('button'), { n: 50, colors: ['#ffc145', '#ff6b2c', '#ffffff'], spread: 2 });
+      ui.toast(`+${fmt(r.amount)} DaveCoins`, 'win');
+      paintUsed();
+    });
+    paintUsed();
+    M.reveal(view, '[data-reveal]');
+    form.code.focus();
   }
 
   /* ---------- Profil ---------- */

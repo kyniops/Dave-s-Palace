@@ -156,7 +156,28 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .brand__mark .i { width: 18px; height: 18px; stroke-width: 2.2; }
 
 /* ---------- Décor spatial ---------- */
-.planet { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(circle at 50% 0%, #15131a 0%, #0a090d 38%, #050407 70%); box-shadow: 0 -1px 0 rgba(255, 107, 44, 0.55); }
+.planet { position: absolute; border-radius: 50%; pointer-events: none; overflow: hidden;
+  background: var(--planet-tex, #15131a) 0 -150px / 1000px 500px repeat; animation: planet-spin 160s linear infinite;
+  box-shadow: 0 -1px 0 rgba(255, 170, 110, .7), 0 -14px 50px -12px rgba(255, 107, 44, .45); }
+/* ombrage : lumière venant d'en haut à gauche, nuit sur les bords */
+.planet::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(180deg, rgba(255,220,190,.12), transparent 1.5%), radial-gradient(circle at 50% 0%, rgba(3,4,7,.15) 0, rgba(3,4,7,.35) 3%, rgba(3,4,7,.75) 6%, rgba(3,4,7,.97) 12%); }
+.planet::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 18px 40px -20px rgba(255, 190, 140, .55); }
+@keyframes planet-spin { to { background-position-x: -1000px; } }
+
+/* planète à anneaux de l'accueil, avec sa lune */
+.ringed { position: absolute; top: 4vh; left: 47%; width: 130px; height: 130px; z-index: -1; pointer-events: none; animation: drift 11s ease-in-out infinite; }
+.ringed__ball { position: absolute; inset: 0; border-radius: 50%; background: var(--planet-tex) 0 -120px / 420px 210px repeat-x; animation: ringed-spin 30s linear infinite; box-shadow: inset -26px -18px 40px rgba(0,0,0,.85), inset 8px 6px 20px rgba(255,220,180,.25), 0 0 30px -6px rgba(255,107,44,.35); }
+@keyframes ringed-spin { to { background-position-x: -420px; } }
+.ringed__ring { position: absolute; left: -48%; top: 34%; width: 196%; height: 32%; border-radius: 50%; border: 6px solid rgba(255, 190, 140, .55); box-shadow: 0 0 0 3px rgba(255,140,80,.18), inset 0 0 0 2px rgba(255,255,255,.15); transform: rotate(-16deg); }
+.ringed__ring--back { clip-path: inset(0 0 52% 0); opacity: .55; }
+.ringed__ring--front { clip-path: inset(48% 0 0 0); }
+.ringed__orbit { position: absolute; inset: -60%; animation: moon-orbit 18s linear infinite; transform: rotate(-16deg); }
+.ringed__orbit i { position: absolute; left: 50%; top: 0; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #e8e2da, #7d7570 60%, #2b2826); box-shadow: inset -3px -2px 4px rgba(0,0,0,.7); }
+@keyframes moon-orbit { from { transform: rotate(-16deg); } to { transform: rotate(344deg); } }
+
+/* carte JPZ Charismatique qui flotte sur l'accueil */
+.landing__card { position: absolute; z-index: 0; left: calc(47% - 10px); top: 32vh; width: 150px; transform: rotate(9deg); animation: card-float 7s ease-in-out infinite; pointer-events: none; }
+@keyframes card-float { 0%, 100% { transform: rotate(9deg) translateY(0); } 50% { transform: rotate(5deg) translateY(-14px); } }
 .orbit { position: absolute; left: 50%; top: 50%; border: 1px dashed rgba(255,255,255,.16); border-radius: 50%; transform: translate(-50%, -50%) rotateX(72deg); pointer-events: none; }
 .orbit::after { content: ''; position: absolute; top: 50%; left: -4px; width: 8px; height: 8px; margin-top: -4px; background: var(--accent); }
 .orbit-spin { animation: orbit 16s linear infinite; }
@@ -303,7 +324,7 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .game-card p { margin: 4px 0 0; color: var(--dim); font-family: var(--display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; display: flex; gap: 8px; }
 .game-card p span + span::before { content: '/'; margin-right: 8px; color: var(--line-3); }
 .game-card__go { flex: none; display: grid; place-items: center; width: 30px; height: 30px; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-2); transition: background .25s, color .25s, transform .4s var(--ease); }
-.game-card:hover .game-card__go { background: var(--accent); color: var(--accent-ink); box-shadow: none; transform: rotate(-45deg); }
+.game-card:hover .game-card__go { background: var(--accent); color: var(--accent-ink); box-shadow: none; transform: translateX(3px); }
 .badge { position: absolute; top: 10px; left: 10px; z-index: 7; padding: 3px 8px; font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .badge--hot { background: var(--coin); color: #1f1300; }
 .badge--new { background: var(--accent); color: var(--accent-ink); }
@@ -385,7 +406,7 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
   .nav-open .scrim { display: block; position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.6); }
   #view { margin-left: 0; padding-left: 16px; padding-right: 16px; }
   .landing { grid-template-columns: 1fr; gap: 36px; padding-top: 40px; }
-  .landing__king { display: none; }
+  .landing__king, .ringed, .landing__card { display: none; }
   .landing__facts { grid-template-columns: repeat(3, auto); }
   .landing__facts strong { font-size: 22px; }
   .hero { padding: 28px 22px; min-height: 0; }
@@ -499,3 +520,9 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 /* entrée « Caisses » mise en avant dans le menu */
 .nav-item--hero { color: var(--text); font-weight: 600; background: linear-gradient(90deg, rgba(255,107,44,.16), transparent); }
 .nav-item--hero .i { color: var(--accent); }
+
+/* ---------- Codes promo ---------- */
+.code-box { position: relative; display: grid; grid-template-columns: minmax(0, 420px) auto; align-items: end; gap: 12px; margin-top: 22px; padding: 22px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.code-box input { text-transform: uppercase; letter-spacing: .14em; font-family: var(--display); font-size: 18px !important; }
+.code-box__msg { grid-column: 1 / -1; margin: 0; min-height: 20px; font-size: var(--t-sm); }
+@media (max-width: 600px) { .code-box { grid-template-columns: 1fr; } }

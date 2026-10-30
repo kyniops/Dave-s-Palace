@@ -7,9 +7,16 @@
   const S = window.DaveSlot;
   const ABORT = Symbol('abort');
   const TIERS = [{ x: 100, label: 'Epic win' }, { x: 40, label: 'Mega win' }, { x: 15, label: 'Big win' }];
-  const ROUND = new Set(['lucasco', 'olmanaura', 'tddam', 'billy', 'linkay', 'yohan', 'scat']);
-  const NAMES = { wild: 'JPZ (wild)', scat: 'Free JPZ', casino: 'La Machine', lucasco: 'Lucasco', olmanaura: 'Olman Aura', tddam: 'Tddam', billy: 'Billy', linkay: 'Linkay', yohan: 'Yohan', A: 'A', K: 'K', Q: 'Q' };
+  const ROUND = new Set(['lucasco', 'olmanaura', 'tddam', 'billy', 'scat']);
+  const NAMES = { wild: 'JPZ (wild)', scat: 'Free JPZ', casino: 'La Machine', lucasco: 'Lucasco', olmanaura: 'Olman Aura', tddam: 'Tddam', billy: 'Billy', A: 'A', K: 'K', Q: 'Q', J: 'J', T: '10' };
   const AUTO_COUNTS = [10, 25, 50, 100, Infinity];
+  // Rampe d'ampoules autour de la machine : [gauche %, haut %]
+  const BULBS = (() => {
+    const out = [];
+    for (let i = 0; i <= 15; i++) { out.push([i * (100 / 15), 0]); out.push([100 - i * (100 / 15), 100]); }
+    for (let i = 1; i < 9; i++) { out.push([100, i * (100 / 9)]); out.push([0, 100 - i * (100 / 9)]); }
+    return out;
+  })();
 
   function symHtml(k) {
     const d = S.SYMBOLS[k];
@@ -39,7 +46,7 @@
     name: 'DaveMachine',
     icon: 'cherry',
     tagline: '5 rouleaux, 20 lignes, free spins ×2',
-    rtp: '96,1 %',
+    rtp: '96,5 %',
     hot: true,
     hue: 38,
     art: `<img src="${IMG}casino.png" alt="">`,
@@ -64,15 +71,11 @@
       stage.classList.add('slot-stage');
       stage.innerHTML = `
         <div class="slot5">
+          <div class="slot5__bulbs" aria-hidden="true">${BULBS.map(([x, y], i) => `<i style="left:${x}%;top:${y}%;--i:${i}"></i>`).join('')}</div>
           <div class="slot5__top">
-            <span class="leds"><i></i><i></i><i></i><i></i></span>
-            <strong>Dave’s Palace</strong>
-            <span class="leds"><i></i><i></i><i></i><i></i></span>
-          </div>
-          <div class="fs-banner" hidden>
-            <span class="fs-banner__count">${ui.icon('sparkles', 'i--sm')}<b class="num js-fs">0/0</b> free spins</span>
-            <span class="fs-banner__mult num">×${S.FS_MULT}</span>
-            <span class="fs-banner__win">Gain bonus <b class="num js-fswin">0</b></span>
+            <div class="plq plq--fs"><span>Free spins</span><b class="num js-fs">0</b></div>
+            <strong class="slot5__title">Dave’s Palace</strong>
+            <div class="plq plq--win"><span>Gain bonus</span><b class="num js-fswin">0</b></div>
           </div>
           <div class="slot5__window">
             ${[0, 1, 2, 3, 4].map(() => '<div class="reel5"><div class="reel5__strip"></div></div>').join('')}
@@ -90,7 +93,7 @@
       const lineEls = [...stage.querySelectorAll('.slot5__lines polyline')];
       const overlayEl = stage.querySelector('.slot5__overlay');
       const msgEl = stage.querySelector('.js-msg');
-      const banner = stage.querySelector('.fs-banner');
+      const plqWin = stage.querySelector('.plq--win');
       const fsCount = stage.querySelector('.js-fs');
       const fsWinEl = stage.querySelector('.js-fswin');
 
@@ -260,9 +263,64 @@
       }
 
       /* ---------- Free spins ---------- */
+      let shownWin = 0;
+      function flip(el, text) {
+        if (el.textContent === text) return;
+        el.textContent = text;
+        el.animate([{ transform: 'rotateX(90deg)', opacity: 0.2 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.16,1,.3,1)' });
+      }
       function paintBanner() {
-        fsCount.textContent = `${session.fsPlayed}/${session.fsTotal}`;
-        fsWinEl.textContent = fmt(round2(session.fsWin));
+        flip(fsCount, String(session.fsLeft));
+        fsWinEl.textContent = fmt(round2(shownWin));
+      }
+      /** Pièces qui s'envolent des symboles gagnants vers la plaque « Gain » qui compte à chaque arrivée. */
+      function collectCoins(res) {
+        const cells = [];
+        res.lines.forEach((l) => l.cells.forEach(([r, w]) => cells.push(cellEl(r, w))));
+        if (res.scatter.pay) res.scatter.cells.forEach(([r, w]) => cells.push(cellEl(r, w)));
+        const target = plqWin.getBoundingClientRect();
+        const tx = target.left + target.width / 2, ty = target.top + target.height / 2;
+        const n = Math.min(26, 4 + Math.round(Math.sqrt(res.total / session.bet) * 4));
+        const from = shownWin, to = round2(session.fsWin);
+        let landed = 0;
+        return new Promise((resolve) => {
+          if (!cells.length) { shownWin = to; paintBanner(); return resolve(); }
+          for (let i = 0; i < n; i++) {
+            const src = cells[i % cells.length].getBoundingClientRect();
+            const sx = src.left + src.width / 2 + (Math.random() - 0.5) * src.width * 0.5, sy = src.top + src.height / 2;
+            const c = document.createElement('img');
+            c.src = IMG + 'davecoin.png';
+            c.className = 'coin-fly';
+            c.style.left = sx + 'px'; c.style.top = sy + 'px';
+            ui._fxLayer().appendChild(c);
+            const lift = 80 + Math.random() * 120;
+            c.animate([
+              { transform: 'translate(-50%,-50%) scale(.4) rotate(0)', opacity: 0 },
+              { transform: `translate(calc(-50% + ${(tx - sx) * 0.3}px), calc(-50% + ${(ty - sy) * 0.3 - lift}px)) scale(1.1) rotate(200deg)`, opacity: 1, offset: 0.35 },
+              { transform: `translate(calc(-50% + ${tx - sx}px), calc(-50% + ${ty - sy}px)) scale(.5) rotate(540deg)`, opacity: 0.9 }
+            ], { duration: 700 + Math.random() * 250, delay: i * 45, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'backwards' }).finished.then(() => {
+              c.remove();
+              landed++;
+              shownWin = round2(from + (to - from) * (landed / n));
+              fsWinEl.textContent = fmt(shownWin);
+              sound.play('count', { k: landed / n });
+              plqWin.animate([{ transform: 'scale(1.12)' }, { transform: 'none' }], { duration: 160 });
+              if (landed === n) { shownWin = to; paintBanner(); resolve(); }
+            });
+          }
+        });
+      }
+      /** Tampon ×2 sur chaque symbole gagnant pendant les free spins. */
+      function stampX2(res) {
+        const seen = new Set();
+        res.lines.forEach((l) => l.cells.forEach(([r, w]) => {
+          const k = r + ':' + w;
+          if (seen.has(k)) return;
+          seen.add(k);
+          const el = cellEl(r, w);
+          el.insertAdjacentHTML('beforeend', `<span class="sym__x2">×${S.FS_MULT}</span>`);
+        }));
+        if (seen.size) sound.play('chip');
       }
       async function introBonus(spins) {
         sound.play('fs');
@@ -274,11 +332,10 @@
       // Effets d'ambiance pendant tout le bonus : lumières, pluie de pièces, musique
       let party = null;
       function startParty() {
-        stage.classList.add('fs-on');
         document.body.classList.add('fs-party');
+        window.DP_SPACE && DP_SPACE.warp(true);
         const music = sound.fsMusic();
-        const rain = setInterval(() => { if (alive) ui.coinRain(stage, 6); }, 2600);
-        party = { stop() { music.stop(); clearInterval(rain); stage.classList.remove('fs-on'); document.body.classList.remove('fs-party'); } };
+        party = { stop() { music.stop(); window.DP_SPACE && DP_SPACE.warp(false); document.body.classList.remove('fs-party'); } };
       }
       function stopParty() { if (party) { party.stop(); party = null; } }
 
@@ -287,7 +344,6 @@
         const dur = Math.min(6500, 2200 + Math.sqrt(total / session.bet) * 400);
         overlayEl.className = 'slot5__overlay summary';
         overlayEl.innerHTML = `<div class="fs-sum">
-          <div class="fs-sum__rays"></div>
           <div class="fs-sum__bulbs">${Array.from({ length: 24 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</div>
           <span class="fs-sum__label">Gain total du bonus</span>
           <strong class="fs-sum__amount num">0</strong>
@@ -327,7 +383,7 @@
 
       async function runBonus() {
         slot.classList.add('fs');
-        banner.hidden = false;
+        shownWin = 0;
         paintBanner();
         startParty();
         try {
@@ -335,7 +391,6 @@
             session.fsLeft--;
             session.fsPlayed++;
             paintBanner();
-            banner.animate([{ transform: 'scale(1.03)' }, { transform: 'none' }], { duration: 300 });
             setMsg(`Free spin ${session.fsPlayed} · gains ×${S.FS_MULT}`);
             const { grid } = S.spin(rng.float);
             const res = S.evaluate(grid, session.bet, S.FS_MULT);
@@ -345,10 +400,13 @@
             session.fsTotal += res.scatter.spins;
             await spinReels(grid);
             if (res.total > 0) {
-              ui.floatText(fsWinEl, '+' + fmt(res.total));
-              if (res.total >= session.bet * 10) { ui.shake(slot, 1); ui.coinRain(stage, 20); }
-            }
-            await showWins(res, true);
+              stampX2(res);
+              slot.animate([{ transform: 'scale(1.012)' }, { transform: 'none' }], { duration: 240 });
+              if (res.total >= session.bet * 10) { ui.shake(slot, 1); ui.flash(stage); }
+              const coins = collectCoins(res);
+              await showWins(res, true);
+              await coins;
+            } else await showWins(res, true);
             paintBanner();
             if (res.scatter.spins) {
               sound.play('fs');
@@ -362,7 +420,6 @@
         } finally {
           stopParty();
           slot.classList.remove('fs');
-          banner.hidden = true;
         }
       }
 

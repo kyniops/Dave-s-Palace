@@ -26,7 +26,8 @@
     tddam: { name: 'Tddam', img: 'tddam.jpg' },
     yohan: { name: 'Yohan', img: 'yohan.jpg' },
     jppz: { name: 'JPZ et son chien', img: 'jppz.jpg' },
-    jpz2: { name: 'Free JPZ', img: 'jpz2.jpg' }
+    jpz2: { name: 'Free JPZ', img: 'jpz2.jpg' },
+    charis: { name: 'JPZ Charismatique', img: 'jpzcharis.jpg' }
   };
   // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 95 %
   const CASES = [
@@ -39,7 +40,7 @@
     { id: 'tdam', name: 'Caisse Tdam & Co', price: 250, color: '#2dd4bf', cover: 'tddam.jpg',
       drops: [['carl', 0.15, null], ['tdam2', 0.4, 2500], ['tddam', 0.7, 1800], ['sevare', 1.1, 1200], ['petitbonnin', 2.5, 700], ['billy', 8, 180], ['olmanaura', 30, 40], ['jppz', 150, 5]] },
     { id: 'royale', name: 'Caisse Royale JPZ', price: 500, color: '#ffc145', cover: 'jpz.png',
-      drops: [['olman', 0.1, null], ['tdam', 0.3, 2400], ['sevare', 0.6, 1600], ['slyme', 1, 1100], ['axb', 3, 600], ['sauce', 12, 120], ['casino', 60, 22], ['jpz', 500, 2]] }
+      drops: [['olman', 0.1, null], ['tdam', 0.3, 2400], ['sevare', 0.6, 1600], ['slyme', 1, 1100], ['axb', 3, 600], ['sauce', 12, 120], ['charis', 60, 22], ['jpz', 500, 2]] }
   ];
   CASES.forEach((c) => {
     const rest = c.drops.slice(1);

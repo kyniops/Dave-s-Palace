@@ -10,6 +10,7 @@
 
   let W = 0, H = 0, dpr = 1, stars = [], meteors = [], nextMeteor = 0;
   let mx = 0, my = 0, px = 0, py = 0; // parallaxe souris (lissée)
+  let warp = 0, warpTarget = 0;          // hyperespace (free spins) : 0 = calme, 1 = pleine vitesse
 
   const LAYERS = [
     { n: 0.00018, size: [0.4, 0.9], speed: 0.004, alpha: [0.25, 0.55], depth: 4 },
@@ -55,10 +56,28 @@
     last = t;
     ctx.clearRect(0, 0, W, H);
     px += (mx - px) * 0.04; py += (my - py) * 0.04;
+    warp += (warpTarget - warp) * Math.min(1, dt * 0.002);
 
     for (const s of stars) {
       const L = LAYERS[s.li];
       if (!still) { s.x -= L.speed * dt; if (s.x < -4) s.x = W + 4; }
+      if (warp > 0.01) {
+        // hyperespace : les étoiles fuient le centre de l'écran en traînées
+        const cx = W / 2, cy = H / 2;
+        const dx = s.x - cx, dy = s.y - cy;
+        const k = warp * (0.0006 + L.depth * 0.00012) * dt;
+        const ox = s.x, oy = s.y;
+        s.x += dx * k; s.y += dy * k;
+        if (s.x < -20 || s.x > W + 20 || s.y < -20 || s.y > H + 20) { s.x = cx + (Math.random() - 0.5) * W * 0.25; s.y = cy + (Math.random() - 0.5) * H * 0.25; continue; }
+        ctx.globalAlpha = Math.min(1, s.a * (0.6 + warp));
+        ctx.strokeStyle = s.li === 2 && warp > 0.5 ? '#ffc145' : `rgb(${s.c})`;
+        ctx.lineWidth = s.r * (0.8 + warp * 0.6);
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x - (s.x - ox) * (6 + warp * 10), s.y - (s.y - oy) * (6 + warp * 10));
+        ctx.stroke();
+        continue;
+      }
       const tw = still ? 1 : 0.65 + 0.35 * Math.sin(t * 0.001 * s.tw + s.ph);
       const x = s.x - px * L.depth, y = s.y - py * L.depth;
       ctx.globalAlpha = s.a * tw;
@@ -98,6 +117,9 @@
     ctx.globalAlpha = 1;
     if (!still) requestAnimationFrame(draw);
   }
+
+  /** Active (true) ou coupe l'hyperespace ; la transition est progressive. */
+  window.DP_SPACE = { warp(on) { warpTarget = on ? 1 : 0; } };
 
   window.addEventListener('resize', resize);
   window.addEventListener('pointermove', (e) => {

@@ -6,35 +6,35 @@
 
   // pays = gains en multiple de la mise PAR LIGNE pour 3, 4, 5 symboles alignés depuis la gauche
   const SYMBOLS = {
-    wild:      { kind: 'wild',    img: 'jpz.png',         pays: [60, 300, 1200] },
+    wild:      { kind: 'wild',    img: 'jpz.png',         pays: [70, 350, 1400] },
     scat:      { kind: 'scatter', img: 'jpz2.jpg' },
-    casino:    { kind: 'high',    img: 'casino.png',      pays: [50, 180, 700] },
-    lucasco:   { kind: 'high',    img: 'lucasco.jpg',     pays: [35, 120, 500] },
-    olmanaura: { kind: 'high',    img: 'olmanaura.jpg',   pays: [35, 120, 500] },
-    tddam:     { kind: 'mid',     img: 'tddam.jpg',       pays: [25, 70, 250] },
-    billy:     { kind: 'mid',     img: 'billy.jpg',       pays: [25, 70, 250] },
-    linkay:    { kind: 'mid',     img: 'linkay.jpg',      pays: [18, 60, 180] },
-    yohan:     { kind: 'mid',     img: 'yohan.jpg',       pays: [18, 60, 180] },
-    A:         { kind: 'low',     glyph: 'A', pays: [12, 35, 120] },
-    K:         { kind: 'low',     glyph: 'K', pays: [12, 35, 120] },
-    Q:         { kind: 'low',     glyph: 'Q', pays: [10, 30, 100] }
+    casino:    { kind: 'high',    img: 'casino.png',      pays: [60, 210, 800] },
+    lucasco:   { kind: 'high',    img: 'lucasco.jpg',     pays: [45, 160, 580] },
+    olmanaura: { kind: 'high',    img: 'olmanaura.jpg',   pays: [45, 160, 580] },
+    tddam:     { kind: 'mid',     img: 'tddam.jpg',       pays: [30, 90, 320] },
+    billy:     { kind: 'mid',     img: 'billy.jpg',       pays: [30, 90, 320] },
+    A:         { kind: 'low',     glyph: 'A',  pays: [14, 40, 140] },
+    K:         { kind: 'low',     glyph: 'K',  pays: [14, 40, 140] },
+    Q:         { kind: 'low',     glyph: 'Q',  pays: [12, 35, 115] },
+    J:         { kind: 'low',     glyph: 'J',  pays: [9, 28, 90] },
+    T:         { kind: 'low',     glyph: '10', pays: [7, 22, 70] }
   };
 
   // Nombre d'exemplaires de chaque symbole sur chaque rouleau (rouleau 1 → 5).
-  // Réglé pour un RTP de 96,1 % (calcul exact : voir README), ~35 % de tours gagnants, bonus ≈ 1 tour sur 180.
+  // Les lettres sont majoritaires. RTP 96,5 % (calcul exact), ~35 % de tours gagnants, bonus ≈ 1 tour sur 153.
   const WEIGHTS = {
     wild:      [0, 5, 5, 5, 5],
     scat:      [2, 2, 2, 2, 2],
     casino:    [3, 3, 3, 3, 3],
-    lucasco:   [4, 4, 4, 4, 4],
-    olmanaura: [4, 4, 4, 4, 4],
-    tddam:     [5, 5, 5, 5, 5],
-    billy:     [5, 5, 5, 5, 5],
-    linkay:    [6, 6, 6, 6, 6],
-    yohan:     [6, 6, 6, 6, 6],
-    A:         [10, 10, 10, 10, 10],
-    K:         [10, 10, 10, 10, 10],
-    Q:         [11, 11, 11, 11, 11]
+    lucasco:   [3, 3, 3, 3, 3],
+    olmanaura: [3, 3, 3, 3, 3],
+    tddam:     [4, 4, 4, 4, 4],
+    billy:     [4, 4, 4, 4, 4],
+    A:         [8, 8, 8, 8, 8],
+    K:         [8, 8, 8, 8, 8],
+    Q:         [9, 9, 9, 9, 9],
+    J:         [9, 9, 9, 9, 9],
+    T:         [9, 9, 9, 9, 9]
   };
 
   const LINES = [

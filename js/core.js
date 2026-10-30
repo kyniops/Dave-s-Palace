@@ -155,6 +155,26 @@
     DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT
   };
 
+  /* ---------- Codes promo (une fois par compte) ---------- */
+  const PROMO_CODES = { dave33: 3333, jcforton: 5000 };
+  const promo = {
+    key() { return 'dp_codes_' + auth.current(); },
+    used() { return store.json(promo.key(), []); },
+    redeem(raw) {
+      const code = String(raw || '').trim().toLowerCase();
+      if (!code) return { error: 'Entre un code.' };
+      const amount = PROMO_CODES[code];
+      if (!amount) return { error: 'Ce code n’existe pas.' };
+      const used = promo.used();
+      if (used.some((u) => u.code === code)) return { error: 'Tu as déjà utilisé ce code sur ce compte.' };
+      used.push({ code, amount, t: Date.now() });
+      store.setJson(promo.key(), used);
+      wallet.credit(amount);
+      emit('bonus');
+      return { code, amount };
+    }
+  };
+
   /* ---------- Statistiques ---------- */
   const stats = {
     key() { return 'dp_stats_' + auth.current(); },
@@ -813,5 +833,5 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
+  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, promo, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
 })();
