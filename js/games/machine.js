@@ -8,7 +8,9 @@
   const ABORT = Symbol('abort');
   const TIERS = [{ x: 100, label: 'Epic win' }, { x: 40, label: 'Mega win' }, { x: 15, label: 'Big win' }];
   const ROUND = new Set(['lucasco', 'olmanaura', 'tddam', 'billy', 'scat']);
-  const NAMES = { wild: 'JPZ (wild)', scat: 'Free JPZ', casino: 'La Machine', lucasco: 'Lucasco', olmanaura: 'Olman Aura', tddam: 'Tddam', billy: 'Billy', A: 'A', K: 'K', Q: 'Q', J: 'J', T: '10' };
+  const NAMES = { wild: 'JPZ (wild)', scat: 'Free JPZ', casino: 'La Machine', lucasco: 'Lucasco', olmanaura: 'Olman Aura', tddam: 'Tddam', billy: 'Billy', petitbonnin: 'Petit Bonnin', linkay: 'Linkay', yohan: 'Yohan', carl: 'Carl', tdam2: 'Tdam' };
+  // Jackpot : 5 cartes Free JPZ, ou déclenchement mystère dont la chance suit la mise
+  const JP_MYSTERY = 5e6;
   const AUTO_COUNTS = [10, 25, 50, 100, Infinity];
   // Rampe d'ampoules autour de la machine : [gauche %, haut %]
   const BULBS = (() => {
@@ -35,6 +37,7 @@
       <li><strong>JPZ couronné est le Wild</strong> (rouleaux 2 à 5) : il remplace tous les symboles sauf la carte Free JPZ.</li>
       <li><strong>3 cartes Free JPZ ou plus</strong> n’importe où : <strong>15 free spins</strong> (20 pour 4, 25 pour 5) + gain direct ×2 / ×10 / ×50 la mise.</li>
       <li>Pendant les free spins, <strong>tous les gains sont doublés</strong>. Les cartes Free JPZ qui retombent <strong>ajoutent</strong> des free spins.</li>
+      <li><strong>Jackpot global</strong> : il monte avec chaque mise du casino. Tu le remportes avec <strong>5 cartes Free JPZ</strong>, ou par un <strong>déclenchement mystère</strong> possible à chaque tour (plus ta mise est grosse, plus il a de chances de tomber). Très rare.</li>
       <li><strong>Tirage auto</strong> : choisis 10, 25, 50, 100 tours ou illimité, et arrête quand tu veux.</li>
     </ul>
     <p class="muted">Table des gains (× la mise totale) pour 3 / 4 / 5 symboles :</p>
@@ -74,7 +77,7 @@
           <div class="slot5__bulbs" aria-hidden="true">${BULBS.map(([x, y], i) => `<i style="left:${x}%;top:${y}%;--i:${i}"></i>`).join('')}</div>
           <div class="slot5__top">
             <div class="plq plq--fs"><span>Free spins</span><b class="num js-fs">0</b></div>
-            <strong class="slot5__title">Dave’s Palace</strong>
+            <div class="jp"><span>Jackpot</span><b class="num js-jp">${fmt(DP.jackpot.get())}</b></div>
             <div class="plq plq--win"><span>Gain bonus</span><b class="num js-fswin">0</b></div>
           </div>
           <div class="slot5__window">
@@ -94,6 +97,17 @@
       const overlayEl = stage.querySelector('.slot5__overlay');
       const msgEl = stage.querySelector('.js-msg');
       const plqWin = stage.querySelector('.plq--win');
+      // compteur du jackpot : rattrape la valeur en douceur
+      const jpEl = stage.querySelector('.js-jp');
+      let jpShown = DP.jackpot.get(), jpRaf = 0;
+      const jpTick = () => {
+        const target = DP.jackpot.get();
+        jpShown = target < jpShown ? target : jpShown + (target - jpShown) * 0.08;
+        if (Math.abs(target - jpShown) < 0.01) jpShown = target;
+        jpEl.textContent = fmt(round2(jpShown));
+        if (jpShown !== target) jpRaf = requestAnimationFrame(jpTick); else jpRaf = 0;
+      };
+      const offJp = DP.on('jackpot', () => { if (!jpRaf) jpRaf = requestAnimationFrame(jpTick); });
       const fsCount = stage.querySelector('.js-fs');
       const fsWinEl = stage.querySelector('.js-fswin');
 
@@ -423,6 +437,56 @@
         }
       }
 
+      /** JACKPOT : tout s'allume, hyperespace, le montant monte jusqu'à la cagnotte gagnée. */
+      async function jackpotSequence(amount, mystery) {
+        document.body.classList.add('jp-party');
+        slot.classList.add('jp-on');
+        window.DP_SPACE && DP_SPACE.warp(true);
+        const music = sound.fsMusic();
+        sound.play('fs');
+        ui.flash(stage);
+        ui.shake(slot, 3);
+        overlayEl.className = 'slot5__overlay jackpot';
+        overlayEl.innerHTML = `<div class="jpwin">
+          <span class="jpwin__kicker">${mystery ? 'Jackpot mystère' : '5 cartes Free JPZ'}</span>
+          <strong class="jpwin__title">${[...'JACKPOT'].map((c, i) => `<i style="--i:${i}">${c}</i>`).join('')}</strong>
+          <b class="jpwin__amount num">0</b>
+          <span class="jpwin__meta">Jackpot global remporté par ${DP.esc(DP.auth.current())}</span>
+        </div>`;
+        overlayEl.hidden = false;
+        const amt = overlayEl.querySelector('.jpwin__amount');
+        let skip = false;
+        overlayEl.onclick = () => (skip = true);
+        await wait(1400);
+        const rain = setInterval(() => alive && ui.coinRain(stage, 14), 500);
+        const dur = 7000, t0 = performance.now();
+        let last = 0;
+        await new Promise((resolve) => {
+          const step = (now) => {
+            const k = skip ? 1 : Math.min(1, (now - t0) / dur);
+            const e = 1 - Math.pow(1 - k, 2.4);
+            amt.textContent = fmt(round2(amount * e));
+            if (now - last > 50 && k < 1) { last = now; sound.play('count', { k: e }); }
+            if (Math.random() < 0.1 && k < 1) ui.burst(amt, { n: 10, colors: ['#ffc145', '#ffffff', '#ff6b2c'], spread: 2 });
+            if (k < 1 && alive) requestAnimationFrame(step); else resolve();
+          };
+          requestAnimationFrame(step);
+        });
+        clearInterval(rain);
+        amt.classList.add('slam');
+        sound.play('slam'); sound.play('jackpot');
+        ui.shake(slot, 3); ui.flash(stage);
+        ui.burst(amt, { n: 90, colors: ['#ffc145', '#ffffff', '#ff6b2c'], spread: 3 });
+        ui.coinRain(stage, 120);
+        await wait(skip ? 1200 : 3200);
+        music.stop();
+        window.DP_SPACE && DP_SPACE.warp(false);
+        document.body.classList.remove('jp-party');
+        slot.classList.remove('jp-on');
+        overlayEl.hidden = true;
+        overlayEl.onclick = null;
+      }
+
       /* ---------- Partie ---------- */
       async function play() {
         if (busy) return;
@@ -440,9 +504,16 @@
             const res = S.evaluate(grid, bet);
             session.win += res.total;
             session.fsLeft = session.fsTotal = res.scatter.spins;
+            // jackpot : tiré avant l'animation, la cagnotte est réservée tout de suite
+            const jpMystery = res.scatter.count < 5 && rng.float() < bet / JP_MYSTERY;
+            if (res.scatter.count >= 5 || jpMystery) {
+              session.jp = DP.jackpot.win(DP.auth.current());
+              session.win += session.jp;
+            }
             await spinReels(grid);
             if (res.total > 0) await showWins(res, auto);
             else setMsg(res.scatter.count === 2 ? 'Presque… 2 cartes Free JPZ !' : 'Pas de gain cette fois');
+            if (session.jp) await jackpotSequence(session.jp, jpMystery);
             if (res.scatter.spins) await introBonus(res.scatter.spins);
             else if (!auto) cycleLines(res);
           }
@@ -454,7 +525,7 @@
           settle('machine', s.stake, total, { silent: true });
           winOut.set(total > 0 ? `<span class="pos">+${fmt(total)}</span>` : '0');
           if (total > 0 && s.fsTotal) setMsg(`Total <b class="num">+${fmt(total)}</b>`);
-          if (!s.fsTotal) await bigWin(total, s.stake);
+          if (!s.fsTotal && !s.jp) await bigWin(total, s.stake);
         } catch (e) {
           if (e !== ABORT) throw e;
           return;
@@ -505,7 +576,11 @@
       return () => {
         alive = false;
         auto = false;
+        offJp();
+        cancelAnimationFrame(jpRaf);
         stopParty();
+        window.DP_SPACE && DP_SPACE.warp(false);
+        document.body.classList.remove('jp-party');
         clearInterval(cycleTimer);
         window.removeEventListener('resize', onResize);
         window.removeEventListener('keydown', onKey);

@@ -155,8 +155,37 @@
     DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT
   };
 
+  /* ---------- Jackpot global progressif ----------
+   * Partagé par tous les comptes du navigateur. Il ne fait que monter : 1 % de chaque mise
+   * du casino l'alimente, plus une croissance continue (le « réseau » des autres machines).
+   * Il se gagne uniquement sur DaveMachine, puis repart de sa valeur de départ.
+   */
+  const JACKPOT_SEED = 25000, JACKPOT_RATE = 0.01;
+  const jackpot = {
+    SEED: JACKPOT_SEED,
+    get() { const v = parseFloat(store.get('dp_jackpot')); return isNaN(v) || v < JACKPOT_SEED ? JACKPOT_SEED : round2(v); },
+    feed(amount) {
+      if (!(amount > 0)) return;
+      const v = round2(jackpot.get() + amount);
+      store.set('dp_jackpot', String(v));
+      emit('jackpot', v);
+    },
+    /** Remporte la cagnotte : renvoie le montant et remet le jackpot à sa valeur de départ. */
+    win(name) {
+      const v = jackpot.get();
+      store.set('dp_jackpot', String(JACKPOT_SEED));
+      store.setJson('dp_jackpot_last', { name, amount: v, t: Date.now() });
+      emit('jackpot', JACKPOT_SEED);
+      return v;
+    },
+    last() { return store.json('dp_jackpot_last', null); }
+  };
+  setInterval(() => jackpot.feed(round2(0.3 + rng.float() * 2.4)), 2500);
+  // un autre onglet a modifié le jackpot : on rafraîchit l'affichage
+  window.addEventListener('storage', (e) => { if (e.key === 'dp_jackpot') emit('jackpot', jackpot.get()); });
+
   /* ---------- Codes promo (une fois par compte) ---------- */
-  const PROMO_CODES = { dave33: 3333, jcforton: 5000 };
+  const PROMO_CODES = { dave33: 3333, fan2jc: 5000 };
   const promo = {
     key() { return 'dp_codes_' + auth.current(); },
     used() { return store.json(promo.key(), []); },
@@ -205,6 +234,7 @@
   function settle(game, bet, payout, { silent = false, credit = true } = {}) {
     payout = round2(payout);
     if (credit) wallet.credit(payout);
+    if (bet > 0) jackpot.feed(round2(bet * JACKPOT_RATE));
     stats.record(game, bet, payout);
     if (!silent) {
       if (payout > bet) sound.play(payout >= bet * 10 ? 'jackpot' : 'win', { x: payout / bet });
@@ -557,6 +587,17 @@
         setTimeout(() => c.remove(), 3000);
       }
     },
+    /** Couronne d'ampoules autour d'un élément rond. Modes : .is-spinning (chenillard), .is-win (flash). */
+    bulbs(el, n = 32) {
+      el.querySelectorAll('.bulbring').forEach((x) => x.remove());
+      const ring = document.createElement('div');
+      ring.className = 'bulbring';
+      ring.innerHTML = Array.from({ length: n }, (_, i) => `<i style="--a:${(i * 360) / n}deg;--i:${i}"></i>`).join('');
+      el.appendChild(ring);
+      const size = () => ring.style.setProperty('--r', ring.clientWidth / 2 + 'px');
+      size();
+      return { ring, size };
+    },
     /* ---------- Effets visuels ---------- */
     _fxLayer() {
       let l = document.getElementById('fx');
@@ -833,5 +874,5 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, promo, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
+  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, auth, wallet, bonus, promo, jackpot, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
 })();

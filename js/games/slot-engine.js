@@ -13,15 +13,15 @@
     olmanaura: { kind: 'high',    img: 'olmanaura.jpg',   pays: [45, 160, 580] },
     tddam:     { kind: 'mid',     img: 'tddam.jpg',       pays: [30, 90, 320] },
     billy:     { kind: 'mid',     img: 'billy.jpg',       pays: [30, 90, 320] },
-    A:         { kind: 'low',     glyph: 'A',  pays: [14, 40, 140] },
-    K:         { kind: 'low',     glyph: 'K',  pays: [14, 40, 140] },
-    Q:         { kind: 'low',     glyph: 'Q',  pays: [12, 35, 115] },
-    J:         { kind: 'low',     glyph: 'J',  pays: [9, 28, 90] },
-    T:         { kind: 'low',     glyph: '10', pays: [7, 22, 70] }
+    petitbonnin: { kind: 'low',     img: 'petitbonnin.jpg', pays: [14, 40, 140] },
+    linkay:    { kind: 'low',     img: 'linkay.jpg',      pays: [14, 40, 140] },
+    yohan:     { kind: 'low',     img: 'yohan.jpg',       pays: [12, 35, 115] },
+    carl:      { kind: 'low',     img: 'carl.jpg',        pays: [9, 28, 90] },
+    tdam2:     { kind: 'low',     img: 'tdam2.jpg',       pays: [7, 22, 70] }
   };
 
   // Nombre d'exemplaires de chaque symbole sur chaque rouleau (rouleau 1 → 5).
-  // Les lettres sont majoritaires. RTP 96,5 % (calcul exact), ~35 % de tours gagnants, bonus ≈ 1 tour sur 153.
+  // Uniquement des visages. RTP 96,5 % (calcul exact), ~35 % de tours gagnants, bonus ≈ 1 tour sur 153.
   const WEIGHTS = {
     wild:      [0, 5, 5, 5, 5],
     scat:      [2, 2, 2, 2, 2],
@@ -30,11 +30,11 @@
     olmanaura: [3, 3, 3, 3, 3],
     tddam:     [4, 4, 4, 4, 4],
     billy:     [4, 4, 4, 4, 4],
-    A:         [8, 8, 8, 8, 8],
-    K:         [8, 8, 8, 8, 8],
-    Q:         [9, 9, 9, 9, 9],
-    J:         [9, 9, 9, 9, 9],
-    T:         [9, 9, 9, 9, 9]
+    petitbonnin:[8, 8, 8, 8, 8],
+    linkay:    [8, 8, 8, 8, 8],
+    yohan:     [9, 9, 9, 9, 9],
+    carl:      [9, 9, 9, 9, 9],
+    tdam2:     [9, 9, 9, 9, 9]
   };
 
   const LINES = [

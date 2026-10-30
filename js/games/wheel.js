@@ -35,43 +35,72 @@
     { name: 'Petit Bonnin', img: 'petitbonnin.jpg' }, { name: 'Yohan', img: 'yohan.jpg' }
   ];
 
+  /** Éclaircit / assombrit une couleur hexadécimale (k > 0 éclaircit). */
+  function shade(hex, k) {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = (v) => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))));
+    return `rgb(${ch(n >> 16)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
+  }
+
   function drawWheel(g, S, ang, coinImg, highlight) {
-    const R = S / 2;
+    const R = S / 2, rIn = R * 0.3, rOut = R * 0.93;
     g.clearRect(0, 0, S, S);
     g.save();
     g.translate(R, R);
-    g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fillStyle = '#0b0d15'; g.fill();
+    // jante dorée
+    const rim = g.createLinearGradient(-R, -R, R, R);
+    rim.addColorStop(0, '#ffe7a3'); rim.addColorStop(0.3, '#b9832b'); rim.addColorStop(0.55, '#fff0c2'); rim.addColorStop(0.8, '#8a5a17'); rim.addColorStop(1, '#e8c26c');
+    g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fillStyle = rim; g.fill();
+    g.beginPath(); g.arc(0, 0, R * 0.955, 0, Math.PI * 2); g.fillStyle = '#07080d'; g.fill();
     g.rotate((ang * Math.PI) / 180);
     SEGS.forEach((id, i) => {
       const t = BY[id];
       const a0 = ((i * SEG - SEG / 2 - 90) * Math.PI) / 180, a1 = ((i * SEG + SEG / 2 - 90) * Math.PI) / 180;
-      g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R * 0.94, a0, a1); g.closePath();
-      g.fillStyle = t.c;
-      g.globalAlpha = highlight != null && highlight !== i ? 0.35 : 1;
+      const dim = highlight != null && highlight !== i;
+      // case en relief : sombre près du centre, lumineuse vers le bord
+      const grad = g.createRadialGradient(0, 0, rIn, 0, 0, rOut);
+      grad.addColorStop(0, shade(t.c, -0.55)); grad.addColorStop(0.7, t.c); grad.addColorStop(1, shade(t.c, 0.35));
+      g.beginPath(); g.arc(0, 0, rOut, a0, a1); g.arc(0, 0, rIn, a1, a0, true); g.closePath();
+      g.fillStyle = grad;
+      g.globalAlpha = dim ? 0.28 : 1;
       g.fill();
       g.globalAlpha = 1;
-      g.strokeStyle = '#0b0d15'; g.lineWidth = Math.max(1, R * 0.008); g.stroke();
-      // petite étiquette
+      if (highlight === i) { g.lineWidth = R * 0.02; g.strokeStyle = '#fff'; g.stroke(); }
+      // séparateur doré
+      g.beginPath(); g.moveTo(Math.cos(a0) * rIn, Math.sin(a0) * rIn); g.lineTo(Math.cos(a0) * rOut, Math.sin(a0) * rOut);
+      g.strokeStyle = 'rgba(255,215,140,.55)'; g.lineWidth = Math.max(1, R * 0.006); g.stroke();
+      // étiquette
       g.save();
       g.rotate(((i * SEG) * Math.PI) / 180);
+      g.globalAlpha = dim ? 0.4 : 1;
       g.fillStyle = t.ink;
-      g.font = `600 ${R * (id === 'jpz' ? 0.06 : 0.05)}px Geist, sans-serif`;
+      g.font = `700 ${R * (id === 'jpz' ? 0.065 : 0.055)}px "Chakra Petch", sans-serif`;
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(id === 'jpz' ? '50' : String(t.mult).replace('.', ','), 0, -R * 0.84);
+      g.fillText(id === 'jpz' ? '50' : String(t.mult).replace('.', ','), 0, -R * 0.8);
       g.restore();
     });
-    // picots sur le bord
+    // reflet circulaire (verre)
+    const gloss = g.createRadialGradient(-R * 0.3, -R * 0.4, R * 0.05, 0, 0, rOut);
+    gloss.addColorStop(0, 'rgba(255,255,255,.16)'); gloss.addColorStop(0.5, 'rgba(255,255,255,.03)'); gloss.addColorStop(1, 'rgba(0,0,0,.25)');
+    g.rotate(-(ang * Math.PI) / 180);
+    g.beginPath(); g.arc(0, 0, rOut, 0, Math.PI * 2); g.fillStyle = gloss; g.fill();
+    g.rotate((ang * Math.PI) / 180);
+    // picots en laiton
     for (let i = 0; i < SEGS.length; i++) {
       const a = ((i * SEG + SEG / 2 - 90) * Math.PI) / 180;
-      g.beginPath(); g.arc(Math.cos(a) * R * 0.955, Math.sin(a) * R * 0.955, R * 0.012, 0, Math.PI * 2); g.fillStyle = '#e9ecf2'; g.fill();
+      const pg = g.createRadialGradient(Math.cos(a) * R * 0.94 - 1, Math.sin(a) * R * 0.94 - 1, 0, Math.cos(a) * R * 0.94, Math.sin(a) * R * 0.94, R * 0.016);
+      pg.addColorStop(0, '#fff6d6'); pg.addColorStop(1, '#a8741f');
+      g.beginPath(); g.arc(Math.cos(a) * R * 0.94, Math.sin(a) * R * 0.94, R * 0.014, 0, Math.PI * 2); g.fillStyle = pg; g.fill();
     }
     g.restore();
-    // moyeu (fixe)
+    // moyeu doré (fixe) avec la DaveCoin
     g.save(); g.translate(R, R);
-    g.beginPath(); g.arc(0, 0, R * 0.3, 0, Math.PI * 2); g.fillStyle = '#0b0d15'; g.fill();
-    g.lineWidth = 2; g.strokeStyle = 'rgba(255,255,255,.2)'; g.stroke();
+    const hub = g.createRadialGradient(-R * 0.08, -R * 0.1, R * 0.02, 0, 0, rIn);
+    hub.addColorStop(0, '#2a2f40'); hub.addColorStop(1, '#07080d');
+    g.beginPath(); g.arc(0, 0, rIn, 0, Math.PI * 2); g.fillStyle = hub; g.fill();
+    g.lineWidth = R * 0.025; g.strokeStyle = rim; g.stroke();
     if (coinImg.complete && coinImg.naturalWidth) {
-      const w = R * 0.46, h = w * (coinImg.naturalHeight / coinImg.naturalWidth);
+      const w = R * 0.44, h = w * (coinImg.naturalHeight / coinImg.naturalWidth);
       g.drawImage(coinImg, -w / 2, -h / 2, w, h);
     }
     g.restore();
@@ -102,7 +131,7 @@
       stage.innerHTML = `
         <div class="stage__top"><span class="pill hi js-phase">Mises ouvertes</span><div class="pill-row js-hist"></div></div>
         <div class="bigwheel">
-          <div class="bigwheel__box"><canvas></canvas><div class="bigwheel__pointer"><svg viewBox="0 0 24 22"><path d="M0 0h24L12 22z" fill="currentColor"/></svg></div></div>
+          <div class="bigwheel__box"><div class="wheel-spot"></div><canvas></canvas><div class="gem-pointer"><svg viewBox="0 0 40 52"><path d="M20 52 L4 18 L12 4 H28 L36 18 Z" fill="#ffc145"/><path d="M20 52 L12 18 L20 6 L28 18 Z" fill="#fff3c8" opacity=".7"/><path d="M4 18 H36" stroke="#7a4b00" stroke-width="1.5"/></svg></div></div>
           <div class="bigwheel__timer"><div class="bigwheel__bar"></div><span class="num js-time"></span></div>
         </div>
         <div class="wbets">${TYPES.map((t) => `
@@ -122,6 +151,7 @@
       const bar = stage.querySelector('.bigwheel__bar');
       const histEl = stage.querySelector('.js-hist');
       const zones = Object.fromEntries([...stage.querySelectorAll('.wbet')].map((z) => [z.dataset.id, z]));
+      const lights = ui.bulbs(box, 40);
 
       let S = 0, ang = 0, alive = true, raf = 0, highlight = null;
       let phase = 'bet', phaseEnd = 0, result = null;
@@ -131,6 +161,7 @@
       function size() {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         S = box.clientWidth;
+        if (typeof lights !== 'undefined') lights.size();
         cv.width = cv.height = Math.round(S * dpr);
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
         drawWheel(g, S, ang, coinImg, highlight);
@@ -160,6 +191,7 @@
         mine = {};
         botBets = [];
         highlight = null;
+        box.classList.remove('is-win');
         Object.values(zones).forEach((z) => z.classList.remove('win', 'lose'));
         // chaque membre de la bande prévoit 0 à 2 mises à des moments aléatoires
         botPlan = [];
@@ -188,6 +220,7 @@
         const to = base + (360 - idx * SEG) + off;
         spin = { from, to, t0: performance.now(), lastSeg: -1 };
         phaseEnd = spin.t0 + SPIN_MS;
+        box.classList.add('is-spinning');
         sound.play('whoosh');
       }
       function finishSpin() {
@@ -195,6 +228,10 @@
         phaseEnd = performance.now() + RESULT_MS;
         const t = BY[result.id];
         highlight = result.idx;
+        box.classList.remove('is-spinning');
+        box.style.setProperty('--win-c', t.c);
+        box.classList.add('is-win');
+        ui.burst(box.querySelector('.gem-pointer'), { n: 26, colors: [t.c, '#ffffff', '#ffc145'], spread: 1.6 });
         drawWheel(g, S, ang, coinImg, highlight);
         phaseEl.textContent = `Résultat : ${t.label} ×${String(t.mult).replace('.', ',')}`;
         history.unshift(result.id);

@@ -600,3 +600,34 @@ body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
 @keyframes stamp { from { transform: scale(2.6) rotate(-30deg); opacity: 0; } }
 .s-J { --c: #3ee68b; } .s-T { --c: #c04dff; }
 body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
+
+/* =================== DaveMachine : visages et jackpot =================== */
+.sym.k-low img { border-radius: 0; object-fit: cover; object-position: top; clip-path: polygon(12% 0, 100% 0, 100% 88%, 88% 100%, 0 100%, 0 12%); box-shadow: none; outline: 3px solid var(--c); outline-offset: -3px; }
+.s-petitbonnin { --c: #3ee68b; } .s-linkay { --c: #2ea8ff; } .s-yohan { --c: #c04dff; } .s-carl { --c: #2dd4bf; } .s-tdam2 { --c: #ff6b2c; }
+.jp { justify-self: center; display: flex; flex-direction: column; align-items: center; padding: 4px 22px 5px; background: linear-gradient(180deg, #2a1d05, #0b0d14); box-shadow: inset 0 0 0 1px var(--coin), 0 0 18px -4px rgba(255,193,69,.6); clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%); }
+.jp span { font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--coin); }
+.jp b { font-family: var(--display); font-size: 22px; font-weight: 700; line-height: 1.05; color: #ffe2a8; text-shadow: 0 0 12px rgba(255,193,69,.7); min-width: 7ch; text-align: center; }
+body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !important; animation-delay: calc((var(--i) % 3) * -0.06s) !important; }
+@keyframes bulb-strobe { 50% { background: #fff; box-shadow: 0 0 14px var(--coin), 0 0 4px #fff; } }
+.slot5.jp-on { border-color: var(--coin); animation: jp-frame .25s steps(2) infinite; }
+@keyframes jp-frame { 50% { border-color: #fff; } }
+.jpwin { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 24px; }
+.jpwin__kicker { font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); }
+.jpwin__title { display: flex; gap: .04em; font-family: var(--display); font-size: clamp(54px, 11vw, 120px); font-weight: 700; line-height: .95; }
+.jpwin__title i { font-style: normal; color: var(--coin); text-shadow: 0 0 24px rgba(255,193,69,.8), 0 4px 0 #7a4b00; animation: jp-letter .9s cubic-bezier(.2,1.8,.4,1) both, jp-glow 1s ease-in-out infinite; animation-delay: calc(var(--i) * .08s), calc(var(--i) * .1s); }
+@keyframes jp-letter { from { transform: translateY(80px) scale(.3) rotate(-20deg); opacity: 0; } }
+@keyframes jp-glow { 50% { color: #fff3c8; } }
+.jpwin__amount { font-family: var(--display); font-size: clamp(40px, 7vw, 76px); font-weight: 700; color: #fff; }
+.jpwin__amount.slam { animation: slam .6s cubic-bezier(.2,1.8,.4,1); color: var(--coin); }
+.jpwin__meta { font-size: 13px; color: var(--muted); }
+
+/* =================== DaveWheel : lumières =================== */
+.bigwheel { padding-top: 18px; }
+.bigwheel__box { border: 0 !important; overflow: visible; box-shadow: 0 30px 60px -20px rgba(0,0,0,.9) !important; }
+.bigwheel__box canvas { position: relative; z-index: 1; }
+.bigwheel__timer { margin-top: 18px; }
+.wbet { position: relative; overflow: hidden; }
+.wbet::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.12) 50%, transparent 65%); background-size: 260% 100%; background-position: 140% 0; transition: background-position .8s var(--ease); }
+.wbet:hover::after { background-position: -40% 0; }
+.wbet.win { box-shadow: 0 0 0 1px var(--c), 0 0 26px -4px var(--c); animation: wbet-win .4s steps(2) 6; }
+@keyframes wbet-win { 50% { box-shadow: 0 0 0 2px #fff, 0 0 34px var(--c); } }

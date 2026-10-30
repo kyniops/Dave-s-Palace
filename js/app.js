@@ -212,28 +212,44 @@
     const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000);
     return (h ? h + 'h ' : '') + String(m).padStart(2, '0') + 'm ' + String(s).padStart(2, '0') + 's';
   }
-  /* Roue quotidienne : dessin du disque (cases alternées, la case 5 000 en or) */
+  /* Roue quotidienne : disque en relief, séparateurs dorés, case 5 000 en or */
   function drawDaily(g, S, ang, hi) {
-    const W = bonus.DAILY_WHEEL, n = W.length, seg = (Math.PI * 2) / n, R = S / 2;
+    const W = bonus.DAILY_WHEEL, n = W.length, seg = (Math.PI * 2) / n, R = S / 2, rIn = R * 0.3, rOut = R * 0.93;
+    const colorOf = (v, i) => (v >= 5000 ? '#ffc145' : v >= 1000 ? '#ff6b2c' : v >= 500 ? '#c04dff' : i % 2 ? '#1f2740' : '#2b3556');
     g.clearRect(0, 0, S, S);
-    g.save(); g.translate(R, R); g.rotate(ang);
+    g.save(); g.translate(R, R);
+    const rim = g.createLinearGradient(-R, -R, R, R);
+    rim.addColorStop(0, '#ffe7a3'); rim.addColorStop(0.3, '#b9832b'); rim.addColorStop(0.55, '#fff0c2'); rim.addColorStop(0.8, '#8a5a17'); rim.addColorStop(1, '#e8c26c');
+    g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fillStyle = rim; g.fill();
+    g.beginPath(); g.arc(0, 0, R * 0.955, 0, Math.PI * 2); g.fillStyle = '#07080d'; g.fill();
+    g.rotate(ang);
     W.forEach(([v], i) => {
       const a0 = i * seg - seg / 2 - Math.PI / 2, a1 = a0 + seg;
-      g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R * 0.96, a0, a1); g.closePath();
-      g.fillStyle = v >= 5000 ? '#ffc145' : v >= 1000 ? '#ff6b2c' : i % 2 ? '#141822' : '#1d2230';
-      g.globalAlpha = hi != null && hi !== i ? 0.35 : 1;
-      g.fill(); g.globalAlpha = 1;
-      g.strokeStyle = '#05060a'; g.lineWidth = 2; g.stroke();
+      const c = colorOf(v, i);
+      const grad = g.createRadialGradient(0, 0, rIn, 0, 0, rOut);
+      grad.addColorStop(0, 'rgba(0,0,0,.55)'); grad.addColorStop(0.55, c); grad.addColorStop(1, c);
+      g.beginPath(); g.arc(0, 0, rOut, a0, a1); g.arc(0, 0, rIn, a1, a0, true); g.closePath();
+      g.fillStyle = c; g.globalAlpha = hi != null && hi !== i ? 0.3 : 1; g.fill();
+      g.fillStyle = grad; g.fill(); g.globalAlpha = 1;
+      if (hi === i) { g.lineWidth = R * 0.025; g.strokeStyle = '#fff'; g.stroke(); }
+      g.beginPath(); g.moveTo(Math.cos(a0) * rIn, Math.sin(a0) * rIn); g.lineTo(Math.cos(a0) * rOut, Math.sin(a0) * rOut);
+      g.strokeStyle = 'rgba(255,215,140,.6)'; g.lineWidth = 2; g.stroke();
       g.save(); g.rotate(i * seg);
-      g.fillStyle = v >= 1000 ? '#120600' : '#f1f2f5';
-      g.font = `700 ${R * 0.1}px "Chakra Petch", sans-serif`;
+      g.globalAlpha = hi != null && hi !== i ? 0.45 : 1;
+      g.fillStyle = v >= 1000 ? '#170800' : '#f4f6fb';
+      g.font = `700 ${R * (v >= 1000 ? 0.12 : 0.1)}px "Chakra Petch", sans-serif`;
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(fmt(v), 0, -R * 0.68);
+      g.fillText(fmt(v), 0, -R * 0.66);
       g.restore();
     });
+    g.rotate(-ang);
+    const gloss = g.createRadialGradient(-R * 0.3, -R * 0.4, R * 0.05, 0, 0, rOut);
+    gloss.addColorStop(0, 'rgba(255,255,255,.18)'); gloss.addColorStop(0.5, 'rgba(255,255,255,.03)'); gloss.addColorStop(1, 'rgba(0,0,0,.28)');
+    g.beginPath(); g.arc(0, 0, rOut, 0, Math.PI * 2); g.fillStyle = gloss; g.fill();
+    g.rotate(ang);
     for (let i = 0; i < n; i++) {
       const a = i * seg + seg / 2 - Math.PI / 2;
-      g.beginPath(); g.arc(Math.cos(a) * R * 0.92, Math.sin(a) * R * 0.92, R * 0.022, 0, Math.PI * 2); g.fillStyle = '#f1f2f5'; g.fill();
+      g.beginPath(); g.arc(Math.cos(a) * R * 0.94, Math.sin(a) * R * 0.94, R * 0.022, 0, Math.PI * 2); g.fillStyle = '#ffe2a8'; g.fill();
     }
     g.restore();
   }
@@ -247,7 +263,8 @@
         <p class="muted" style="margin:0 0 16px">Une rotation gratuite toutes les 12 h. Jusqu’à <strong class="num" style="color:var(--coin)">${fmt(bonus.DAILY_MAX)}</strong> DaveCoins.</p>
         <div class="dwheel">
           <canvas></canvas>
-          <div class="dwheel__pointer"><svg viewBox="0 0 24 22"><path d="M0 0h24L12 22z" fill="currentColor"/></svg></div>
+          <div class="wheel-spot"></div>
+          <div class="gem-pointer"><svg viewBox="0 0 40 52"><path d="M20 52 L4 18 L12 4 H28 L36 18 Z" fill="#ffc145"/><path d="M20 52 L12 18 L20 6 L28 18 Z" fill="#fff3c8" opacity=".7"/><path d="M4 18 H36" stroke="#7a4b00" stroke-width="1.5"/></svg></div>
           <div class="dwheel__hub"><img src="${IMG}jppz.jpg" alt="JPZ"></div>
         </div>
         <button class="btn btn--primary btn--lg btn--block dwheel__btn" data-b="daily" type="button"></button>
@@ -260,6 +277,7 @@
     document.body.appendChild(modal);
     const card = modal.querySelector('.modal__card');
     const box = modal.querySelector('.dwheel');
+    ui.bulbs(box, 30);
     const cv = box.querySelector('canvas');
     const g = cv.getContext('2d');
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -301,6 +319,8 @@
       if (spinning || bonus.dailyLeft() > 0) return;
       const idx = bonus.drawDaily();
       spinning = true; hi = null; paint();
+      box.classList.remove('is-win');
+      box.classList.add('is-spinning');
       sound.play('whoosh');
       // angle final : la case idx s'arrête sous le pointeur, avec 6 tours complets
       const from = ang;
@@ -317,6 +337,10 @@
         if (k < 1 && modal.isConnected) { requestAnimationFrame(step); return; }
         // récompense
         hi = idx;
+        box.classList.remove('is-spinning');
+        box.style.setProperty('--win-c', bonus.DAILY_WHEEL[idx][0] >= 1000 ? '#ffc145' : '#ff6b2c');
+        box.classList.add('is-win');
+        setTimeout(() => box.classList.remove('is-win'), 3500);
         drawDaily(g, S, ang, hi);
         const gain = bonus.claimDaily(idx);
         spinning = false;
@@ -358,6 +382,13 @@
       </section>
 
       <div class="ticker" data-reveal><div class="ticker__track">${tickerHtml()}${tickerHtml()}</div></div>
+
+      <a class="jpbar" href="#/jeu/machine" data-reveal>
+        <span class="jpbar__label">${I('crown', 'i--sm')}Jackpot global</span>
+        <b class="jpbar__amount num js-jpbar">${fmt(DP.jackpot.get())}</b>
+        <span class="jpbar__meta">${DP.jackpot.last() ? `Dernier gagnant : <b>${esc(DP.jackpot.last().name)}</b> · ${fmt(DP.jackpot.last().amount)}` : '5 cartes Free JPZ ou jackpot mystère sur DaveMachine'}</span>
+        <span class="jpbar__go">Tenter ma chance${I('chevron-right', 'i--sm')}</span>
+      </a>
 
       <section class="statbar" data-reveal>
         <div><span>Solde</span><strong>${ui.coin('coin--sm')}<b class="js-bal" style="font-weight:inherit">${fmt(wallet.get())}</b></strong></div>
@@ -427,7 +458,19 @@
     M.countUp(bal, wallet.get(), fmt);
     M.countUp(view.querySelector('.js-played'), s.played, (v) => fmt(Math.round(v)));
     view.querySelector('.hero-bonus').addEventListener('click', openBonus);
-    unmountView = on('balance', () => { const b = view.querySelector('.js-bal'); if (b) b.textContent = fmt(wallet.get()); });
+    const offBal = on('balance', () => { const b = view.querySelector('.js-bal'); if (b) b.textContent = fmt(wallet.get()); });
+    // jackpot qui monte en direct
+    let jpShown = DP.jackpot.get(), jpRaf = 0;
+    const jpEl = view.querySelector('.js-jpbar');
+    const jpTick = () => {
+      const target = DP.jackpot.get();
+      jpShown = target < jpShown ? target : jpShown + (target - jpShown) * 0.06;
+      if (Math.abs(target - jpShown) < 0.01) jpShown = target;
+      jpEl.textContent = fmt(Math.round(jpShown * 100) / 100);
+      jpRaf = jpShown !== target ? requestAnimationFrame(jpTick) : 0;
+    };
+    const offJp = on('jackpot', () => { if (!jpRaf) jpRaf = requestAnimationFrame(jpTick); });
+    unmountView = () => { offBal(); offJp(); cancelAnimationFrame(jpRaf); };
     DP.emit('lobby');
   }
 

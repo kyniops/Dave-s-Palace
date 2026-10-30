@@ -9,7 +9,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 
 | Jeu | Principe | RTP |
 |---|---|---|
-| **DaveMachine** | Machine à sous 5×3, 20 lignes, lettres A K Q J 10 + visages de la bande, wild JPZ, 3 cartes Free JPZ = 15 free spins ×2 en hyperespace, tirage auto 10 à ∞ | 96,5 % |
+| **DaveMachine** | Machine à sous 5×3, 20 lignes, uniquement des visages de la bande, wild JPZ, 3 cartes Free JPZ = 15 free spins ×2 en hyperespace, **jackpot global progressif**, tirage auto | 96,5 % (hors jackpot) |
 | **DaveMine** | Grille 5×5, trouve les DaveCoins, évite les bombes (1 à 24) | 99 % |
 | **PlinkoDave** | 8/12/16 lignes, 3 niveaux de risque, jusqu’à ×1000 | 99 % |
 | **DaveRocket** | Jeu crash avec compte à rebours, encaissement dès 1.01×, auto-encaissement | 99 % |
@@ -29,6 +29,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 - Comptes locaux (inscription / connexion), **1 000 DaveCoins** offerts au départ
 - Roue quotidienne toutes les 12 h (100 à 5 000 DaveCoins) + dépannage si ton solde tombe à 0
 - Page **Codes** : codes promo qui donnent des DaveCoins, une fois par compte
+- **Jackpot global** : 1 % de chaque mise l'alimente ; gagné sur DaveMachine avec 5 cartes Free JPZ ou par déclenchement mystère (chance proportionnelle à la mise)
 - Profil avec statistiques et historique des 50 dernières parties
 - Tirages avec `crypto.getRandomValues`, gains calculés à partir des probabilités réelles
 - Quitter une page en pleine partie règle la partie (encaissement ou remboursement), aucune mise perdue

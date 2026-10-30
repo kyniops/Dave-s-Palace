@@ -526,3 +526,37 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .code-box input { text-transform: uppercase; letter-spacing: .14em; font-family: var(--display); font-size: 18px !important; }
 .code-box__msg { grid-column: 1 / -1; margin: 0; min-height: 20px; font-size: var(--t-sm); }
 @media (max-width: 600px) { .code-box { grid-template-columns: 1fr; } }
+
+/* ---------- Jackpot dans le lobby ---------- */
+.jpbar { position: relative; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "label amount go" "meta amount go"; align-items: center; column-gap: 24px; margin-top: 14px; padding: 16px 22px; overflow: hidden; background: linear-gradient(100deg, #1f1606, #0b0d14 55%); border: 1px solid rgba(255,193,69,.45); transition: border-color .3s; }
+.jpbar::before { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,193,69,.14) 50%, transparent 70%); background-size: 250% 100%; animation: jp-sheen 4s linear infinite; pointer-events: none; }
+@keyframes jp-sheen { from { background-position: 150% 0; } to { background-position: -150% 0; } }
+.jpbar:hover { border-color: var(--coin); }
+.jpbar__label { grid-area: label; display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: var(--coin); }
+.jpbar__amount { grid-area: amount; justify-self: center; font-family: var(--display); font-size: clamp(30px, 4vw, 46px); font-weight: 700; color: #ffe2a8; text-shadow: 0 0 20px rgba(255,193,69,.55); }
+.jpbar__meta { grid-area: meta; font-size: 12px; color: var(--muted); }
+.jpbar__meta b { color: var(--text); }
+.jpbar__go { grid-area: go; display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--coin); }
+@media (max-width: 700px) { .jpbar { grid-template-columns: 1fr; grid-template-areas: "label" "amount" "meta" "go"; text-align: center; justify-items: center; } }
+
+/* ---------- Couronne d'ampoules des roues ---------- */
+.bulbring { position: absolute; inset: -24px; border-radius: 50%; pointer-events: none; z-index: 3; }
+.bulbring i { position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; margin: -5.5px; border-radius: 50%; background: #4a3a18; box-shadow: inset 0 -2px 0 rgba(0,0,0,.4); transform: rotate(var(--a)) translateY(calc(-1 * var(--r, 150px) + 9px)); animation: ring-idle 1.6s steps(2) infinite; animation-delay: calc((var(--i) % 2) * -0.8s); }
+@keyframes ring-idle { 50% { background: #ffc145; box-shadow: 0 0 10px #ffc145, 0 0 2px #fff; } }
+.is-spinning .bulbring i { animation: ring-chase .5s linear infinite; animation-delay: calc(var(--i) * -0.03s); }
+@keyframes ring-chase { 0%, 60% { background: #4a3a18; box-shadow: none; } 80% { background: #fff; box-shadow: 0 0 12px #ffc145, 0 0 4px #fff; } }
+.is-win .bulbring i { animation: ring-win .22s steps(2) infinite; }
+@keyframes ring-win { 50% { background: var(--win-c, #ffc145); box-shadow: 0 0 14px var(--win-c, #ffc145), 0 0 4px #fff; } }
+
+/* ---------- Roues : pointeur en gemme, spot lumineux ---------- */
+.gem-pointer { position: absolute; left: 50%; top: -30px; z-index: 5; width: 34px; transform: translateX(-50%); filter: drop-shadow(0 0 8px rgba(255,193,69,.85)) drop-shadow(0 4px 4px rgba(0,0,0,.7)); transform-origin: 50% 20%; }
+.gem-pointer svg { display: block; width: 100%; }
+.is-spinning .gem-pointer { animation: pointer-tick .12s ease-in-out infinite alternate; }
+@keyframes pointer-tick { from { transform: translateX(-50%) rotate(-7deg); } to { transform: translateX(-50%) rotate(5deg); } }
+.wheel-spot { position: absolute; left: 50%; top: 50%; width: 150%; height: 150%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none; border-radius: 50%; background: radial-gradient(circle, rgba(255,193,69,.18), rgba(255,107,44,.06) 40%, transparent 65%); animation: spot-breathe 4s ease-in-out infinite; }
+.is-win .wheel-spot { background: radial-gradient(circle, color-mix(in srgb, var(--win-c, #ffc145) 40%, transparent), transparent 62%); animation-duration: .5s; }
+@keyframes spot-breathe { 50% { opacity: .55; transform: translate(-50%, -50%) scale(.92); } }
+.dwheel { margin-top: 26px !important; margin-bottom: 30px !important; }
+.dwheel canvas { box-shadow: 0 30px 60px -20px rgba(0,0,0,.9) !important; }
+.dwheel__hub { inset: 36% !important; box-shadow: 0 0 0 4px #10131c, 0 0 0 6px #e8c26c, 0 0 20px rgba(255,193,69,.5) !important; z-index: 4; }
+.modal__card--wheel { overflow: visible !important; }
