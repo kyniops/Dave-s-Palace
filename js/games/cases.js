@@ -85,7 +85,7 @@
 
   /** Carte à collectionner (cadre de rareté, numéro, valeur de revente). */
   cards.html = (card, { cls = '', owned = true, count = 0, compact = false } = {}) => `<div class="tcard ${compact ? 'compact' : ''} ${owned ? '' : 'missing'} ${cls}" data-r="${card.rarity.i}" style="--r:${card.rarity.c}" data-card="${card.id}">
-      <div class="tcard__img"><img class="${card.flat ? 'flat' : ''}" src="${IMG}${card.img}" alt="" draggable="false"></div>
+      <div class="tcard__img"><img class="${card.flat ? 'flat' : ''}" src="${IMG}${card.img}" alt="" draggable="false"><div class="tcard__holo"></div></div>
       <div class="tcard__frame"></div>
       <span class="tcard__gem tl num">${String(card.no).padStart(2, '0')}</span>
       <span class="tcard__gem tr">${card.rarity.label.charAt(0)}</span>
@@ -96,6 +96,21 @@
         <span class="tcard__val">${ui.coin('coin--xs')}<b class="num">${fmt(card.value)}</b></span>
       </div>
     </div>`;
+
+  // le reflet holographique des cartes suit le pointeur
+  document.addEventListener('pointermove', (e) => {
+    const c = e.target.closest && e.target.closest('.tcard');
+    if (!c) return;
+    const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    c.classList.add('is-tracked');
+    c.style.setProperty('--mx', (x * 100).toFixed(1) + '%');
+    c.style.setProperty('--my', (y * 100).toFixed(1) + '%');
+    c.style.setProperty('--ang', (115 + (x - 0.5) * 70).toFixed(1) + 'deg');
+  }, { passive: true });
+  document.addEventListener('pointerout', (e) => {
+    const c = e.target.closest && e.target.closest('.tcard');
+    if (c && !c.contains(e.relatedTarget)) c.classList.remove('is-tracked');
+  }, { passive: true });
 
   function drawItem(box) {
     let r = rng.float() * box.total;

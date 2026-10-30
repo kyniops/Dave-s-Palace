@@ -672,3 +672,63 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
   .dalbums em { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .dl-line { stroke-dashoffset: 0; animation: none; } .dl-area { opacity: 1; animation: none; } .db-bar, .dseg i, .dprog i { animation: none; } }
+
+/* ---------- Cartes : matière (grain, guillochis, holographie, paillettes) ---------- */
+:root {
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* fond : grain + guillochis + halo de la rareté */
+.tcard::before {
+  background:
+    var(--noise),
+    repeating-radial-gradient(circle at 50% 38%, rgba(255,255,255,.035) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.03) 0 1px, transparent 1px 5px),
+    radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--r) 34%, #0a0b12), #05060a 78%);
+}
+/* photo : grain, liseré intérieur et vignettage */
+.tcard__img::before { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--noise); mix-blend-mode: overlay;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), inset 0 0 0 3px rgba(0,0,0,.5), inset 0 -40px 40px -20px rgba(0,0,0,.6), inset 0 0 36px rgba(0,0,0,.45); }
+.tcard__img::after { z-index: 3; }
+/* reflet holographique qui suit le pointeur */
+.tcard__holo { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; mix-blend-mode: color-dodge; transition: opacity .4s ease;
+  background:
+    linear-gradient(var(--ang, 115deg), transparent 18%, rgba(255,40,150,.5) 32%, rgba(255,214,0,.45) 42%, rgba(40,255,170,.45) 52%, rgba(40,150,255,.5) 62%, rgba(190,60,255,.45) 72%, transparent 86%),
+    repeating-linear-gradient(var(--ang, 115deg), rgba(255,255,255,.07) 0 2px, transparent 2px 5px);
+  background-size: 260% 260%, 100% 100%;
+  background-position: var(--mx, 50%) var(--my, 50%), 0 0; }
+.tcard__holo::after { content: ''; position: absolute; inset: 0; opacity: 0;
+  background-image: radial-gradient(circle at 20% 30%, #fff 0 .7px, transparent 1.3px), radial-gradient(circle at 70% 60%, #fff 0 .6px, transparent 1.1px), radial-gradient(circle at 45% 85%, #fff 0 .8px, transparent 1.4px);
+  background-size: 11px 13px, 17px 15px, 23px 19px;
+  -webkit-mask-image: linear-gradient(var(--ang, 115deg), transparent 30%, #000 50%, transparent 70%); mask-image: linear-gradient(var(--ang, 115deg), transparent 30%, #000 50%, transparent 70%);
+  -webkit-mask-size: 300% 300%; mask-size: 300% 300%; -webkit-mask-position: var(--mx, 50%) var(--my, 50%); mask-position: var(--mx, 50%) var(--my, 50%); }
+.tcard[data-r="2"] .tcard__holo { opacity: .28; }
+.tcard[data-r="3"] .tcard__holo, .tcard[data-r="4"] .tcard__holo, .tcard[data-r="5"] .tcard__holo { opacity: .42; }
+.tcard[data-r="3"] .tcard__holo::after, .tcard[data-r="4"] .tcard__holo::after { opacity: .7; }
+.tcard[data-r="5"] .tcard__holo::after { opacity: 1; }
+.tcard:not(.is-tracked) .tcard__holo { animation: holo-drift 7s ease-in-out infinite alternate; }
+.tcard:not(.is-tracked) .tcard__holo::after { animation: glitter-drift 5s linear infinite; }
+@keyframes holo-drift { from { background-position: 0% 20%, 0 0; } to { background-position: 100% 80%, 0 0; } }
+@keyframes glitter-drift { from { -webkit-mask-position: 120% 120%; mask-position: 120% 120%; } to { -webkit-mask-position: -20% -20%; mask-position: -20% -20%; } }
+.tcard:hover .tcard__holo { opacity: .55; }
+.tcard[data-r="0"]:hover .tcard__holo, .tcard[data-r="1"]:hover .tcard__holo { opacity: .22; }
+.tcard[data-r="4"]:hover .tcard__holo, .tcard[data-r="5"]:hover .tcard__holo { opacity: .8; }
+/* reflet qui passe tout seul sur les cartes rares et plus */
+.tcard[data-r="2"] .tcard__img::after, .tcard[data-r="3"] .tcard__img::after, .tcard[data-r="4"] .tcard__img::after, .tcard[data-r="5"] .tcard__img::after { animation: card-shine 6s ease-in-out infinite; }
+.tcard[data-r="4"] .tcard__img::after, .tcard[data-r="5"] .tcard__img::after { animation-duration: 3.8s; }
+@keyframes card-shine { 0%, 55% { background-position: 0 0, 160% 0; } 85%, 100% { background-position: 0 0, -60% 0; } }
+.tcard:hover .tcard__img::after { animation: none; }
+/* plaque du nom : métal brossé teinté */
+.tcard__plate { background:
+    linear-gradient(180deg, rgba(255,255,255,.1), transparent 30%, rgba(0,0,0,.35)),
+    var(--noise),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, color-mix(in srgb, var(--r) 20%, #0b0d14), #07080d);
+  clip-path: polygon(5% 0, 95% 0, 100% 18%, 100% 82%, 95% 100%, 5% 100%, 0 82%, 0 18%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--r) 60%, transparent); }
+.tcard__name { text-shadow: 0 1px 0 rgba(0,0,0,.8), 0 0 12px rgba(0,0,0,.6); }
+/* relief et ombre portée */
+.tcard { filter: drop-shadow(0 14px 18px rgba(0,0,0,.55)); }
+.tcard.missing .tcard__holo { display: none; }
+.tcard.missing::before { background: var(--noise), repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 1px, transparent 1px 5px), #07080c; }
+@media (prefers-reduced-motion: reduce) { .tcard .tcard__holo, .tcard .tcard__holo::after, .tcard .tcard__img::after { animation: none !important; } }
+.strip__track > .tcard { filter: none; }

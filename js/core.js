@@ -623,6 +623,153 @@
       }
     },
     /** Couronne d'ampoules autour d'un élément rond. Modes : .is-spinning (chenillard), .is-win (flash). */
+    /**
+     * Roue de casino en canvas, partagée par DaveWheel et la roue quotidienne :
+     * jante en or brossé gravée, cases à facettes avec grain et relief, anneau décoratif, reflet de verre.
+     * segs : [{ c, label, ink, size, icon }] (case i centrée sur i × 360/n, en partant du haut).
+     * o : { hi (case gagnante), labelR, rIn, pegs }
+     */
+    wheel(g, S, ang, segs, o = {}) {
+      const n = segs.length, seg = (Math.PI * 2) / n, R = S / 2;
+      const rOut = R * 0.905, rIn = R * (o.rIn || 0.3), hi = o.hi;
+      const TAU = Math.PI * 2;
+      const shade = (hex, k) => {
+        const v = parseInt(hex.slice(1), 16);
+        const ch = (x) => Math.max(0, Math.min(255, Math.round(k > 0 ? x + (255 - x) * k : x * (1 + k))));
+        return `rgb(${ch(v >> 16)},${ch((v >> 8) & 255)},${ch(v & 255)})`;
+      };
+      // grain (créé une fois)
+      if (!ui._grain) {
+        const c = document.createElement('canvas'); c.width = c.height = 128;
+        const x = c.getContext('2d'), d = x.createImageData(128, 128);
+        for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 38; }
+        x.putImageData(d, 0, 0);
+        ui._grain = c;
+      }
+      const gold = (a0) => {
+        if (!g.createConicGradient) { const l = g.createLinearGradient(-R, -R, R, R); l.addColorStop(0, '#ffe7a3'); l.addColorStop(0.5, '#8a5a17'); l.addColorStop(1, '#ffe7a3'); return l; }
+        const cg = g.createConicGradient(a0, 0, 0);
+        ['#fff3c4', '#c48a2c', '#7a4d12', '#e9b955', '#fff7d6', '#a9721f', '#6b420e', '#d9a441', '#fff3c4'].forEach((col, i, arr) => cg.addColorStop(i / (arr.length - 1), col));
+        return cg;
+      };
+      g.clearRect(0, 0, S, S);
+      g.save();
+      g.translate(R, R);
+
+      /* jante */
+      g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fillStyle = gold(-0.6); g.fill();
+      g.save(); g.globalAlpha = 0.5; g.fillStyle = g.createPattern(ui._grain, 'repeat'); g.fill(); g.restore();
+      const bev = g.createLinearGradient(-R, -R, R, R);
+      bev.addColorStop(0, 'rgba(255,255,255,.75)'); bev.addColorStop(0.5, 'rgba(255,255,255,0)'); bev.addColorStop(1, 'rgba(0,0,0,.55)');
+      g.beginPath(); g.arc(0, 0, R * 0.985, 0, TAU); g.lineWidth = R * 0.018; g.strokeStyle = bev; g.stroke();
+      // gravures
+      g.strokeStyle = 'rgba(60,35,5,.45)'; g.lineWidth = Math.max(1, R * 0.004);
+      for (let k = 0; k < 144; k++) {
+        const a = (k / 144) * TAU, r0 = R * (k % 3 ? 0.955 : 0.945);
+        g.beginPath(); g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); g.lineTo(Math.cos(a) * R * 0.972, Math.sin(a) * R * 0.972); g.stroke();
+      }
+      // gorge sombre
+      g.beginPath(); g.arc(0, 0, R * 0.928, 0, TAU); g.fillStyle = '#05060a'; g.fill();
+      const lip = g.createLinearGradient(-R, -R, R, R);
+      lip.addColorStop(0, 'rgba(0,0,0,.8)'); lip.addColorStop(1, 'rgba(255,230,160,.6)');
+      g.lineWidth = R * 0.01; g.strokeStyle = lip; g.stroke();
+
+      /* cases */
+      g.rotate(ang);
+      segs.forEach((s, i) => {
+        const a0 = i * seg - seg / 2 - Math.PI / 2, a1 = a0 + seg, am = a0 + seg / 2;
+        g.save();
+        g.beginPath(); g.arc(0, 0, rOut, a0, a1); g.arc(0, 0, rIn, a1, a0, true); g.closePath();
+        const base = g.createRadialGradient(0, 0, rIn, 0, 0, rOut);
+        base.addColorStop(0, shade(s.c, -0.65)); base.addColorStop(0.55, s.c); base.addColorStop(0.9, shade(s.c, 0.18)); base.addColorStop(1, shade(s.c, -0.25));
+        g.fillStyle = base; g.fill();
+        g.clip();
+        // facette : moitié éclairée, moitié dans l'ombre
+        g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, rOut, a0, am); g.closePath(); g.fillStyle = 'rgba(255,255,255,.13)'; g.fill();
+        g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, rOut, am, a1); g.closePath(); g.fillStyle = 'rgba(0,0,0,.2)'; g.fill();
+        // stries concentriques + grain
+        g.strokeStyle = 'rgba(255,255,255,.045)'; g.lineWidth = 1;
+        for (let r = rIn; r < rOut; r += Math.max(2, R * 0.012)) { g.beginPath(); g.arc(0, 0, r, a0, a1); g.stroke(); }
+        g.globalCompositeOperation = 'overlay'; g.fillStyle = g.createPattern(ui._grain, 'repeat'); g.fillRect(-R, -R, S, S);
+        g.globalCompositeOperation = 'source-over';
+        // biseau du bord extérieur et ombre intérieure
+        g.beginPath(); g.arc(0, 0, rOut - R * 0.012, a0, a1); g.lineWidth = R * 0.016; g.strokeStyle = 'rgba(255,255,255,.22)'; g.stroke();
+        g.beginPath(); g.arc(0, 0, rIn + R * 0.02, a0, a1); g.lineWidth = R * 0.04; g.strokeStyle = 'rgba(0,0,0,.35)'; g.stroke();
+        g.restore();
+
+        // séparateur en or avec ombre portée
+        const sx = Math.cos(a0), sy = Math.sin(a0);
+        g.beginPath(); g.moveTo(sx * rIn, sy * rIn); g.lineTo(sx * rOut, sy * rOut);
+        g.lineWidth = Math.max(2, R * 0.012); g.strokeStyle = 'rgba(0,0,0,.45)'; g.stroke();
+        g.lineWidth = Math.max(1, R * 0.006); g.strokeStyle = '#e8c26c'; g.stroke();
+
+        // contenu (icône + valeur)
+        g.save();
+        g.rotate(i * seg);
+        const lr = R * (o.labelR || 0.66);
+        if (s.icon === 'coin' || s.icon === 'star') {
+          const ir = R * 0.045, iy = -lr + R * (s.size || 0.1) * 0.95;
+          if (s.icon === 'coin') {
+            const cg = g.createRadialGradient(-ir * 0.3, iy - ir * 0.3, 0, 0, iy, ir);
+            cg.addColorStop(0, '#fff3c4'); cg.addColorStop(0.6, '#e9b143'); cg.addColorStop(1, '#8a5a17');
+            g.beginPath(); g.arc(0, iy, ir, 0, TAU); g.fillStyle = cg; g.fill();
+            g.beginPath(); g.arc(0, iy, ir * 0.62, 0, TAU); g.lineWidth = Math.max(1, ir * 0.18); g.strokeStyle = 'rgba(122,77,18,.7)'; g.stroke();
+          } else {
+            g.beginPath();
+            for (let k = 0; k < 10; k++) { const a = (k / 10) * TAU - Math.PI / 2, rr = k % 2 ? ir * 0.45 : ir * 1.15; g.lineTo(Math.cos(a) * rr, iy + Math.sin(a) * rr); }
+            g.closePath(); g.fillStyle = '#fff7d6'; g.shadowColor = '#fff'; g.shadowBlur = R * 0.04; g.fill(); g.shadowBlur = 0;
+          }
+        }
+        if (s.label) {
+          g.font = `700 ${R * (s.size || 0.1)}px "Chakra Petch", sans-serif`;
+          g.textAlign = 'center'; g.textBaseline = 'middle';
+          g.lineJoin = 'round';
+          g.lineWidth = R * 0.016; g.strokeStyle = s.ink === '#fff' || s.ink === '#f4f6fb' ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.35)';
+          g.strokeText(s.label, 0, -lr);
+          g.fillStyle = s.ink; g.fillText(s.label, 0, -lr);
+        }
+        g.restore();
+
+        // gagnant / perdants
+        if (hi != null) {
+          g.beginPath(); g.arc(0, 0, rOut, a0, a1); g.arc(0, 0, rIn, a1, a0, true); g.closePath();
+          if (hi === i) { g.lineWidth = R * 0.022; g.strokeStyle = '#fff'; g.shadowColor = s.c; g.shadowBlur = R * 0.08; g.stroke(); g.shadowBlur = 0; }
+          else { g.fillStyle = 'rgba(3,4,7,.68)'; g.fill(); }
+        }
+      });
+
+      /* anneau décoratif autour du moyeu */
+      g.beginPath(); g.arc(0, 0, rIn + R * 0.012, 0, TAU); g.lineWidth = R * 0.024; g.strokeStyle = gold(0.4); g.stroke();
+      for (let k = 0; k < n * (n > 20 ? 1 : 2); k++) {
+        const a = (k / (n * (n > 20 ? 1 : 2))) * TAU;
+        g.beginPath(); g.arc(Math.cos(a) * (rIn + R * 0.045), Math.sin(a) * (rIn + R * 0.045), R * 0.006, 0, TAU); g.fillStyle = 'rgba(255,226,168,.55)'; g.fill();
+      }
+
+      /* reflet de verre (fixe) */
+      g.rotate(-ang);
+      const gl = g.createRadialGradient(-R * 0.35, -R * 0.45, R * 0.02, -R * 0.1, -R * 0.15, rOut * 1.05);
+      gl.addColorStop(0, 'rgba(255,255,255,.22)'); gl.addColorStop(0.35, 'rgba(255,255,255,.05)'); gl.addColorStop(0.75, 'rgba(0,0,0,0)'); gl.addColorStop(1, 'rgba(0,0,0,.4)');
+      g.beginPath(); g.arc(0, 0, rOut, 0, TAU); g.fillStyle = gl; g.fill();
+      // croissant spéculaire en haut à gauche
+      g.save();
+      g.beginPath(); g.arc(0, 0, rOut * 0.97, Math.PI * 1.08, Math.PI * 1.62); g.arc(-R * 0.06, -R * 0.06, rOut * 0.86, Math.PI * 1.62, Math.PI * 1.08, true); g.closePath();
+      const sp = g.createLinearGradient(-R, -R, 0, 0); sp.addColorStop(0, 'rgba(255,255,255,.28)'); sp.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = sp; g.fill();
+      g.restore();
+
+      /* picots en laiton sur les séparateurs */
+      if (o.pegs !== false) {
+        g.rotate(ang);
+        for (let i = 0; i < n; i++) {
+          const a = i * seg - seg / 2 - Math.PI / 2, px = Math.cos(a) * R * 0.915, py = Math.sin(a) * R * 0.915, pr = R * (n > 20 ? 0.012 : 0.02);
+          g.beginPath(); g.arc(px + pr * 0.25, py + pr * 0.35, pr, 0, TAU); g.fillStyle = 'rgba(0,0,0,.6)'; g.fill();
+          const pg = g.createRadialGradient(px - pr * 0.35, py - pr * 0.35, 0, px, py, pr);
+          pg.addColorStop(0, '#fffaf0'); pg.addColorStop(0.45, '#f0c867'); pg.addColorStop(1, '#7a4d12');
+          g.beginPath(); g.arc(px, py, pr, 0, TAU); g.fillStyle = pg; g.fill();
+        }
+      }
+      g.restore();
+    },
     bulbs(el, n = 32) {
       el.querySelectorAll('.bulbring').forEach((x) => x.remove());
       const ring = document.createElement('div');

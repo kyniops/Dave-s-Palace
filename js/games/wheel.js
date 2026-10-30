@@ -43,64 +43,19 @@
   }
 
   function drawWheel(g, S, ang, coinImg, highlight) {
-    const R = S / 2, rIn = R * 0.3, rOut = R * 0.93;
-    g.clearRect(0, 0, S, S);
-    g.save();
-    g.translate(R, R);
-    // jante dorée
-    const rim = g.createLinearGradient(-R, -R, R, R);
-    rim.addColorStop(0, '#ffe7a3'); rim.addColorStop(0.3, '#b9832b'); rim.addColorStop(0.55, '#fff0c2'); rim.addColorStop(0.8, '#8a5a17'); rim.addColorStop(1, '#e8c26c');
-    g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fillStyle = rim; g.fill();
-    g.beginPath(); g.arc(0, 0, R * 0.955, 0, Math.PI * 2); g.fillStyle = '#07080d'; g.fill();
-    g.rotate((ang * Math.PI) / 180);
-    SEGS.forEach((id, i) => {
+    const R = S / 2, rIn = R * 0.3;
+    ui.wheel(g, S, (ang * Math.PI) / 180, SEGS.map((id) => {
       const t = BY[id];
-      const a0 = ((i * SEG - SEG / 2 - 90) * Math.PI) / 180, a1 = ((i * SEG + SEG / 2 - 90) * Math.PI) / 180;
-      const dim = highlight != null && highlight !== i;
-      // case en relief : sombre près du centre, lumineuse vers le bord
-      const grad = g.createRadialGradient(0, 0, rIn, 0, 0, rOut);
-      grad.addColorStop(0, shade(t.c, -0.55)); grad.addColorStop(0.7, t.c); grad.addColorStop(1, shade(t.c, 0.35));
-      g.beginPath(); g.arc(0, 0, rOut, a0, a1); g.arc(0, 0, rIn, a1, a0, true); g.closePath();
-      g.fillStyle = grad;
-      g.globalAlpha = dim ? 0.28 : 1;
-      g.fill();
-      g.globalAlpha = 1;
-      if (highlight === i) { g.lineWidth = R * 0.02; g.strokeStyle = '#fff'; g.stroke(); }
-      // séparateur doré
-      g.beginPath(); g.moveTo(Math.cos(a0) * rIn, Math.sin(a0) * rIn); g.lineTo(Math.cos(a0) * rOut, Math.sin(a0) * rOut);
-      g.strokeStyle = 'rgba(255,215,140,.55)'; g.lineWidth = Math.max(1, R * 0.006); g.stroke();
-      // étiquette
-      g.save();
-      g.rotate(((i * SEG) * Math.PI) / 180);
-      g.globalAlpha = dim ? 0.4 : 1;
-      g.fillStyle = t.ink;
-      g.font = `700 ${R * (id === 'jpz' ? 0.065 : 0.055)}px "Chakra Petch", sans-serif`;
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(id === 'jpz' ? '50' : String(t.mult).replace('.', ','), 0, -R * 0.8);
-      g.restore();
-    });
-    // reflet circulaire (verre)
-    const gloss = g.createRadialGradient(-R * 0.3, -R * 0.4, R * 0.05, 0, 0, rOut);
-    gloss.addColorStop(0, 'rgba(255,255,255,.16)'); gloss.addColorStop(0.5, 'rgba(255,255,255,.03)'); gloss.addColorStop(1, 'rgba(0,0,0,.25)');
-    g.rotate(-(ang * Math.PI) / 180);
-    g.beginPath(); g.arc(0, 0, rOut, 0, Math.PI * 2); g.fillStyle = gloss; g.fill();
-    g.rotate((ang * Math.PI) / 180);
-    // picots en laiton
-    for (let i = 0; i < SEGS.length; i++) {
-      const a = ((i * SEG + SEG / 2 - 90) * Math.PI) / 180;
-      const pg = g.createRadialGradient(Math.cos(a) * R * 0.94 - 1, Math.sin(a) * R * 0.94 - 1, 0, Math.cos(a) * R * 0.94, Math.sin(a) * R * 0.94, R * 0.016);
-      pg.addColorStop(0, '#fff6d6'); pg.addColorStop(1, '#a8741f');
-      g.beginPath(); g.arc(Math.cos(a) * R * 0.94, Math.sin(a) * R * 0.94, R * 0.014, 0, Math.PI * 2); g.fillStyle = pg; g.fill();
-    }
-    g.restore();
-    // moyeu doré (fixe) avec la DaveCoin
+      return { c: t.c, ink: t.ink, label: id === 'jpz' ? '50' : String(t.mult).replace('.', ','), size: id === 'jpz' ? 0.065 : 0.052 };
+    }), { hi: highlight, labelR: 0.8 });
+    // moyeu (fixe) avec la DaveCoin
     g.save(); g.translate(R, R);
     const hub = g.createRadialGradient(-R * 0.08, -R * 0.1, R * 0.02, 0, 0, rIn);
-    hub.addColorStop(0, '#2a2f40'); hub.addColorStop(1, '#07080d');
+    hub.addColorStop(0, '#2f3549'); hub.addColorStop(1, '#06070b');
     g.beginPath(); g.arc(0, 0, rIn, 0, Math.PI * 2); g.fillStyle = hub; g.fill();
-    g.lineWidth = R * 0.025; g.strokeStyle = rim; g.stroke();
     if (coinImg.complete && coinImg.naturalWidth) {
       const w = R * 0.44, h = w * (coinImg.naturalHeight / coinImg.naturalWidth);
+      g.shadowColor = 'rgba(255,193,69,.6)'; g.shadowBlur = R * 0.06;
       g.drawImage(coinImg, -w / 2, -h / 2, w, h);
     }
     g.restore();

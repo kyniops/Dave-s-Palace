@@ -221,44 +221,10 @@
   }
   /* Roue quotidienne : disque en relief, séparateurs dorés, case 5 000 en or */
   function drawDaily(g, S, ang, hi) {
-    const W = bonus.DAILY_WHEEL, n = W.length, seg = (Math.PI * 2) / n, R = S / 2, rIn = R * 0.3, rOut = R * 0.93;
-    const colorOf = (v, i) => (v >= 5000 ? '#ffc145' : v >= 1000 ? '#ff6b2c' : v >= 500 ? '#c04dff' : i % 2 ? '#1f2740' : '#2b3556');
-    g.clearRect(0, 0, S, S);
-    g.save(); g.translate(R, R);
-    const rim = g.createLinearGradient(-R, -R, R, R);
-    rim.addColorStop(0, '#ffe7a3'); rim.addColorStop(0.3, '#b9832b'); rim.addColorStop(0.55, '#fff0c2'); rim.addColorStop(0.8, '#8a5a17'); rim.addColorStop(1, '#e8c26c');
-    g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fillStyle = rim; g.fill();
-    g.beginPath(); g.arc(0, 0, R * 0.955, 0, Math.PI * 2); g.fillStyle = '#07080d'; g.fill();
-    g.rotate(ang);
-    W.forEach(([v], i) => {
-      const a0 = i * seg - seg / 2 - Math.PI / 2, a1 = a0 + seg;
-      const c = colorOf(v, i);
-      const grad = g.createRadialGradient(0, 0, rIn, 0, 0, rOut);
-      grad.addColorStop(0, 'rgba(0,0,0,.55)'); grad.addColorStop(0.55, c); grad.addColorStop(1, c);
-      g.beginPath(); g.arc(0, 0, rOut, a0, a1); g.arc(0, 0, rIn, a1, a0, true); g.closePath();
-      g.fillStyle = c; g.globalAlpha = hi != null && hi !== i ? 0.3 : 1; g.fill();
-      g.fillStyle = grad; g.fill(); g.globalAlpha = 1;
-      if (hi === i) { g.lineWidth = R * 0.025; g.strokeStyle = '#fff'; g.stroke(); }
-      g.beginPath(); g.moveTo(Math.cos(a0) * rIn, Math.sin(a0) * rIn); g.lineTo(Math.cos(a0) * rOut, Math.sin(a0) * rOut);
-      g.strokeStyle = 'rgba(255,215,140,.6)'; g.lineWidth = 2; g.stroke();
-      g.save(); g.rotate(i * seg);
-      g.globalAlpha = hi != null && hi !== i ? 0.45 : 1;
-      g.fillStyle = v >= 1000 ? '#170800' : '#f4f6fb';
-      g.font = `700 ${R * (v >= 1000 ? 0.12 : 0.1)}px "Chakra Petch", sans-serif`;
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(fmt(v), 0, -R * 0.66);
-      g.restore();
-    });
-    g.rotate(-ang);
-    const gloss = g.createRadialGradient(-R * 0.3, -R * 0.4, R * 0.05, 0, 0, rOut);
-    gloss.addColorStop(0, 'rgba(255,255,255,.18)'); gloss.addColorStop(0.5, 'rgba(255,255,255,.03)'); gloss.addColorStop(1, 'rgba(0,0,0,.28)');
-    g.beginPath(); g.arc(0, 0, rOut, 0, Math.PI * 2); g.fillStyle = gloss; g.fill();
-    g.rotate(ang);
-    for (let i = 0; i < n; i++) {
-      const a = i * seg + seg / 2 - Math.PI / 2;
-      g.beginPath(); g.arc(Math.cos(a) * R * 0.94, Math.sin(a) * R * 0.94, R * 0.022, 0, Math.PI * 2); g.fillStyle = '#ffe2a8'; g.fill();
-    }
-    g.restore();
+    const colorOf = (v, i) => (v >= 5000 ? '#ffc145' : v >= 1000 ? '#ff6b2c' : v >= 500 ? '#c04dff' : i % 2 ? '#26304f' : '#33416b');
+    ui.wheel(g, S, ang, bonus.DAILY_WHEEL.map(([v], i) => ({
+      c: colorOf(v, i), label: fmt(v), ink: v >= 1000 ? '#170800' : '#f4f6fb', size: v >= 1000 ? 0.11 : 0.095, icon: v >= 5000 ? 'star' : 'coin'
+    })), { hi, labelR: 0.7 });
   }
 
   window.DP_DRAW_DAILY = drawDaily; // réutilisée par la page de présentation
