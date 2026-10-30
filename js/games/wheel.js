@@ -53,7 +53,7 @@
       g.save();
       g.rotate(((i * SEG) * Math.PI) / 180);
       g.fillStyle = t.ink;
-      g.font = `600 ${R * (id === 'jpz' ? 0.06 : 0.05)}px "Geist Mono", monospace`;
+      g.font = `600 ${R * (id === 'jpz' ? 0.06 : 0.05)}px Geist, sans-serif`;
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(id === 'jpz' ? '50' : String(t.mult).replace('.', ','), 0, -R * 0.84);
       g.restore();

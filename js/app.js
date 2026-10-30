@@ -28,10 +28,10 @@
   }
 
   const brand = () => `<span class="brand__mark">${I('crown')}</span><span class="brand__name">Dave’s Palace</span>`;
-  const astro = (cls = '') => `<div class="astro ${cls}">
-      <div class="orbit orbit-spin o1"></div><div class="orbit orbit-spin o2"></div>
-      <img class="king" src="${IMG}jpz.png" alt="Jean-Pascal Zadi, roi du Palace">
-    </div>`;
+  // Rayons du lobby (et groupes du menu)
+  const CATS = ['Originaux', 'Table', 'Machines', 'En direct'];
+  const CAT_OF = { machine: 'Machines', wheel: 'En direct', roulette: 'Table', blackjack: 'Table' };
+  const catOf = (g) => CAT_OF[g.id] || 'Originaux';
 
   /* ---------- Page d'accueil / authentification ---------- */
   function renderLanding(mode) {
@@ -41,16 +41,16 @@
         <div class="planet"></div>
         <div class="landing__hero">
           <div class="brand">${brand()}</div>
-          <h1>Le casino<span>en orbite</span></h1>
-          <p class="landing__tag">Le palace de Jean-Pascal Zadi, quelque part entre deux galaxies. Mise tes DaveCoins, vise le jackpot.</p>
-          <div class="landing__stats">
-            <div><strong>${games.list.length}</strong><span>jeux</span></div>
-            <div><strong>1 000</strong><span>DaveCoins offerts</span></div>
-            <div><strong>99%</strong><span>de RTP max</span></div>
-          </div>
+          <h1>Le casino de Jean&#8209;Pascal Zadi. <span>En orbite.</span></h1>
+          <p class="landing__tag">${games.list.length} jeux originaux joués en DaveCoins : machines à sous, table, caisses et roue en direct.</p>
+          <ul class="landing__facts">
+            <li>${I('gift', 'i--sm')}1 000 DaveCoins à l’inscription</li>
+            <li>${I('timer', 'i--sm')}Bonus de 1 000 chaque jour</li>
+            <li>${I('percent', 'i--sm')}Taux de retour affiché sur chaque jeu</li>
+          </ul>
         </div>
-        ${astro()}
-        <div class="auth-card glass">
+        <img class="landing__king" src="${IMG}jpz.png" alt="">
+        <div class="auth-card">
           <div class="seg seg--tabs">
             <button type="button" data-m="login">Connexion</button>
             <button type="button" data-m="register">Inscription</button>
@@ -58,8 +58,8 @@
           <form class="auth-form" novalidate>
             <h2></h2>
             <p class="auth-form__sub"></p>
-            <label class="field"><span>Pseudo</span><input name="user" autocomplete="username" maxlength="20" required></label>
-            <label class="field"><span>Mot de passe</span><input name="pass" type="password" required></label>
+            <label class="field"><span>Pseudo</span><input name="user" autocomplete="username" maxlength="20" required placeholder="Ton pseudo"></label>
+            <label class="field"><span>Mot de passe</span><input name="pass" type="password" required placeholder="••••••"></label>
             <p class="auth-form__error" role="alert"></p>
             <button class="btn btn--primary btn--lg btn--block" type="submit"></button>
           </form>
@@ -72,11 +72,11 @@
     const paint = () => {
       tabs.forEach((t) => t.classList.toggle('on', t.dataset.m === mode));
       const reg = mode === 'register';
-      form.querySelector('h2').textContent = reg ? 'Embarquement' : 'Bon retour à bord';
+      form.querySelector('h2').textContent = reg ? 'Créer un compte' : 'Connexion';
       form.querySelector('.auth-form__sub').innerHTML = reg
-        ? `Crée ton compte et reçois <strong class="num">1 000</strong> ${ui.coin('coin--xs')} pour décoller.`
+        ? `Tu reçois <strong class="num">1 000</strong> ${ui.coin('coin--xs')} pour commencer.`
         : 'Connecte-toi pour retrouver tes DaveCoins.';
-      form.querySelector('button[type=submit]').innerHTML = (reg ? 'Créer mon compte' : 'Entrer au Palace') + I('chevron-right');
+      form.querySelector('button[type=submit]').textContent = reg ? 'Créer mon compte' : 'Se connecter';
       form.pass.autocomplete = reg ? 'new-password' : 'current-password';
       err.textContent = '';
     };
@@ -106,8 +106,8 @@
           <button class="icon-btn burger" aria-label="Menu" type="button">${I('menu')}</button>
           <a class="brand" href="#/lobby">${brand()}</a>
           <div class="wallet" title="Ton solde de DaveCoins">
-            ${ui.coin()}<span class="wallet__amount">0</span>
-            <button class="wallet__bonus" type="button" aria-label="Bonus">${I('plus')}</button>
+            <span class="wallet__bal">${ui.coin('coin--sm')}<span class="wallet__amount num">0</span></span>
+            <button class="wallet__bonus" type="button" aria-label="Bonus">${I('gift')}<span>Bonus</span></button>
           </div>
           <div class="topbar__right">
             <button class="icon-btn sound-btn" type="button" aria-label="Son"></button>
@@ -116,8 +116,10 @@
         </header>
         <nav class="sidebar">
           <a class="nav-item" data-nav="lobby" href="#/lobby">${I('castle')}Lobby</a>
-          <div class="nav-title">Jeux</div>
-          ${games.list.map((g) => `<a class="nav-item" data-nav="${g.id}" href="#/jeu/${g.id}">${I(g.icon)}${g.name}${g.isNew ? '<span class="nav-tag">New</span>' : ''}</a>`).join('')}
+          ${CATS.map((c) => {
+            const list = games.list.filter((g) => catOf(g) === c);
+            return list.length ? `<div class="nav-title">${c}</div>` + list.map((g) => `<a class="nav-item" data-nav="${g.id}" href="#/jeu/${g.id}">${I(g.icon)}${g.name}${g.isNew ? '<span class="nav-tag">Nouveau</span>' : ''}</a>`).join('') : '';
+          }).join('')}
           <div class="nav-title">Compte</div>
           <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Profil & stats</a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
@@ -181,10 +183,10 @@
   function openBonus() {
     sound.play('click');
     const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true">
-      <div class="modal__card glass">
+      <div class="modal__card">
         <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
-        <div class="modal__hero"><div class="orbit orbit-spin"></div><img src="${IMG}jpz.png" alt=""></div>
-        <h3>${I('gift')}Le trésor du roi</h3>
+        <h3>${I('gift')}Bonus</h3>
+        <div class="modal__hero"><img src="${IMG}jpz.png" alt=""><p class="muted" style="margin:0">Le roi te dépanne : un bonus chaque jour, et un coup de pouce si ton solde tombe à zéro.</p></div>
         <div class="bonus-row">
           <div><strong>${I('timer', 'i--sm')}Bonus quotidien</strong><span>+${fmt(bonus.DAILY_BONUS)} ${ui.coin('coin--xs')} toutes les 24 h</span></div>
           <button class="btn btn--primary" data-b="daily" type="button"></button>
@@ -222,60 +224,66 @@
     const s = stats.get();
     const featured = games.list.find((g) => g.hot) || games.list[0];
     view.innerHTML = `
-      <section class="hero glass">
+      <section class="banner">
+        <div class="banner__stars"></div>
         <div class="planet"></div>
-        <div class="hero__text">
-          <span class="kicker"><b></b>Bienvenue à bord, ${esc(user)}</span>
-          <h1>Le roi t’attend<br>en <em>orbite</em>.</h1>
-          <p>${games.list.length} jeux, des gains instantanés et ${fmt(bonus.DAILY_BONUS)} DaveCoins offerts chaque jour.</p>
-          <div class="hero__cta">
-            <a class="btn btn--primary btn--lg" href="#/jeu/${featured.id}">${I('play')}Jouer à ${featured.name}</a>
-            <button class="btn btn--ghost btn--lg hero-bonus" type="button">${I('gift')}Bonus</button>
+        <div class="banner__text">
+          <h1>${new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(user)}</h1>
+          <p>${games.list.length} jeux disponibles. Ton bonus quotidien de ${fmt(bonus.DAILY_BONUS)} DaveCoins t’attend dans le coffre.</p>
+          <div class="banner__cta">
+            <a class="btn btn--primary btn--lg" href="#/jeu/${featured.id}">${I('play', 'i--sm')}Jouer à ${featured.name}</a>
+            <button class="btn btn--ghost btn--lg hero-bonus" type="button">${I('gift', 'i--sm')}Récupérer le bonus</button>
           </div>
         </div>
-        <div class="hero__art">${astro()}</div>
+        <div class="banner__art"><img src="${IMG}jpz.png" alt="Jean-Pascal Zadi"></div>
       </section>
 
-      <section class="tiles">
-        <div class="tile glass"><span>${I('wallet')}Solde</span><strong>${ui.coin('coin--sm')}<b class="js-bal" style="font-weight:inherit">${fmt(wallet.get())}</b></strong></div>
-        <div class="tile glass"><span>${I('history')}Parties jouées</span><strong>${fmt(s.played)}</strong></div>
-        <div class="tile glass"><span>${I('trophy')}Plus gros gain</span><strong>${s.biggestWin ? '+' + fmt(s.biggestWin) : '—'}</strong></div>
-        <div class="tile glass"><span>${I('zap')}Meilleur multi</span><strong>${s.biggestMult ? fmtMult(s.biggestMult) : '—'}</strong></div>
+      <section class="statbar">
+        <div><span>Solde</span><strong>${ui.coin('coin--sm')}<b class="js-bal" style="font-weight:inherit">${fmt(wallet.get())}</b></strong></div>
+        <div><span>Parties jouées</span><strong>${fmt(s.played)}</strong></div>
+        <div><span>Plus gros gain</span><strong class="${s.biggestWin ? 'pos' : ''}">${s.biggestWin ? '+' + fmt(s.biggestWin) : '—'}</strong></div>
+        <div><span>Meilleur multiplicateur</span><strong>${s.biggestMult ? fmtMult(s.biggestMult) : '—'}</strong></div>
       </section>
 
-      <div class="section-head"><h2>Les jeux</h2><span>${games.list.length} jeux disponibles</span></div>
+      <div class="section-head">
+        <h2>Jeux</h2>
+        <div class="seg js-filter">${['Tous', ...CATS].map((c) => `<button type="button" data-c="${c}" class="${c === 'Tous' ? 'on' : ''}">${c}</button>`).join('')}</div>
+      </div>
       <section class="games-grid">
         ${games.list.map((g) => `
-          <a class="game-card" href="#/jeu/${g.id}" style="--h:${g.hue}">
+          <a class="game-card" href="#/jeu/${g.id}" data-c="${catOf(g)}" style="--h:${g.hue}">
             <div class="game-card__art">${g.art || `<span class="game-card__icon">${I(g.icon)}</span>`}</div>
-            ${g.hot ? '<span class="badge badge--hot">Populaire</span>' : ''}${g.isNew ? '<span class="badge badge--new">Nouveau</span>' : ''}
+            ${g.isNew ? '<span class="badge badge--new">Nouveau</span>' : g.hot ? '<span class="badge badge--hot">Populaire</span>' : ''}
             <div class="game-card__body">
               <div>
-                <h3>${I(g.icon)}${g.name}</h3>
-                <p>${g.tagline}</p>
+                <h3>${g.name}</h3>
+                <p><span>${catOf(g)}</span><span class="num">RTP ${g.rtp}</span></p>
               </div>
               <span class="game-card__go">${I('chevron-right', 'i--sm')}</span>
             </div>
           </a>`).join('')}
       </section>
 
-      <div class="section-head"><h2>Dernières parties</h2><a href="#/profil">Tout voir${I('chevron-right', 'i--sm')}</a></div>
+      <div class="section-head"><h2>Dernières parties</h2><a href="#/profil">Tout l’historique${I('chevron-right', 'i--sm')}</a></div>
       ${historyTable(s.history.slice(0, 8))}`;
 
+    // filtres du catalogue
+    const filter = view.querySelector('.js-filter');
+    filter.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      filter.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+      view.querySelectorAll('.game-card').forEach((c) => (c.hidden = b.dataset.c !== 'Tous' && c.dataset.c !== b.dataset.c));
+      sound.play('click');
+    });
     view.querySelector('.hero-bonus').addEventListener('click', openBonus);
-    // Projecteur qui suit la souris sur les cartes
-    view.querySelectorAll('.game-card').forEach((c) => c.addEventListener('pointermove', (e) => {
-      const r = c.getBoundingClientRect();
-      c.style.setProperty('--mx', e.clientX - r.left + 'px');
-      c.style.setProperty('--my', e.clientY - r.top + 'px');
-    }));
     unmountView = on('balance', () => { const b = view.querySelector('.js-bal'); if (b) b.textContent = fmt(wallet.get()); });
     DP.emit('lobby');
   }
 
   function historyTable(rows) {
-    if (!rows.length) return `<div class="empty glass">${I('rocket', 'i--lg')}Aucune partie pour l’instant. Lance-toi !</div>`;
-    return `<div class="table-wrap glass"><table class="history">
+    if (!rows.length) return `<div class="empty">${I('history', 'i--lg')}<strong>Aucune partie pour l’instant</strong>Tes 50 dernières parties s’afficheront ici avec la mise, le multiplicateur et le gain.</div>`;
+    return `<div class="table-wrap"><table class="history">
       <thead><tr><th>Jeu</th><th class="num">Mise</th><th class="num">Multi</th><th class="num">Gain</th><th class="num">Heure</th></tr></thead>
       <tbody>${rows.map((h) => {
         const g = games.find(h.game);
@@ -296,16 +304,16 @@
     view.innerHTML = `
       <div class="page-head">
         <span class="avatar avatar--lg">${esc(auth.current().charAt(0).toUpperCase())}</span>
-        <div><h1>${esc(auth.current())}</h1><p>Membre d’équipage du Palace</p></div>
+        <div><h1>${esc(auth.current())}</h1><p>Statistiques et historique de ton compte</p></div>
       </div>
-      <section class="tiles">
-        <div class="tile glass"><span>${I('wallet')}Solde</span><strong>${ui.coin('coin--sm')} ${fmt(wallet.get())}</strong></div>
-        <div class="tile glass"><span>${I('history')}Parties</span><strong>${fmt(s.played)}</strong></div>
-        <div class="tile glass"><span>${I('coins')}Total misé</span><strong>${fmt(s.wagered)}</strong></div>
-        <div class="tile glass"><span>${I('sigma')}Bilan</span><strong class="${net >= 0 ? 'pos' : 'neg'}">${net >= 0 ? '+' : ''}${fmt(net)}</strong></div>
-        <div class="tile glass"><span>${I('trophy')}Plus gros gain</span><strong>${s.biggestWin ? '+' + fmt(s.biggestWin) : '—'}</strong></div>
-        <div class="tile glass"><span>${I('zap')}Meilleur multi</span><strong>${s.biggestMult ? fmtMult(s.biggestMult) : '—'}</strong></div>
-        <div class="tile glass"><span>${I('star')}Jeu préféré</span><strong style="font-family:var(--font);font-size:18px">${favGame ? favGame.name : '—'}</strong></div>
+      <section class="statbar statbar--wide">
+        <div><span>Solde</span><strong>${ui.coin('coin--sm')} ${fmt(wallet.get())}</strong></div>
+        <div><span>Parties</span><strong>${fmt(s.played)}</strong></div>
+        <div><span>Total misé</span><strong>${fmt(s.wagered)}</strong></div>
+        <div><span>Bilan</span><strong class="${net >= 0 ? 'pos' : 'neg'}">${net >= 0 ? '+' : ''}${fmt(net)}</strong></div>
+        <div><span>Plus gros gain</span><strong>${s.biggestWin ? '+' + fmt(s.biggestWin) : '—'}</strong></div>
+        <div><span>Meilleur multiplicateur</span><strong>${s.biggestMult ? fmtMult(s.biggestMult) : '—'}</strong></div>
+        <div><span>Jeu préféré</span><strong>${favGame ? favGame.name : '—'}</strong></div>
       </section>
       <div class="section-head"><h2>Historique</h2><span>50 dernières parties</span></div>
       ${historyTable(s.history)}`;
@@ -315,14 +323,17 @@
   function renderGame(view, game) {
     view.innerHTML = `
       <div class="game-head" style="--h:${game.hue}">
-        <a class="icon-btn" href="#/lobby" aria-label="Retour au lobby">${I('arrow-left')}</a>
         <span class="game-head__ico">${I(game.icon, 'i--lg')}</span>
-        <div><h1>${game.name}</h1><p>${game.tagline} · <span class="num">RTP ${game.rtp}</span></p></div>
+        <div>
+          <nav class="crumbs" aria-label="Fil d’Ariane"><a href="#/lobby">Lobby</a>${I('chevron-right')}<span>${catOf(game)}</span></nav>
+          <h1>${game.name}</h1>
+          <p>${game.tagline} · <span class="num">RTP ${game.rtp}</span></p>
+        </div>
         <button class="btn btn--ghost btn--sm rules-btn" type="button">${I('book-open', 'i--sm')}Règles</button>
       </div>
       <div class="game-root"></div>`;
     view.querySelector('.rules-btn').addEventListener('click', () => {
-      const modal = ui.el(`<div class="modal"><div class="modal__card glass">
+      const modal = ui.el(`<div class="modal"><div class="modal__card">
         <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
         <h3>${I(game.icon)}${game.name}</h3>${game.rules}<p class="muted">Taux de redistribution théorique : <span class="num">${game.rtp}</span></p></div></div>`);
       document.body.appendChild(modal);

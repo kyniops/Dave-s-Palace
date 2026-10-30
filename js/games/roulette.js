@@ -79,7 +79,7 @@
       g.save();
       g.rotate(rad(i * POCKET) + Math.PI / 2);
       g.fillStyle = '#fff';
-      g.font = `600 ${R * 0.07}px "Geist Mono", monospace`;
+      g.font = `600 ${R * 0.07}px Geist, sans-serif`;
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(String(n), 0, -R * 0.68);
       g.restore();

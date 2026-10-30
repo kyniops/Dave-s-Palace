@@ -74,7 +74,7 @@
         // grille
         ctx.strokeStyle = 'rgba(255,255,255,.05)';
         ctx.fillStyle = 'rgba(139,145,165,.7)';
-        ctx.font = "500 11px 'Geist Mono', monospace";
+        ctx.font = "500 11px Geist, sans-serif";
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         const stepM = niceStep(mMax - 1);

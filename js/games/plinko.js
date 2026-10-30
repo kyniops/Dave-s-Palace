@@ -178,7 +178,7 @@
         const table = TABLES[rows][risk];
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = `500 ${Math.max(9, Math.min(13, sp * 0.3))}px 'Geist Mono', monospace`;
+        ctx.font = `500 ${Math.max(9, Math.min(13, sp * 0.3))}px Geist, sans-serif`;
         table.forEach((m, k) => {
           const f = slotFlash[k];
           const bounce = f ? Math.max(0, 1 - (now - f) / 400) : 0;

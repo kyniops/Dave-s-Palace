@@ -639,7 +639,7 @@
         <circle cx="50" cy="50" r="33" fill="${c.c}" stroke="${c.e}" stroke-width="2.5" stroke-dasharray="5 4"/>
         <circle cx="50" cy="50" r="27" fill="rgba(255,255,255,.08)"/>
         <ellipse cx="38" cy="30" rx="20" ry="9" fill="rgba(255,255,255,.18)" transform="rotate(-25 38 30)"/>
-        <text x="50" y="51" fill="${c.ink}" font-family="Geist Mono, monospace" font-weight="600" font-size="${t.length > 3 ? 19 : 24}" text-anchor="middle" dominant-baseline="central">${t}</text>
+        <text x="50" y="51" fill="${c.ink}" font-family="Geist, sans-serif" font-weight="600" font-size="${t.length > 3 ? 19 : 24}" text-anchor="middle" dominant-baseline="central">${t}</text>
       </svg>`;
     },
     /** Pile de jetons pour un montant donné. */
