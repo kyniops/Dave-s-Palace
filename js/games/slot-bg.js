@@ -111,8 +111,10 @@
     ring.add(dust);
 
     /* DaveCoins en orbite dans l'anneau */
-    const coinTex = new THREE.TextureLoader().load(IMG + 'davecoin.png');
-    const coins = Array.from({ length: small ? 6 : 10 }, (_, i) => {
+    // ouvert depuis le disque (file://), le navigateur refuse l'image dans WebGL : pas de pièces dans ce cas
+    const canLoad = location.protocol.startsWith('http');
+    const coinTex = canLoad ? new THREE.TextureLoader().load(IMG + 'davecoin.png') : null;
+    const coins = Array.from({ length: canLoad ? (small ? 6 : 10) : 0 }, (_, i) => {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: coinTex, transparent: true, depthWrite: false }));
       sp.userData = { a: (i / 10) * Math.PI * 2 + Math.random() * 0.4, r: R * (1.6 + Math.random() * 1.0), s: 0.35 + Math.random() * 0.3, ph: Math.random() * 6 };
       ring.add(sp);
