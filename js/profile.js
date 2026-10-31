@@ -96,7 +96,7 @@
               <div class="pcard__tags">${titleHtml(t)}<span class="prank">Rang ${info.rank.name} · niveau ${info.level}</span></div>
               ${p.bio ? `<p class="pcard__bio">${esc(p.bio)}</p>` : ''}
             </div>
-            <a class="btn btn--ghost" href="#/classement">${I('trophy', 'i--sm')}Classement</a>
+            <div class="pcard__actions"><span class="js-pfriend">${DP.social && DP.social.available() ? DP.social.friendBtnHtml(pl.id) : ''}</span><a class="btn btn--ghost" href="#/classement">${I('trophy', 'i--sm')}Classement</a></div>
           </div>
           <div class="pstats">
             <div><span>Solde</span><b class="num">${fmt(+pl.balance || 0)}</b></div>
@@ -115,10 +115,17 @@
         </div>`;
       DP_MOTION.tilt(view.querySelectorAll('.pshow .tcard'), 12);
       DP_MOTION.reveal(view, '.pcard, .ppanel');
+      if (DP.social && DP.social.available()) {
+        const slotEl = view.querySelector('.js-pfriend');
+        const repaint = () => { if (slotEl.isConnected) slotEl.innerHTML = DP.social.friendBtnHtml(pl.id); };
+        DP.social.bindFriendButtons(slotEl, repaint);
+        offFriends = DP.on('friends', repaint);
+      }
     };
+    let offFriends = null;
     if (!(DP.cloud && DP.cloud.online)) { show(null); return () => {}; }
     DP.cloud.player(name).then(show).catch(() => show(null));
-    return () => { alive = false; };
+    return () => { alive = false; if (offFriends) offFriends(); };
   }
 
   /** Réduit une image importée (recadrage centré) et renvoie un JPEG en data URL. */

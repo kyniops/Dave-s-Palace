@@ -34,6 +34,7 @@
     else if (page === 'admin') unmountView = DP_DASH.admin(view, { rerender: route });
     else if (page === 'progression') unmountView = DP.progress.render(view);
     else if (page === 'classement') unmountView = renderLeaderboard(view);
+    else if (page === 'amis') unmountView = DP.social.render(view);
     else if (page === 'joueur' && arg) {
       const who = decodeURIComponent(arg);
       if (who.toLowerCase() === (auth.current() || '').toLowerCase()) { location.replace('#/profil'); return; }
@@ -148,6 +149,7 @@
             <button class="wallet__bonus" type="button" aria-label="Bonus">${I('gift')}<span>Bonus</span></button>
           </div>
           <div class="topbar__right">
+            <button class="icon-btn bell js-bell" type="button" aria-label="Notifications" hidden></button>
             <button class="icon-btn sound-btn" type="button" aria-label="Son"></button>
             <a class="lvl-chip js-lvl" href="#/progression" title="Ta progression"></a>
             <a class="user-chip js-userchip" href="#/profil">${DP.profile.avatarHtml(user)}<span class="user-chip__name">${esc(user)}</span></a>
@@ -166,6 +168,7 @@
           <div class="nav-title">Compte</div>
           <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Mon profil</a>
           <a class="nav-item" data-nav="dashboard" href="#/dashboard">${I('layout-dashboard')}Dashboard</a>
+          <a class="nav-item" data-nav="amis" href="#/amis">${I('users')}Amis<span class="nav-tag js-ftag" hidden></span></a>
           <a class="nav-item" data-nav="classement" href="#/classement">${I('trophy')}Classement${DP.cloud && DP.cloud.online ? '<span class="nav-tag nav-tag--live">Live</span>' : ''}</a>
           <a class="nav-item" data-nav="progression" href="#/progression">${I('trophy')}Progression<span class="nav-tag js-mistag" hidden></span></a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
@@ -187,6 +190,7 @@
     app.querySelector('.wallet__bonus').addEventListener('click', openBonus);
     app.querySelector('.js-bonus').addEventListener('click', () => { closeSidebar(); openBonus(); });
     DP.music.attach(app.querySelector('.sound-btn'));
+    DP.social.bell(app.querySelector('.js-bell'));
     refreshTopbar();
     paintInvCount();
     paintLevel();
@@ -202,6 +206,13 @@
     if (tag) { tag.hidden = !sm.claimable; tag.textContent = sm.claimable ? String(sm.claimable) : ''; tag.title = 'Missions à récupérer'; }
   }
   on('progress', paintLevel);
+  // demandes d'amis reçues : pastille dans le menu
+  on('friends', () => {
+    const tag = document.querySelector('.js-ftag');
+    if (!tag) return;
+    const n = DP.social.friends().filter((f) => f.status === 'pending' && !f.mine).length;
+    tag.hidden = !n; tag.textContent = n ? String(n) : '';
+  });
   on('profile', () => {
     const chip = document.querySelector('.js-userchip');
     if (chip && auth.current()) chip.innerHTML = `${DP.profile.avatarHtml(auth.current())}<span class="user-chip__name">${esc(auth.current())}</span>`;
