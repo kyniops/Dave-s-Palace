@@ -11,49 +11,79 @@
     sfxVol: num('dp_sfx_vol', 1)
   };
 
-  const audio = new Audio('assets/audio/ambiance.mp3');
-  audio.loop = true;
-  audio.preload = 'auto';
-  audio.volume = 0;
-  let started = false, fadeRaf = 0;
-  const target = () => (state.musicMuted ? 0 : state.musicVol * 0.6);
+  /* Deux versions du même morceau : acoustique dans les menus, phonk dans les jeux.
+   * Le passage de l'une à l'autre se fait par un fondu croisé ; chaque version reprend là où elle s'était arrêtée. */
+  const mk = (src) => { const a = new Audio(src); a.loop = true; a.preload = 'auto'; a.volume = 0; return a; };
+  const tracks = { calm: mk('assets/audio/ambiance.mp3'), hype: mk('assets/audio/phonk.mp3') };
+  tracks.hype.preload = 'none'; // téléchargée seulement au premier jeu ouvert
+  // la phonk est plus forte : on la cale un peu plus bas pour garder le même ressenti
+  const GAIN = { calm: 0.6, hype: 0.5 };
+  const XFADE = 2000;
+  let started = false, current = 'calm', duck = 1;
+  const fades = new Map();
+  const target = (k) => (state.musicMuted ? 0 : state.musicVol * GAIN[k] * duck);
 
-  /** Fondu doux vers le volume voulu. */
-  function fadeTo(v, ms = 900) {
-    cancelAnimationFrame(fadeRaf);
-    const from = audio.volume, t0 = performance.now();
+  /** Fondu d'une piste vers un volume ; la piste se met en pause une fois silencieuse. */
+  function fadeTo(k, v, ms = 900) {
+    const a = tracks[k];
+    cancelAnimationFrame(fades.get(k));
+    if (v > 0 && a.paused && started) a.play().catch(() => {});
+    const from = a.volume, t0 = performance.now();
     const step = (now) => {
-      const k = Math.min(1, (now - t0) / ms);
-      audio.volume = Math.max(0, Math.min(1, from + (v - from) * k));
-      if (k < 1) fadeRaf = requestAnimationFrame(step);
-      else if (v === 0 && state.musicMuted) audio.pause();
+      const p = Math.min(1, (now - t0) / ms);
+      const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; // douce au début et à la fin
+      a.volume = Math.max(0, Math.min(1, from + (v - from) * e));
+      if (p < 1) fades.set(k, requestAnimationFrame(step));
+      else if (v === 0) a.pause();
     };
-    fadeRaf = requestAnimationFrame(step);
+    fades.set(k, requestAnimationFrame(step));
   }
+  /** Version voulue selon la page : jeux et caisses → phonk, le reste → acoustique. */
+  const wanted = () => (/^#\/(jeu|caisses)/.test(location.hash) ? 'hype' : 'calm');
+  function switchTo(k, ms = XFADE) {
+    if (k === current && !tracks[k].paused) return fadeTo(k, target(k), ms);
+    const old = current;
+    current = k;
+    if (!started || state.musicMuted) return;
+    tracks[k].play().catch(() => {});
+    fadeTo(k, target(k), ms);
+    if (old !== k) fadeTo(old, 0, ms);
+  }
+  const refresh = (ms = 300) => { fadeTo(current, target(current), ms); const other = current === 'calm' ? 'hype' : 'calm'; if (!tracks[other].paused) fadeTo(other, 0, ms); };
   function play() {
     if (state.musicMuted) return;
-    const p = audio.play();
-    if (p && p.then) p.then(() => { started = true; fadeTo(target(), 1800); }).catch(() => {});
+    current = wanted();
+    const p = tracks[current].play();
+    if (p && p.then) p.then(() => { started = true; fadeTo(current, target(current), 1800); }).catch(() => {});
   }
   const kick = () => { if (!started) play(); };
   ['pointerdown', 'keydown', 'touchstart'].forEach((e) => window.addEventListener(e, kick, { passive: true }));
+  window.addEventListener('hashchange', () => { if (started) switchTo(wanted()); else current = wanted(); });
   // onglet caché : la musique se met en pause, et reprend au retour
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { if (!audio.paused) { audio.pause(); audio._was = true; } }
-    else if (audio._was) { audio._was = false; if (!state.musicMuted) audio.play().catch(() => {}); }
+    const a = tracks[current];
+    if (document.hidden) { if (!a.paused) { a.pause(); a._was = true; } }
+    else if (a._was) { a._was = false; if (!state.musicMuted) a.play().catch(() => {}); }
   });
+  // free spins et jackpot de DaveMachine : la musique s'efface pour laisser la place à la leur
+  new MutationObserver(() => {
+    const d = document.body.classList.contains('fs-party') || document.body.classList.contains('jp-party') ? 0.3 : 1;
+    if (d !== duck) { duck = d; if (started) fadeTo(current, target(current), 1200); }
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
   /* ---------- Réglages ---------- */
   function setMusic(v) {
     state.musicVol = v; store.set('dp_music_vol', String(v));
     if (v > 0 && state.musicMuted) { state.musicMuted = false; store.set('dp_music_muted', '0'); }
-    if (!state.musicMuted && audio.paused) play(); else fadeTo(target(), 200);
+    if (!state.musicMuted && !started) play(); else refresh(200);
     emit('volume');
   }
   function toggleMusic() {
     state.musicMuted = !state.musicMuted;
     store.set('dp_music_muted', state.musicMuted ? '1' : '0');
-    if (state.musicMuted) fadeTo(0, 400); else { if (audio.paused) play(); else fadeTo(target(), 600); }
+    if (state.musicMuted) { fadeTo('calm', 0, 400); fadeTo('hype', 0, 400); }
+    else if (!started) play();
+    else switchTo(wanted(), 600);
     emit('volume');
   }
   function setSfx(v) {
@@ -120,5 +150,5 @@
     return btn;
   }
 
-  DP.music = { attach, audio };
+  DP.music = { attach, tracks, current: () => current };
 })();
