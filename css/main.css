@@ -1161,3 +1161,13 @@ body:has(.modal) { overflow: hidden; }
 /* fenêtre « Gérer » (admin) : plus large et plus compacte, pour tenir sans défiler */
 .modal__card.dmanage { width: min(620px, 100%); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); padding: 22px 22px 18px; }
 .modal__card.dmanage .dmanage__row { padding: 9px 0; }
+
+/* DaveMachine : schéma des 20 lignes dans les règles */
+.slines { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 8px 0 14px; }
+.sline { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 4px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
+.sline svg { width: 100%; max-width: 70px; height: auto; display: block; }
+.sline rect { fill: rgba(255, 255, 255, .07); }
+.sline rect.on { fill: var(--accent-soft); stroke: var(--accent); stroke-width: .6; }
+.sline polyline { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+.sline span { font-family: var(--display); font-size: 11px; color: var(--muted); }
+@media (max-width: 440px) { .slines { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

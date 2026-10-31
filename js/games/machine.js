@@ -40,6 +40,8 @@
       <li><strong>Jackpot global</strong> : il monte avec chaque mise du casino. Tu le remportes avec <strong>5 cartes Free JPZ</strong>, ou par un <strong>déclenchement mystère</strong> possible à chaque tour (plus ta mise est grosse, plus il a de chances de tomber). Très rare.</li>
       <li><strong>Tirage auto</strong> : choisis 10, 25, 50, 100 tours ou illimité, et arrête quand tu veux.</li>
     </ul>
+    <p class="muted">Les <strong>20 lignes</strong> : un gain compte quand 3, 4 ou 5 symboles identiques se suivent <strong>depuis le rouleau de gauche</strong> le long d’une de ces lignes (droites, en V ou en zigzag).</p>
+    <div class="slines">${S.LINES.map((ln, i) => `<div class="sline"><svg viewBox="0 0 50 30" aria-hidden="true">${[0, 1, 2].map((r) => [0, 1, 2, 3, 4].map((c) => `<rect x="${c * 10 + 1}" y="${r * 10 + 1}" width="8" height="8" class="${ln[c] === r ? 'on' : ''}"/>`).join('')).join('')}<polyline points="${ln.map((r, c) => `${c * 10 + 5},${r * 10 + 5}`).join(' ')}"/></svg><span>${i + 1}</span></div>`).join('')}</div>
     <p class="muted">Table des gains (× la mise totale) pour 3 / 4 / 5 symboles :</p>
     <div class="paytable">${Object.keys(S.SYMBOLS).filter((k) => k !== 'scat').map((k) => `<div>${miniSym(k)}<span>${S.SYMBOLS[k].pays.map((p) => '×' + round2(p / S.LINES.length)).join(' · ')}</span></div>`).join('')}
       <div>${miniSym('scat')}<span>${[3, 4, 5].map((n) => S.SCATTER[n].spins + ' FS').join(' · ')}</span></div></div>`;
@@ -209,7 +211,9 @@
         if (res.scatter.count >= 3) res.scatter.cells.forEach(([r, w]) => cellEl(r, w).classList.add('win'));
         // éclats de particules sur chaque symbole gagnant
         stage.querySelectorAll('.sym.win').forEach((n, i) => setTimeout(() => alive && ui.burst(n, { n: 8 }), i * 40));
-        setMsg(`Gain <b class="num">+${fmt(res.total)}</b>${res.lines.length ? ` sur ${res.lines.length} ligne${res.lines.length > 1 ? 's' : ''}` : ''}`);
+        // une seule ligne : on dit laquelle et avec quel symbole (sinon le tracé en V/zigzag paraît aléatoire)
+        if (res.lines.length === 1 && !(res.scatter.count >= 3)) setMsg(describe(res.lines[0]));
+        else setMsg(`Gain <b class="num">+${fmt(res.total)}</b>${res.lines.length ? ` sur ${res.lines.length} lignes` : ''}`);
         sound.play('win', { x: res.total / session.bet });
         await wait(quick ? 700 : 1100);
       }
