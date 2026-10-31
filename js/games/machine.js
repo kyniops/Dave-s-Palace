@@ -91,6 +91,7 @@
         </div>`;
 
       const slot = stage.querySelector('.slot5');
+      const stopBg = DP.slotBg(stage, slot);
       const reels = [...stage.querySelectorAll('.reel5')];
       const strips = reels.map((r) => r.firstElementChild);
       const lineEls = [...stage.querySelectorAll('.slot5__lines polyline')];
@@ -576,6 +577,7 @@
       return () => {
         alive = false;
         auto = false;
+        stopBg();
         offJp();
         cancelAnimationFrame(jpRaf);
         stopParty();
