@@ -300,11 +300,30 @@
       const gameEl = root.querySelector('.game');
       let box = null, mode = 'open', count = 1, opps = 1, rounds = 3, busy = false, alive = true;
       let pending = null; // { cost, payout } réglé si on quitte en pleine ouverture
+      // duels entre amis (en ligne) : adversaire = la bande ou un ami ; duelCtx = duel en cours de rediffusion
+      let vs = 'bots', friendId = null, duelCtx = null;
+      const canDuel = () => !!(DP.engine && DP.engine.on && DP.social && DP.social.available());
+      const friendList = () => (DP.social ? DP.social.friends().filter((f) => f.status === 'accepted') : []);
+      try { const t = sessionStorage.getItem('dp_duel_target'); if (t) { sessionStorage.removeItem('dp_duel_target'); mode = 'battle'; vs = 'friend'; friendId = t; } } catch { /* ignore */ }
+      if (opts.duel) mode = 'battle';
 
       ui.segmented(panel, { label: 'Mode', value: mode, options: [{ value: 'open', label: 'Ouvrir' }, { value: 'battle', label: 'Battle' }], onChange: (v) => { mode = v; paint(); } });
       const countWrap = ui.el('<div></div>'), battleWrap = ui.el('<div class="stack-sm"></div>');
       panel.append(countWrap, battleWrap);
       const countSeg = ui.segmented(countWrap, { label: 'Nombre de caisses', value: count, options: [1, 2, 3, 4].map((n) => ({ value: n, label: '×' + n })), onChange: (v) => { count = v; paint(); } });
+      const vsSeg = ui.segmented(battleWrap, { label: 'Contre', value: vs, options: [{ value: 'bots', label: 'La bande' }, { value: 'friend', label: 'Un ami' }], onChange: (v) => { vs = v; paint(); } });
+      const friendWrap = ui.el(`<div class="field"><div class="field__head"><label>Ami à défier</label></div><select class="js-friend"></select><p class="field__note js-fnote"></p></div>`);
+      battleWrap.appendChild(friendWrap);
+      const friendSel = friendWrap.querySelector('select');
+      friendSel.addEventListener('change', () => { friendId = friendSel.value; paint(); });
+      const paintFriends = () => {
+        const list = friendList();
+        if (!friendId && list[0]) friendId = list[0].other;
+        friendSel.innerHTML = list.map((f) => `<option value="${f.other}" ${f.other === friendId ? 'selected' : ''}>${esc(f.name)}</option>`).join('');
+        friendSel.hidden = !list.length;
+        friendWrap.querySelector('.js-fnote').innerHTML = list.length ? 'Ta mise est bloquée jusqu’à sa réponse (24 h max). Le gagnant remporte toutes les cartes.' : 'Ajoute des amis dans la page <a href="#/amis">Amis</a> pour les défier.';
+      };
+      const offFriends = DP.on('friends', () => { paintFriends(); paint(); });
       const oppSeg = ui.segmented(battleWrap, { label: 'Adversaires', value: opps, options: [1, 2, 3].map((n) => ({ value: n, label: String(n) })), onChange: (v) => { opps = v; paint(); } });
       const roundSeg = ui.segmented(battleWrap, { label: 'Manches', value: rounds, options: [1, 2, 3, 4, 5].map((n) => ({ value: n, label: String(n) })), onChange: (v) => { rounds = v; paint(); } });
       const costOut = ui.readout(panel, 'Coût', '');
@@ -367,6 +386,10 @@
       }
 
       function playerTag(i, total = 0) {
+        if (duelCtx) {
+          const n = i === 0 ? DP.auth.current() : duelCtx.name;
+          return `<div class="ptag${i === 0 ? ' me' : ''}">${DP.profile.avatarHtml(n)}<b>${i === 0 ? 'Toi' : esc(n)}</b><span class="ptag__total num">${fmt(total)}</span></div>`;
+        }
         const me = i === 0;
         const bot = BOTS[(i - 1 + BOTS.length) % BOTS.length];
         return `<div class="ptag${me ? ' me' : ''}">${me ? `<span class="avatar">${esc(DP.auth.current().charAt(0).toUpperCase())}</span><b>Toi</b>` : `<img src="${IMG}${ITEMS[bot].img}" alt=""><b>${ITEMS[bot].name}</b>`}<span class="ptag__total num">${fmt(total)}</span></div>`;
@@ -408,10 +431,19 @@
       function paint() {
         countWrap.hidden = mode !== 'open';
         battleWrap.hidden = mode !== 'battle';
+        const duelMode = mode === 'battle' && vs === 'friend' && canDuel();
+        vsSeg.el ? (vsSeg.el.hidden = !canDuel()) : null;
+        friendWrap.hidden = !duelMode;
+        oppSeg.el ? (oppSeg.el.hidden = duelMode) : null;
+        if (duelMode) paintFriends();
         [countSeg, oppSeg, roundSeg].forEach((s) => s.disable(busy));
         costOut.set(isFree() ? '<span class="pos">Offerte</span>' : `${ui.coin('coin--xs')} ${fmt(cost())}`);
         goBtn.innerHTML = mode === 'open' ? (isFree() ? `${ui.icon('gift', 'i--sm')}Ouvrir gratuitement · ${freeN()} offerte${freeN() > 1 ? 's' : ''}` : `Ouvrir ${count > 1 ? count + ' caisses' : 'la caisse'}`) : 'Lancer la battle';
-        goBtn.disabled = busy || !box;
+        goBtn.disabled = busy || !box || (duelMode && !friendId);
+        if (duelMode && !duelCtx) {
+          const f = friendList().find((x) => x.other === friendId);
+          goBtn.innerHTML = f ? `${ui.icon('swords', 'i--sm')}Défier ${esc(f.name)}` : 'Choisis un ami';
+        }
         const sub = stage.querySelector('.js-sub');
         if (sub && box) sub.innerHTML = mode === 'open' ? `${count} caisse${count > 1 ? 's' : ''} · ${fmt(cost())} DaveCoins` : `Battle · ${opps + 1} joueurs · ${rounds} manche${rounds > 1 ? 's' : ''}`;
         if (!busy) idleStrips();
@@ -496,11 +528,12 @@
         paint();
       }
 
-      async function battle() {
+      async function battle(preset) {
         if (busy) return;
-        const c = cost();
+        const c = preset ? preset.cost : cost();
         let srv = null;
-        if (online()) {
+        if (preset) { srv = preset; busy = true; paint(); }
+        else if (online()) {
           // en ligne : le serveur tire toutes les manches
           busy = true; paint();
           srv = await DP.engine.call('cases_battle', { p_case: box.id, p_opps: opps, p_rounds: rounds }, { defer: true });
@@ -551,7 +584,8 @@
         }
         pending = null;
         rows.forEach((row, p) => row.classList.toggle('winner', winners.includes(p)));
-        if (srv) DP.engine.reveal(srv.acct);
+        if (srv && srv.acct) DP.engine.reveal(srv.acct);
+        if (preset) DP.engine.refresh();
         if (soloWin) {
           inventory.add(potCards.map((x) => x.id));
           settle('cases', c, myPay, { silent: true, credit: false });
@@ -564,7 +598,7 @@
         } else {
           sound.play('lose');
           const w = winners[0];
-          ui.result(stage, { win: false, label: `${ITEMS[BOTS[(w - 1 + BOTS.length) % BOTS.length]].name} gagne` });
+          ui.result(stage, { win: false, label: `${duelCtx ? esc(duelCtx.name) : ITEMS[BOTS[(w - 1 + BOTS.length) % BOTS.length]].name} gagne` });
         }
         sub.innerHTML = `Pot total <b class="num">${fmt(pot)}</b>`;
         stage.querySelector('.js-crate')?.classList.remove('open');
@@ -574,15 +608,43 @@
         paint();
       }
 
-      goBtn.addEventListener('click', () => { if (!busy && box) (mode === 'open' ? openCases : battle)(); });
+      async function challenge() {
+        const f = friendList().find((x) => x.other === friendId);
+        if (!f || busy) return;
+        busy = true; paint();
+        const r = await DP.engine.call('duel_create', { p_friend: f.other, p_case: box.id, p_rounds: rounds });
+        busy = false; paint();
+        if (!r) return;
+        sound.play('chip');
+        ui.toast(`Défi envoyé à ${esc(f.name)} ! Tu seras prévenu dès qu’il répond.`, 'win', 4500);
+      }
+      goBtn.addEventListener('click', () => {
+        if (busy || !box) return;
+        if (mode === 'battle' && vs === 'friend' && canDuel()) return challenge();
+        (mode === 'open' ? openCases : battle)();
+      });
       const onResize = () => { if (!busy) idleStrips(); };
       window.addEventListener('resize', onResize);
       const start = CASES.find((c) => c.id === opts.caseId);
       if (start) showCase(start); else showList();
       paint();
+      if (opts.duel && start) {
+        const d = opts.duel, mine = d.challenger === (DP.cloud && DP.cloud.uid());
+        duelCtx = { name: opts.otherName || 'Ton ami' };
+        opps = 1; rounds = d.rounds;
+        paint();
+        const sub = stage.querySelector('.js-sub');
+        setTimeout(() => {
+          if (!alive) return;
+          if (sub) sub.innerHTML = `Duel contre <b>${esc(duelCtx.name)}</b> · ${d.rounds} manche${d.rounds > 1 ? 's' : ''}`;
+          DP.emit('bigwin', { game: 'duel', x: 10 }); // phonk pour le duel
+          battle({ draws: mine ? d.draws : d.draws.map((r) => [r[1], r[0]]), cost: +d.cost, acct: null });
+        }, 700);
+      }
 
       return () => {
         alive = false;
+        offFriends();
         window.removeEventListener('resize', onResize);
         if (pending) {
           if (pending.cards) { inventory.add(pending.cards); settle('cases', pending.cost, pending.payout, { silent: true, credit: false }); }

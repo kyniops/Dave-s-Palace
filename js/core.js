@@ -949,6 +949,7 @@
         onChange && onChange(current);
       });
       return {
+        el: node,
         get: () => current,
         disable(d) { btns.forEach((b) => (b.disabled = d)); }
       };

@@ -82,6 +82,31 @@
     async request(userId) { if (await act(sb().from('friendships').insert({ requester: S.uid, addressee: userId }))) { sound.play('chip'); ui.toast('Demande d’ami envoyée', 'win'); await loadFriends(); } },
     async accept(fid) { if (await act(sb().from('friendships').update({ status: 'accepted' }).eq('id', fid))) { sound.play('win'); await Promise.all([loadFriends(), loadNotifs()]); } },
     async remove(fid) { if (await act(sb().from('friendships').delete().eq('id', fid))) { sound.play('click'); await loadFriends(); } },
+    /** Un duel (avec le pseudo de l'adversaire), ou null. */
+    async duel(id) {
+      const { data } = await sb().from('duels').select('*').eq('id', id).maybeSingle();
+      if (!data || data.status !== 'done') return null;
+      const other = data.challenger === S.uid ? data.opponent : data.challenger;
+      await names([other]);
+      return { ...data, otherName: S.names[other] || 'Ton ami' };
+    },
+    async duels() {
+      const { data } = await sb().from('duels').select('*').order('created_at', { ascending: false }).limit(20);
+      await names((data || []).flatMap((d) => [d.challenger, d.opponent]));
+      return (data || []).map((d) => ({ ...d, mine: d.challenger === S.uid, other: S.names[d.challenger === S.uid ? d.opponent : d.challenger] || '?' }));
+    },
+    async duelAccept(id) {
+      const r = await DP.engine.call('duel_accept', { p_id: id });
+      if (!r) return false;
+      await loadNotifs();
+      location.hash = '#/duel/' + id;
+      return true;
+    },
+    async duelDecline(id) {
+      const r = await DP.engine.call('duel_decline', { p_id: id });
+      if (r) { sound.play('click'); DP.engine.refresh(); }
+      return !!r;
+    },
     async readAll() { if (!unread()) return; await sb().from('notifications').update({ read: true }).eq('user_id', S.uid).eq('read', false); S.notifs.forEach((n) => (n.read = true)); emit('notifs'); },
     async clear() { await sb().from('notifications').delete().eq('user_id', S.uid); S.notifs = []; emit('notifs'); }
   };
@@ -95,10 +120,13 @@
     if (n.kind === 'friend_accept') return `${who(n)} a accepté ta demande d’ami`;
     if (n.kind === 'friend_win') { const g = games.find(p.game); return p.game === 'jackpot' ? `Ton ami ${who(n)} a remporté le JACKPOT : ${fmt(p.amount)} !` : `Ton ami ${who(n)} gagne +${fmt(p.amount)} sur ${g ? g.name : esc(p.game)}`; }
     if (n.kind === 'admin') return 'Un admin a modifié ton compte';
+    if (n.kind === 'duel') return `${who(n)} te défie en battle de caisses : ${esc(DP.progress.caseName(p.case))}, ${p.rounds} manche${p.rounds > 1 ? 's' : ''}, mise <b class="num">${fmt(p.cost)}</b>`;
+    if (n.kind === 'duel_result') return `Duel contre ${who(n)} : ${p.result === 'win' ? '<b class="pos">gagné</b> !' : p.result === 'tie' ? 'égalité' : '<b class="neg">perdu</b>'}`;
+    if (n.kind === 'duel_declined') return `${who(n)} a refusé ton défi (mise rendue)`;
     if (n.kind === 'renamed') return `Un admin t’a renommé : <b>${esc((n.payload || {}).old || '')}</b> → <b>${esc((n.payload || {}).new || '')}</b>`;
     return esc(n.kind);
   }
-  const iconOf = (k) => ({ friend_request: 'user-plus', friend_accept: 'user-check', friend_win: 'trophy', admin: 'shield' }[k] || 'bell');
+  const iconOf = (k) => ({ friend_request: 'user-plus', friend_accept: 'user-check', friend_win: 'trophy', admin: 'shield', duel: 'swords', duel_result: 'swords', duel_declined: 'swords' }[k] || 'bell');
   const ago = (t) => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
 
   /* ---------- Cloche ---------- */
@@ -120,6 +148,8 @@
           return `<div class="nitem ${n.read ? '' : 'new'}"><span class="nitem__ico k-${n.kind}">${I(iconOf(n.kind), 'i--sm')}</span>
             <div class="nitem__body"><p>${textOf(n)}</p><small>${ago(n.created_at)}</small>
             ${f ? `<div class="nitem__act"><button type="button" class="btn btn--primary btn--sm js-nacc" data-f="${f.id}">Accepter</button><button type="button" class="btn btn--ghost btn--sm js-nref" data-f="${f.id}">Refuser</button></div>` : ''}
+            ${n.kind === 'duel' && !n.read ? `<div class="nitem__act"><button type="button" class="btn btn--primary btn--sm js-dacc" data-d="${n.payload.duel}">Accepter le duel</button><button type="button" class="btn btn--ghost btn--sm js-dref" data-d="${n.payload.duel}">Refuser</button></div>` : ''}
+            ${n.kind === 'duel_result' ? `<div class="nitem__act"><a class="btn btn--primary btn--sm" href="#/duel/${n.payload.duel}">Revoir le duel</a></div>` : ''}
             ${n.from_user && n.kind !== 'admin' ? `<a class="nitem__link" href="#/joueur/${encodeURIComponent(n.from_name || '')}">Voir le profil</a>` : ''}</div></div>`;
         }).join('') : `<div class="npop__empty">${I('bell', 'i--lg')}<span>Aucune notification</span></div>`}</div>
         <footer><a href="#/amis" class="linkbtn">${I('users', 'i--sm')}Mes amis</a></footer>`;
@@ -141,6 +171,9 @@
       pop.addEventListener('click', async (e) => {
         const a = e.target.closest('.js-nacc'), r2 = e.target.closest('.js-nref');
         if (a) { await social.accept(+a.dataset.f); return; }
+        const da = e.target.closest('.js-dacc'), dr = e.target.closest('.js-dref');
+        if (da) { da.disabled = true; const ok = await social.duelAccept(+da.dataset.d); if (ok) close(); return; }
+        if (dr) { dr.disabled = true; await social.duelDecline(+dr.dataset.d); await loadNotifs(); return; }
         if (r2) { await social.remove(+r2.dataset.f); paint(); return; }
         if (e.target.closest('.js-nclear')) { await social.clear(); return; }
         if (e.target.closest('a')) close();
@@ -195,7 +228,8 @@
         </section>
         ${incoming.length ? `<section class="fpanel" data-reveal><header><h2>Demandes reçues <span class="nav-tag">${incoming.length}</span></h2></header><div class="flist">${incoming.map((f) => row(f.other, f.name, `<button type="button" class="btn btn--primary btn--sm js-facc" data-f="${f.id}">Accepter</button><button type="button" class="btn btn--ghost btn--sm js-frem" data-f="${f.id}">Refuser · annuler</button>`)).join('')}</div></section>` : ''}
         <section class="fpanel" data-reveal><header><h2>Mes amis <small class="num">${friends.length}</small></h2></header>
-          <div class="flist">${friends.length ? friends.map((f) => row(f.other, f.name, `<a class="btn btn--ghost btn--sm" href="#/joueur/${encodeURIComponent(f.name)}">Profil</a>${friendBtnHtml(f.other)}`)).join('') : '<p class="muted">Pas encore d’amis. Recherche un pseudo pour envoyer une demande.</p>'}</div></section>
+          <div class="flist">${friends.length ? friends.map((f) => row(f.other, f.name, `${DP.engine && DP.engine.on ? `<button type="button" class="btn btn--primary btn--sm js-defy" data-u="${f.other}">${I('swords', 'i--sm')}Défier</button>` : ''}<a class="btn btn--ghost btn--sm" href="#/joueur/${encodeURIComponent(f.name)}">Profil</a>${friendBtnHtml(f.other)}`)).join('') : '<p class="muted">Pas encore d’amis. Recherche un pseudo pour envoyer une demande.</p>'}</div></section>
+        <section class="fpanel js-duels" data-reveal><header><h2>${I('swords', 'i--sm')}Duels de caisses</h2></header><p class="muted">Chargement…</p></section>
         ${outgoing.length ? `<section class="fpanel" data-reveal><header><h2>Demandes envoyées</h2></header><div class="flist">${outgoing.map((f) => row(f.other, f.name, friendBtnHtml(f.other))).join('')}</div></section>` : ''}`;
       const inp = body.querySelector('.js-fq');
       if (inp && document.activeElement !== inp && q) { inp.focus(); inp.setSelectionRange(q.length, q.length); }
@@ -208,11 +242,37 @@
       timer = setTimeout(async () => { results = await social.search(q); const box = body.querySelector('.js-fres'); if (box) box.innerHTML = q ? (results.length ? results.map((p) => row(p.id, p.username, friendBtnHtml(p.id))).join('') : '<p class="muted">Aucun joueur trouvé.</p>') : ''; }, 250);
     });
     bindFriendButtons(body, () => {});
-    const off1 = on('friends', () => { const f = document.activeElement; const keep = f && f.classList.contains('js-fq'); paint(); if (keep) { const i = body.querySelector('.js-fq'); i.focus(); i.setSelectionRange(q.length, q.length); } });
+    body.addEventListener('click', async (e) => {
+      const df = e.target.closest('.js-defy');
+      if (df) { try { sessionStorage.setItem('dp_duel_target', df.dataset.u); } catch { /* ignore */ } location.hash = '#/caisses'; return; }
+      const da = e.target.closest('.js-dacc'), dr = e.target.closest('.js-dref');
+      if (da) { da.disabled = true; await social.duelAccept(+da.dataset.d); return; }
+      if (dr) { if (!ui.confirmClick(dr, dr.dataset.mine ? 'Annuler le défi' : 'Refuser le défi')) return; dr.disabled = true; await social.duelDecline(+dr.dataset.d); paintDuels(); }
+    });
+    async function paintDuels() {
+      const box = body.querySelector('.js-duels');
+      if (!box || !online() || !S.available) return;
+      let list = [];
+      try { list = await social.duels(); } catch { list = null; }
+      if (!box.isConnected) return;
+      if (list === null) { box.innerHTML = '<header><h2>Duels de caisses</h2></header><p class="muted">Le script supabase/duels.sql n’a pas encore été exécuté.</p>'; return; }
+      const lbl = (d) => `${esc(DP.progress.caseName(d.case_id))} · ${d.rounds} manche${d.rounds > 1 ? 's' : ''} · mise <b class="num">${fmt(d.cost)}</b>`;
+      const res = (d) => d.status !== 'done' ? { pending: 'En attente', declined: 'Refusé', cancelled: 'Annulé', expired: 'Expiré' }[d.status]
+        : !d.winner ? 'Égalité' : (d.winner === S.uid ? '<b class="pos">Gagné</b>' : '<b class="neg">Perdu</b>');
+      box.innerHTML = `<header><h2>${I('swords', 'i--sm')}Duels de caisses</h2><span class="muted">Défie un ami avec le bouton « Défier »</span></header>
+        <div class="flist">${list.length ? list.map((d) => `<div class="frow"><div class="dduel"><b>${d.mine ? 'Toi → ' + esc(d.other) : esc(d.other) + ' → toi'}</b><small>${lbl(d)}</small></div>
+          <div class="frow__act"><span class="dduel__res">${res(d)}</span>
+          ${d.status === 'pending' && !d.mine ? `<button type="button" class="btn btn--primary btn--sm js-dacc" data-d="${d.id}">Accepter</button><button type="button" class="btn btn--ghost btn--sm js-dref" data-d="${d.id}">Refuser</button>` : ''}
+          ${d.status === 'pending' && d.mine ? `<button type="button" class="btn btn--ghost btn--sm js-dref" data-mine="1" data-d="${d.id}">Annuler</button>` : ''}
+          ${d.status === 'done' ? `<a class="btn btn--ghost btn--sm" href="#/duel/${d.id}">Revoir</a>` : ''}</div></div>`).join('') : '<p class="muted">Aucun duel pour l’instant.</p>'}</div>`;
+    }
+    const offNotifDuel = on('notifs', () => paintDuels());
+    const off1 = on('friends', () => { const f = document.activeElement; const keep = f && f.classList.contains('js-fq'); paint(); paintDuels(); if (keep) { const i = body.querySelector('.js-fq'); i.focus(); i.setSelectionRange(q.length, q.length); } });
     paint();
+    paintDuels();
     DP_MOTION.reveal(view, '[data-reveal]');
-    if (online()) start().then(paint);
-    return () => { clearTimeout(timer); off1(); };
+    if (online()) start().then(() => { paint(); paintDuels(); });
+    return () => { clearTimeout(timer); off1(); offNotifDuel(); };
   }
 
   Object.assign(social, { bell, render, friendBtnHtml, bindFriendButtons });
