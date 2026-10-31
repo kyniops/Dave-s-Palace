@@ -938,6 +938,8 @@
     M.reveal(view, '[data-reveal]');
     return () => { alive = false; clearInterval(t); };
   }
+  // la molette sur une case de nombre ne change plus sa valeur (ni ne fait bouger la page) : elle défile normalement
+  document.addEventListener('wheel', (e) => { const t = e.target; if (t && t.matches && t.matches('input[type=number]') && t === document.activeElement) t.blur(); }, { passive: true, capture: true });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal').forEach((m) => m.remove()); });
   // Grands écrans : le contenu des pages est agrandi pour remplir la place (conçu pour ~1400 px de large)
   function fitScreen() {

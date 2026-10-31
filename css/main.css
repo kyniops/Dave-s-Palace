@@ -1149,3 +1149,9 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 /* Grands écrans : le contenu des pages est agrandi (facteur --vz calculé dans app.js) */
 .is-wide #view { max-width: none; }
 .is-wide #view > * { zoom: var(--vz, 1); }
+
+/* Stabilité : la barre de défilement ne décale plus la page quand elle apparaît/disparaît,
+   et la page derrière une fenêtre (modale) ne défile plus */
+html { scrollbar-gutter: stable; }
+body:has(.modal) { overflow: hidden; }
+.modal, .modal__card { overscroll-behavior: contain; }
