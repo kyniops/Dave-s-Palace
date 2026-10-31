@@ -32,11 +32,20 @@
       const cashBtn = ui.button(panel, 'Encaisser', 'btn btn--cash btn--lg btn--block');
       cashBtn.disabled = true;
 
-      stage.innerHTML = `<div class="flip-scene"><div class="flip-coin">
-          <div class="flip-coin__face dave"><img src="${IMG}davecoin.png" alt="DaveCoin"></div>
-          <div class="flip-coin__face jpz"><img src="${IMG}jpz.png" alt="JPZ"></div>
-        </div></div><div class="flip-shadow"></div><div class="streak"></div>`;
+      // tranche de la pièce : fines couches empilées entre les deux faces
+      const EDGE = 14;
+      const edge = Array.from({ length: EDGE }, (_, i) => `<i class="fc-edge" style="transform:translateZ(calc(var(--t) * ${((i / (EDGE - 1) - 0.5) * 0.88).toFixed(3)}))"></i>`).join('');
+      stage.innerHTML = `<div class="flip-arena"><div class="flip-scene"><div class="flip-lift"><div class="flip-coin">
+          <div class="flip-coin__face dave"><span class="fc-dots"></span><img src="${IMG}davecoin.png" alt="DaveCoin"></div>
+          ${edge}
+          <div class="flip-coin__face jpz"><span class="fc-dots"></span><img src="${IMG}jpz.png" alt="JPZ"></div>
+        </div></div></div><div class="flip-pad"><div class="flip-shadow"></div></div></div>
+        <div class="streak"></div><p class="flip-next"></p>`;
       const coin = stage.querySelector('.flip-coin');
+      const lift = stage.querySelector('.flip-lift');
+      const shadow = stage.querySelector('.flip-shadow');
+      const nextEl = stage.querySelector('.flip-next');
+      coin.style.transform = 'rotateX(0deg)';
       const streakEl = stage.querySelector('.streak');
       const sideBtns = [...sidesEl.querySelectorAll('.side-btn')];
 
@@ -47,6 +56,7 @@
         sideBtns.forEach((b) => { b.classList.toggle('on', b.dataset.side === side); b.disabled = flipping; });
         const m = run ? Math.pow(STEP, run.wins) : 1;
         multOut.set(run && run.wins ? `${fmtMult(m)} → ${fmtMult(m * STEP)}` : fmtMult(STEP));
+        nextEl.innerHTML = run && run.wins ? `Série de ${run.wins} · prochain lancer <b>${fmtMult(m * STEP)}</b>` : `Choisis ton côté · gain <b>${fmtMult(STEP)}</b>`;
         betIn.disable(!!run || flipping);
         flipBtn.disabled = flipping;
         flipBtn.textContent = run && run.wins ? 'Relancer' : 'Lancer la pièce';
@@ -80,19 +90,35 @@
         const base = from - (from % 360) + 360 * 5;
         rot = base + (outcome === 'jpz' ? 180 : 0);
         sound.play('flip');
+        // la pièce tourne sur son axe horizontal pendant qu'elle monte puis retombe avec un petit rebond
+        const DUR = 1500;
         const a = coin.animate(
-          [{ transform: `rotateY(${from}deg) translateY(0)` }, { transform: `rotateY(${(from + rot) / 2}deg) translateY(-60px)`, offset: 0.5 }, { transform: `rotateY(${rot}deg) translateY(0)` }],
-          { duration: 1300, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }
+          [{ transform: `rotateX(${from}deg)` }, { transform: `rotateX(${rot}deg)` }],
+          { duration: DUR * 0.86, easing: 'cubic-bezier(.25,.6,.35,1)', fill: 'forwards' }
         );
-        await a.finished;
+        lift.animate([
+          { transform: 'translateY(0) scale(1)' },
+          { transform: 'translateY(-170px) scale(1.18)', offset: 0.42, easing: 'cubic-bezier(.4,0,.8,.6)' },
+          { transform: 'translateY(0) scale(1)', offset: 0.86 },
+          { transform: 'translateY(-18px) scale(1.02)', offset: 0.93 },
+          { transform: 'translateY(0) scale(1)' }
+        ], { duration: DUR, easing: 'cubic-bezier(.2,.7,.4,1)' });
+        shadow.animate([
+          { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+          { transform: 'translate(-50%,-50%) scale(.45)', opacity: 0.35, offset: 0.42 },
+          { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0.86 },
+          { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }
+        ], { duration: DUR });
+        setTimeout(() => alive && sound.play('chip'), DUR * 0.86);
+        await new Promise((r) => setTimeout(r, DUR));
         if (!alive) return;
-        coin.style.transform = `rotateY(${rot}deg)`;
+        coin.style.transform = `rotateX(${rot}deg)`;
         a.cancel();
         run.pending = null;
         flipping = false;
 
         const ok = outcome === side;
-        streakEl.insertAdjacentHTML('beforeend', `<span class="pill ${ok ? 'good' : 'bad'}">${SIDES[outcome].label}</span>`);
+        streakEl.insertAdjacentHTML('beforeend', `<span class="fmini ${ok ? 'good' : 'bad'}" title="${SIDES[outcome].label}"><img src="${IMG}${SIDES[outcome].src}" alt=""></span>`);
         if (ok) {
           run.wins++;
           sound.play('gem', { i: run.wins + 1 });

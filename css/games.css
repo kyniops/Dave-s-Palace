@@ -697,3 +697,64 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
   .upick__grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); max-height: 340px; }
 }
 .inv-links { display: inline-flex; gap: 20px; }
+
+/* =================== Table de jeu : grille à points (retour) =================== */
+.stage {
+  background-color: rgba(4, 5, 9, 0.82);
+  background-image:
+    radial-gradient(circle, rgba(255,107,44,.45) 1.6px, transparent 2.4px),
+    radial-gradient(circle, rgba(255,255,255,.17) 1.1px, transparent 1.7px),
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 120px 120px, 24px 24px, 120px 120px, 120px 120px;
+  background-position: center, center, center, center;
+  box-shadow: inset 0 0 140px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+/* =================== DaveDice : vrais dés pleins =================== */
+.dice-tray { position: relative; padding: 90px 30px 40px; overflow: visible; border: 1px solid var(--line-2);
+  background: radial-gradient(ellipse at 50% 70%, rgba(255,107,44,.08), transparent 60%), radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1.5px) center / 14px 14px, linear-gradient(180deg, #0b0d14, #06070b);
+  box-shadow: inset 0 18px 40px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,255,255,.05), 0 20px 40px -20px rgba(0,0,0,.9); perspective: none; }
+.dice-tray::before { content: ''; position: absolute; left: 6%; right: 6%; bottom: 26px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,107,44,.5), transparent); }
+.die3d { perspective: 700px; perspective-origin: 50% 20%; transform-style: preserve-3d; }
+.cube { transform-style: preserve-3d; }
+.cube__f { padding: 0; border-radius: 16%; overflow: hidden; backface-visibility: hidden;
+  background: radial-gradient(circle at 30% 25%, #ffffff, #e9e6de 55%, #cfcac0);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.18), inset 0 0 0 calc(var(--s) * .035) rgba(255,255,255,.55), inset 0 calc(var(--s) * -.06) calc(var(--s) * .1) rgba(0,0,0,.18); }
+.cube__f img { position: absolute; inset: 11%; width: 78%; height: 78%; object-fit: cover; object-position: top; border-radius: 12%; pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.25); }
+.cube__f::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(145deg, rgba(255,255,255,.45), transparent 38%, transparent 70%, rgba(0,0,0,.12)); }
+/* plans intérieurs : bouchent les coins arrondis, plus aucun trou ni image qui dépasse */
+.cube__core { position: absolute; inset: 2%; background: #d9d5cc; border-radius: 10%; }
+.cube__core.x { transform: rotateX(90deg); }
+.cube__core.y { transform: rotateY(90deg); }
+.die3d__shadow { bottom: -26px; height: 16px; background: rgba(0,0,0,.65); }
+.die3d.match .cube__f { box-shadow: inset 0 0 0 calc(var(--s) * .05) var(--accent), inset 0 calc(var(--s) * -.06) calc(var(--s) * .1) rgba(0,0,0,.18); }
+.die3d.match .die3d__shadow { background: rgba(255,107,44,.45); }
+
+/* =================== DaveFlip : pièce 3D avec tranche =================== */
+.flip-arena { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 40px; }
+.flip-scene { --t: clamp(12px, 3vw, 18px); perspective: 900px; width: min(220px, 56vw); aspect-ratio: 1; }
+.flip-lift { width: 100%; height: 100%; transform-style: preserve-3d; }
+.flip-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+.flip-coin__face { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; backface-visibility: hidden; overflow: hidden;
+  background: conic-gradient(from 20deg, #fff3c4, #c48a2c, #7a4d12, #e9b955, #fff7d6, #a9721f, #6b420e, #d9a441, #fff3c4);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.5), inset 0 0 18px rgba(0,0,0,.35); }
+.flip-coin__face.dave { transform: translateZ(calc(var(--t) / 2)); }
+.flip-coin__face.jpz { transform: rotateX(180deg) translateZ(calc(var(--t) / 2)); }
+.flip-coin__face::before { content: ''; position: absolute; inset: 8%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #2a2f40, #07080d 75%); box-shadow: inset 0 0 0 2px rgba(122,77,18,.9), 0 0 0 3px rgba(255,236,170,.6), inset 0 6px 16px rgba(0,0,0,.6); }
+.flip-coin__face::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,.35), transparent 40%, transparent 65%, rgba(0,0,0,.25)); }
+.flip-coin__face .fc-dots { position: absolute; inset: 3%; border-radius: 50%; background: repeating-conic-gradient(rgba(90,55,10,.55) 0 2deg, transparent 2deg 10deg); -webkit-mask: radial-gradient(circle, transparent 66%, #000 67%, #000 70%, transparent 71%); mask: radial-gradient(circle, transparent 66%, #000 67%, #000 70%, transparent 71%); }
+.flip-coin__face img { position: relative; z-index: 1; width: 74%; height: 74%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+.flip-coin__face.jpz img { width: 72%; height: 72%; object-fit: cover; object-position: top; border-radius: 50%; }
+.fc-edge { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(90deg, #6b420e, #e9b955 30%, #fff3c4 50%, #c48a2c 70%, #6b420e); }
+.flip-pad { position: relative; width: min(300px, 70vw); height: 46px; margin-top: 18px; }
+.flip-pad::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(255,107,44,.45); background: radial-gradient(ellipse, rgba(255,107,44,.12), transparent 70%); box-shadow: 0 0 30px -6px rgba(255,107,44,.5); }
+.flip-shadow { position: absolute; left: 50%; top: 50%; width: 52%; height: 18px; margin: 0; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(0,0,0,.7); filter: blur(7px); }
+.streak { gap: 8px; margin-top: 30px; }
+.fmini { width: 34px; height: 34px; border-radius: 50%; padding: 3px; background: conic-gradient(#fff3c4, #c48a2c, #7a4d12, #e9b955, #fff3c4); animation: lvl-pop .5s cubic-bezier(.2,1.8,.4,1) both; }
+.fmini img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: top; background: #07080d; }
+.fmini.bad { filter: grayscale(.9) brightness(.55); box-shadow: 0 0 0 2px var(--lose); }
+.fmini.good { box-shadow: 0 0 0 2px var(--win); }
+.flip-next { margin-top: 14px; font-family: var(--display); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.flip-next b { color: var(--accent); }

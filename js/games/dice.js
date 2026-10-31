@@ -17,7 +17,7 @@
   const POSE = [[0, 0], [0, -90], [0, 180], [0, 90], [-90, 0], [90, 0]];
   const FACE_POS = ['front', 'right', 'back', 'left', 'top', 'bottom'];
 
-  const cubeHtml = () => `<div class="die3d"><div class="cube">${FACES.map((f, i) => `<div class="cube__f f-${FACE_POS[i]}"><img src="${IMG}${f.src}" alt="${f.name}" draggable="false"></div>`).join('')}</div><div class="die3d__shadow"></div></div>`;
+  const cubeHtml = () => `<div class="die3d"><div class="cube"><i class="cube__core"></i><i class="cube__core x"></i><i class="cube__core y"></i>${FACES.map((f, i) => `<div class="cube__f f-${FACE_POS[i]}"><img src="${IMG}${f.src}" alt="${f.name}" draggable="false"></div>`).join('')}</div><div class="die3d__shadow"></div></div>`;
 
   DP.games.register({
     id: 'dice',
@@ -160,7 +160,7 @@
         ], { duration: dur, easing: 'cubic-bezier(.2,.6,.3,1)', fill: 'forwards' });
         dice[i].animate([
           { transform: 'translateY(0) scale(1)' },
-          { transform: 'translateY(-90px) scale(1.12)', offset: 0.35 },
+          { transform: 'translateY(-70px) scale(1.08)', offset: 0.35 },
           { transform: 'translateY(0) scale(1)', offset: 0.7 },
           { transform: 'translateY(-14px) scale(1.02)', offset: 0.85 },
           { transform: 'translateY(0) scale(1)' }
