@@ -35,6 +35,8 @@
 
   /* ---------- Envoi régulier de la sauvegarde ---------- */
   let lastSent = '', pushing = false, pushTimer = 0;
+  // numéro de modification admin connu (null = colonne absente ou pas encore de sauvegarde)
+  let knownRev = null, hasRev = true;
   async function push(force = false) {
     const u = auth.current();
     if (!uid || !u || pushing) return;
@@ -45,21 +47,68 @@
     let level = 1;
     try { level = DP.progress ? DP.progress.levelInfo(JSON.parse(data['dp_prog_'] || '{}').xp || 0).level : 1; } catch { /* ignore */ }
     const row = { user_id: uid, data, balance: wallet.get(), level, wagered: s.wagered || 0, biggest_win: s.biggestWin || 0, updated_at: new Date().toISOString() };
-    const { error } = await sb.from('saves').upsert(row);
+    let error;
+    if (hasRev && knownRev != null) {
+      // n'écrase pas une modification faite par un admin entre-temps
+      const r = await sb.from('saves').update(row).eq('user_id', uid).eq('admin_rev', knownRev).select('user_id');
+      error = r.error;
+      if (!error && (!r.data || !r.data.length)) { pushing = false; adminReload(); return; }
+    } else {
+      ({ error } = await sb.from('saves').upsert(row));
+      if (!error && hasRev && knownRev == null) knownRev = 0;
+    }
     pushing = false;
     if (!error) { lastSent = json; store.set(syncKey(u), String(Date.now())); }
   }
+  let revChannel = null, revTimer = 0;
   function startSync() {
     clearInterval(pushTimer);
     pushTimer = setInterval(() => push(), 4000);
+    // un admin modifie le compte : on recharge la partie (temps réel + vérification régulière)
+    if (revChannel) sb.removeChannel(revChannel);
+    revChannel = sb.channel('rev-' + uid)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'saves', filter: `user_id=eq.${uid}` }, (p) => {
+        if (hasRev && knownRev != null && p.new && p.new.admin_rev > knownRev) adminReload();
+      })
+      .subscribe();
+    clearInterval(revTimer);
+    revTimer = setInterval(async () => {
+      if (!uid || !hasRev || knownRev == null) return;
+      const { data } = await sb.from('saves').select('admin_rev').eq('user_id', uid).maybeSingle();
+      if (data && data.admin_rev > knownRev) adminReload();
+    }, 20000);
   }
+  let reloading = false;
+  async function adminReload() {
+    const u = auth.current();
+    if (!uid || !u || reloading) return;
+    reloading = true;
+    const { data: row } = await sb.from('saves').select('data, updated_at, admin_rev').eq('user_id', uid).maybeSingle();
+    reloading = false;
+    if (!row) return;
+    hydrate(u, row.data);
+    knownRev = row.admin_rev;
+    store.set('dp_rev_' + u, String(knownRev));
+    lastSent = JSON.stringify(snapshot(u));
+    store.set(syncKey(u), String(new Date(row.updated_at).getTime()));
+    ui.toast('Un admin a modifié ton compte', 'win', 4000);
+    emit('cloudload');
+  }
+  cloud.pushNow = () => push(true);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') push(); });
   window.addEventListener('pagehide', () => push());
 
   /** Récupère la sauvegarde du serveur ; si elle est plus récente que le cache local, elle le remplace. */
   async function pull(u, { importLocal = false } = {}) {
-    const { data: row } = await sb.from('saves').select('data, updated_at').eq('user_id', uid).maybeSingle();
+    let { data: row, error } = await sb.from('saves').select('data, updated_at, admin_rev').eq('user_id', uid).maybeSingle();
+    if (error) { hasRev = false; ({ data: row } = await sb.from('saves').select('data, updated_at').eq('user_id', uid).maybeSingle()); }
     if (row) {
+      if (hasRev) {
+        // modification admin jamais vue sur cet appareil : elle passe avant le cache local
+        const seen = parseInt(store.get('dp_rev_' + u, '0'), 10) || 0;
+        knownRev = row.admin_rev || 0;
+        if (knownRev > seen) { hydrate(u, row.data); store.set(syncKey(u), String(new Date(row.updated_at).getTime())); store.set('dp_rev_' + u, String(knownRev)); lastSent = JSON.stringify(snapshot(u)); return 'cloud'; }
+      }
       const cloudTs = new Date(row.updated_at).getTime();
       const localTs = parseInt(store.get(syncKey(u), '0'), 10) || 0;
       if (cloudTs > localTs || !hasLocal(u)) { hydrate(u, row.data); store.set(syncKey(u), String(cloudTs)); }
@@ -260,4 +309,10 @@
     return (profs || []).map((p) => ({ id: p.id, name: p.username, ...(byId[p.id] || { balance: 0, level: 1, wagered: 0, biggest_win: 0 }) }));
   };
   cloud.uid = () => uid;
+  /* Actions d'administration (refusées par le serveur si le compte n'est pas admin) */
+  cloud.admin = {
+    setSave: async (userId, data, balance, level) => { const { error } = await sb.rpc('admin_set_save', { p_user: userId, p_data: data, p_balance: balance, p_level: level }); if (error) throw error; },
+    setJackpot: async (amount) => { const { error } = await sb.rpc('admin_set_jackpot', { p_amount: amount }); if (error) throw error; await refreshJackpot(); },
+    clearFeed: async () => { const { error } = await sb.rpc('admin_clear_feed'); if (error) throw error; feedRows.length = 0; emit('livefeed'); }
+  };
 })();

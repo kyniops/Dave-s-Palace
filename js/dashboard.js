@@ -323,19 +323,23 @@
     return () => {};
   }
 
+  const SAVE_KEYS = ['davecoin_', 'dp_stats_', 'dp_inv_', 'dp_prog_', 'dp_profile_', 'dp_codes_', 'dp_bonus_', 'dp_rescue_'];
+
   /** Lit toutes les données de chaque compte (du serveur en ligne, sinon du navigateur). */
   function collect(players) {
     const parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
+    const local = (n) => Object.fromEntries(SAVE_KEYS.map((k) => [k, store.get(k + n)]).filter(([, v]) => v !== null));
+    // son propre compte : le cache local est la version la plus récente
     const src = players
-      ? players.map((p) => ({ n: p.name, get: (k) => (p.data || {})[k] ?? null }))
-      : auth.users().map((u) => ({ n: u.prenom, get: (k) => store.get(k + u.prenom) }));
-    return src.map(({ n, get }) => {
+      ? players.map((p) => { const raw = p.name === auth.current() ? local(p.name) : (p.data || {}); return { n: p.name, id: p.id, raw, get: (k) => raw[k] ?? null }; })
+      : auth.users().map((u) => { const raw = local(u.prenom); return { n: u.prenom, raw, get: (k) => raw[k] ?? null }; });
+    return src.map(({ n, id, raw, get }) => {
       const s = Object.assign({ played: 0, wagered: 0, won: 0, wins: 0, biggestWin: 0, biggestMult: 0, perGame: {}, games: {}, days: {}, curve: [], income: {}, history: [] }, parse(get('dp_stats_'), {}));
       const invRaw = Object.assign({ cards: {} }, parse(get('dp_inv_'), {})).cards;
       const inv = Object.entries(invRaw).filter(([id]) => cards.byId[id]);
       const bal = parseFloat(get('davecoin_'));
       return {
-        name: n, s,
+        name: n, id, raw, s,
         balance: isNaN(bal) ? 0 : round2(bal),
         net: round2(s.won - s.wagered),
         copies: inv.reduce((a, [, c]) => a + c, 0),
@@ -344,6 +348,92 @@
         codes: parse(get('dp_codes_'), []),
         last: s.history[0] ? s.history[0].t : s.curve.length ? s.curve[s.curve.length - 1].t : null
       };
+    });
+  }
+
+  const adminErr = (e) => (/refus|denied|permission/i.test((e && e.message) || '') ? 'Accès refusé par le serveur : ce compte n’est pas admin.' : /function|does not exist|schema cache/i.test((e && e.message) || '') ? 'Le script supabase/admin.sql n’a pas encore été exécuté dans Supabase.' : 'Erreur : ' + ((e && e.message) || e));
+
+  /** Applique une modification à la sauvegarde d'un joueur (en ligne via le serveur, sinon dans ce navigateur). */
+  async function applyTo(u, mutate) {
+    const parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
+    const o = {
+      bal: parseFloat(u.raw.davecoin_), reset: false,
+      prog: Object.assign({ xp: 0, ach: {}, free: {} }, parse(u.raw.dp_prog_, {})),
+      inv: Object.assign({ cards: {}, shiny: {}, claimed: {} }, parse(u.raw.dp_inv_, {}))
+    };
+    if (isNaN(o.bal)) o.bal = 1000;
+    o.prog.free = o.prog.free || {};
+    mutate(o);
+    let data = { ...u.raw, davecoin_: String(round2(Math.max(0, o.bal))), dp_prog_: JSON.stringify(o.prog), dp_inv_: JSON.stringify(o.inv) };
+    if (o.reset) data = { davecoin_: '1000' };
+    const level = DP.progress.levelInfo((parse(data.dp_prog_, {}).xp) || 0).level;
+    const online = DP.cloud && DP.cloud.online;
+    if (u.name === auth.current() || !online) {
+      SAVE_KEYS.forEach((k) => store.remove(k + u.name));
+      Object.entries(data).forEach(([k, v]) => store.set(k + u.name, v));
+      if (u.name === auth.current()) { DP.emit('balance', wallet.get()); DP.emit('inventory'); DP.emit('progress'); if (online) await DP.cloud.pushNow(); }
+    } else {
+      await DP.cloud.admin.setSave(u.id, data, round2(Math.max(0, +data.davecoin_ || 0)), level);
+    }
+    u.raw = data;
+  }
+
+  function manage(u, done) {
+    const parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
+    const lvl = DP.progress.levelInfo((parse(u.raw.dp_prog_, {}).xp) || 0).level;
+    const cardOpts = (DP.cases ? DP.cases.list : []).map((c) => `<optgroup label="${esc(c.name)}">${Object.values(cards.byId).filter((x) => x.set === c.id).sort((a, b) => a.value - b.value).map((x) => `<option value="${x.id}">${esc(x.name)} · ${x.rarity.label} · ${fmt(x.value)}</option>`).join('')}</optgroup>`).join('');
+    const caseOpts = (DP.cases ? DP.cases.list : []).map((c) => `<option value="${c.id}">${esc(c.name)} (${fmt(c.price)})</option>`).join('');
+    const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true"><div class="modal__card dmanage">
+      <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
+      <h3>${I('shield')}Gérer ${esc(u.name)}</h3>
+      <p class="muted">Solde actuel <b class="num">${fmt(u.balance)}</b> · niveau <b class="num">${lvl}</b> · ${u.unique} cartes différentes</p>
+      <form class="dmanage__row" data-a="coins"><label>DaveCoins</label><input name="v" type="number" step="1" min="0" placeholder="Montant" required>
+        <button class="btn btn--primary btn--sm" name="op" value="add" type="submit">Ajouter</button><button class="btn btn--ghost btn--sm" name="op" value="sub" type="submit">Retirer</button><button class="btn btn--ghost btn--sm" name="op" value="set" type="submit">Fixer à</button></form>
+      <form class="dmanage__row" data-a="level"><label>Niveau</label><input name="v" type="number" min="1" max="${DP.progress.MAX_LEVEL}" step="1" value="${lvl}" required>
+        <button class="btn btn--primary btn--sm" type="submit">Appliquer</button></form>
+      <form class="dmanage__row" data-a="case"><label>Caisse offerte</label><select name="id">${caseOpts}</select><input name="n" type="number" min="1" max="50" value="1">
+        <button class="btn btn--primary btn--sm" type="submit">Offrir</button></form>
+      <form class="dmanage__row" data-a="card"><label>Carte</label><select name="id">${cardOpts}</select><input name="n" type="number" min="1" max="50" value="1">
+        <label class="dmanage__chk"><input name="shiny" type="checkbox">Brillante</label>
+        <button class="btn btn--primary btn--sm" name="op" value="give" type="submit">Donner</button><button class="btn btn--ghost btn--sm" name="op" value="take" type="submit">Retirer</button></form>
+      <div class="dmanage__danger"><button class="btn btn--ghost btn--sm js-reset" type="button">${I('trash-2', 'i--sm')}Réinitialiser le compte</button><span class="muted">Remet à zéro : 1 000 DaveCoins, aucune carte, niveau 1.</span></div>
+      <p class="dmanage__msg" role="status"></p>
+    </div></div>`);
+    document.body.appendChild(modal);
+    const msg = modal.querySelector('.dmanage__msg');
+    const close = () => { modal.remove(); done(); };
+    modal.addEventListener('click', (e) => { if (e.target === modal || e.target.closest('.modal__close')) close(); });
+    const run = async (mutate, text) => {
+      modal.querySelectorAll('button').forEach((b) => (b.disabled = true));
+      try { await applyTo(u, mutate); msg.className = 'dmanage__msg pos'; msg.textContent = text; DP.sound.play('win'); ui.toast(`${u.name} : ${text}`, 'win'); setTimeout(close, 700); }
+      catch (err) { msg.className = 'dmanage__msg neg'; msg.textContent = adminErr(err); DP.sound.play('error'); modal.querySelectorAll('button').forEach((b) => (b.disabled = false)); }
+    };
+    modal.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = e.target, a = f.dataset.a, op = e.submitter ? e.submitter.value : '';
+      if (a === 'coins') {
+        const v = round2(Math.abs(parseFloat(f.v.value)));
+        if (!(v >= 0)) return;
+        run((o) => { o.bal = op === 'set' ? v : op === 'sub' ? o.bal - v : o.bal + v; }, op === 'set' ? `solde fixé à ${fmt(v)}` : `${op === 'sub' ? '-' : '+'}${fmt(v)} DaveCoins`);
+      } else if (a === 'level') {
+        const L = Math.max(1, Math.min(DP.progress.MAX_LEVEL, Math.round(+f.v.value)));
+        run((o) => { o.prog.xp = DP.progress.xpFor(L); o.prog.level = L; o.prog.top = Math.max(o.prog.top || 1, L); }, `niveau ${L}`);
+      } else if (a === 'case') {
+        const n = Math.max(1, Math.round(+f.n.value));
+        run((o) => { o.prog.free[f.id.value] = (o.prog.free[f.id.value] || 0) + n; }, `${n} × ${DP.progress.caseName(f.id.value)} offerte${n > 1 ? 's' : ''}`);
+      } else if (a === 'card') {
+        const n = Math.max(1, Math.round(+f.n.value)), id = f.id.value, sh = f.shiny.checked, card = cards.byId[id];
+        run((o) => {
+          const bag = sh ? o.inv.shiny : o.inv.cards;
+          bag[id] = Math.max(0, (bag[id] || 0) + (op === 'take' ? -n : n));
+          if (!bag[id]) delete bag[id];
+        }, `${op === 'take' ? '-' : '+'}${n} ${card.name}${sh ? ' brillante' : ''}`);
+      }
+    });
+    let confirmReset = false;
+    modal.querySelector('.js-reset').addEventListener('click', (e) => {
+      if (!confirmReset) { confirmReset = true; e.currentTarget.innerHTML = `${I('trash-2', 'i--sm')}Confirmer la réinitialisation`; e.currentTarget.classList.add('btn--danger'); return; }
+      run((o) => { o.reset = true; }, 'compte réinitialisé');
     });
   }
 
@@ -420,6 +510,7 @@
           <header><h2>Codes promo</h2><span>${Object.keys(PROMO_CODES).length} codes actifs</span></header>
           <ul class="dlist">${codeUse.map((x) => `<li><span>${I('ticket', 'i--sm')}${x.c.toUpperCase()}<small class="muted"> · ${fmt(PROMO_CODES[x.c])} chacun</small></span><b class="num">${x.n} / ${users.length} · ${fmt(x.n * PROMO_CODES[x.c])}</b></li>`).join('')}</ul>
           <h3 class="dsub">Jackpot</h3>
+          <form class="dadmin-row js-jpset"><input name="amount" type="number" min="0" step="1" placeholder="Nouveau montant"><button class="btn btn--ghost btn--sm" type="submit">Fixer le jackpot</button><button class="btn btn--ghost btn--sm js-clearfeed" type="button">Vider le fil des gains</button></form>
           <ul class="dlist">
             <li><span>Cagnotte actuelle</span><b class="num js-jp">${fmt(jackpot.get())}</b></li>
             <li><span>Valeur de départ</span><b class="num">${fmt(jackpot.SEED)}</b></li>
@@ -434,13 +525,13 @@
     const paintUsers = () => {
       if (!users.length) { usersBox.innerHTML = `<div class="empty">${I('users', 'i--lg')}<strong>Aucun compte</strong></div>`; return; }
       const list = users.slice().sort((a, b) => { const x = valOf(a, sortKey), y = valOf(b, sortKey); return (typeof x === 'string' ? x.localeCompare(y) : x - y) * sortDir; });
-      usersBox.innerHTML = `<table class="history dtable dusers"><thead><tr>${COLS.map(([k, l]) => `<th class="${k === 'name' ? '' : 'num'} sortable ${k === sortKey ? 'on' : ''}" data-k="${k}">${l}${k === sortKey ? (sortDir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}<th class="num">Créditer</th></tr></thead>
+      usersBox.innerHTML = `<table class="history dtable dusers"><thead><tr>${COLS.map(([k, l]) => `<th class="${k === 'name' ? '' : 'num'} sortable ${k === sortKey ? 'on' : ''}" data-k="${k}">${l}${k === sortKey ? (sortDir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}<th class="num">Actions</th></tr></thead>
         <tbody>${list.map((u) => `<tr data-u="${esc(u.name)}">
           <td>${DP.profile.link(u.name, `<span class="g">${DP.profile.avatarHtml(u.name)}${esc(u.name)}${u.name === auth.current() ? ' <small class="muted">(toi)</small>' : ''}</span>`)}</td>
           <td class="num js-ubal">${fmt(u.balance)}</td><td class="num">${fmt(u.s.played)}</td><td class="num">${fmt(u.s.wagered)}</td>
           <td class="num ${tone(u.net)}">${signed(u.net)}</td><td class="num">${pct(u.s.won, u.s.wagered)}</td>
           <td class="num">${u.unique} <small class="muted">(${u.copies})</small></td><td class="num">${fmt(u.invValue)}</td><td class="num muted">${ago(u.last)}</td>
-          <td class="num"><form class="dgive"><input type="number" step="1" placeholder="±" aria-label="Montant à créditer à ${esc(u.name)}"><button class="btn btn--ghost" type="submit">OK</button></form></td>
+          <td class="num"><button class="btn btn--ghost btn--sm js-manage" type="button">${I('shield', 'i--sm')}Gérer</button></td>
         </tr>`).join('')}</tbody></table>`;
     };
     paintUsers();
@@ -452,19 +543,26 @@
       DP.sound.play('click');
       paintUsers();
     });
-    // créditer / débiter un joueur
-    usersBox.addEventListener('submit', (e) => {
+    // gérer un joueur : solde, niveau, caisses offertes, cartes, réinitialisation
+    usersBox.addEventListener('click', (e) => {
+      const b = e.target.closest('.js-manage');
+      if (!b) return;
+      const u = users.find((x) => x.name === b.closest('tr').dataset.u);
+      if (u) manage(u, () => admin(view, { ...ctx, players: undefined }));
+    });
+    view.querySelector('.js-jpset').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const tr = e.target.closest('tr'), u = users.find((x) => x.name === tr.dataset.u);
-      const amount = round2(parseFloat(e.target.querySelector('input').value));
-      if (!u || !amount) return;
-      if (online && u.name !== auth.current()) { ui.toast('En ligne, seul le joueur lui-même peut modifier son solde.', 'error'); return; }
-      u.balance = Math.max(0, round2(u.balance + amount));
-      if (u.name === auth.current()) wallet.set(u.balance);
-      else store.set('davecoin_' + u.name, String(u.balance));
-      DP.sound.play(amount > 0 ? 'win' : 'click');
-      ui.toast(`${esc(u.name)} : ${signed(amount)} DaveCoins`, amount > 0 ? 'win' : '');
-      paintUsers();
+      const v = round2(parseFloat(e.target.amount.value));
+      if (!(v >= 0)) return;
+      try {
+        if (online) await DP.cloud.admin.setJackpot(v);
+        else { store.set('dp_jackpot', String(v)); DP.emit('jackpot', v); }
+        ui.toast(`Jackpot fixé à ${fmt(v)}`, 'win'); DP.sound.play('win');
+      } catch (err) { ui.toast(adminErr(err), 'error'); }
+    });
+    view.querySelector('.js-clearfeed').addEventListener('click', async () => {
+      if (!online) return ui.toast('Le fil des gains n’existe qu’en ligne.', 'error');
+      try { await DP.cloud.admin.clearFeed(); ui.toast('Fil des gains vidé', 'win'); } catch (err) { ui.toast(adminErr(err), 'error'); }
     });
     view.querySelector('.js-lock').addEventListener('click', () => { try { sessionStorage.removeItem('dp_admin'); } catch { /* ignore */ } ctx.rerender(); });
 

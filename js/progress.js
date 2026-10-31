@@ -444,5 +444,8 @@
     return ACHS.map((a) => ({ id: a.id, name: a.name, desc: a.desc, icon: a.icon, tier: a.tier, cat: a.cat, got: p.ach[a.id] || 0 }));
   }
 
-  DP.progress = { RANKS, MAX_LEVEL, levelInfo, rankOf, badge, render, summary, freeCases, caseName, achievements };
+  /** XP totale pour atteindre le niveau L (début du niveau). */
+  const xpFor = (L) => { let x = 0; for (let i = 1; i < Math.min(L, MAX_LEVEL); i++) x += need(i); return x; };
+
+  DP.progress = { RANKS, MAX_LEVEL, levelInfo, rankOf, badge, render, summary, freeCases, caseName, achievements, xpFor };
 })();

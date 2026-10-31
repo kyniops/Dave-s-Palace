@@ -1003,3 +1003,19 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .plink:hover .avatar { box-shadow: inset 0 0 0 1px var(--accent); }
 .lb-pod .plink { flex-direction: column; }
 .ticker__item .plink { gap: 6px; }
+
+/* ---------- Admin : gestion d'un joueur ---------- */
+.dmanage { max-width: 640px; }
+.dmanage__row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+.dmanage__row > label:first-child { flex: 0 0 120px; font-family: var(--display); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.dmanage__row input[type=number], .dmanage__row select, .dadmin-row input { height: 34px; padding: 0 10px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--text); font: inherit; font-size: 13px; }
+.dmanage__row input[type=number] { width: 110px; }
+.dmanage__row select { flex: 1; min-width: 180px; }
+.dmanage__row input:focus, .dmanage__row select:focus, .dadmin-row input:focus { outline: none; border-color: var(--accent); }
+.dmanage__chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.dmanage__danger { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; }
+.btn--danger { border-color: var(--lose) !important; color: var(--lose) !important; }
+.dmanage__msg { min-height: 1.2em; margin: 10px 0 0; font-size: 13px; }
+.dadmin-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.dadmin-row input { width: 150px; }
+@media (max-width: 600px) { .dmanage__row > label:first-child { flex-basis: 100%; } }
