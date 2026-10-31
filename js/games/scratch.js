@@ -61,7 +61,6 @@
       const priceOut = ui.readout(panel, 'Prix du ticket', '');
       const maxOut = ui.readout(panel, 'Gain max', '');
       const buyBtn = ui.button(panel, 'Acheter un ticket');
-      const allBtn = ui.button(panel, ui.icon('sparkles', 'i--sm') + 'Tout gratter', 'btn btn--ghost btn--block');
       const lastOut = ui.readout(panel, 'Dernier gain', '—');
 
       stage.innerHTML = `<div class="tk-wrap"><div class="tk">
@@ -126,7 +125,6 @@
         const playing = !!(cur && !cur.done);
         buyBtn.disabled = busy || playing;
         buyBtn.textContent = cur && cur.done ? 'Acheter un autre ticket' : 'Acheter un ticket';
-        allBtn.disabled = !playing || busy;
         tierSeg.disable(busy || playing);
       }
 
@@ -215,16 +213,6 @@
         }
         paint();
       }
-      async function scratchAll() {
-        if (!cur || cur.done || busy) return;
-        busy = true; paint();
-        const order = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter((i) => !cur.open.has(i));
-        for (const i of order) { if (!alive || !cur) return; reveal(i); await sleep(110); }
-        busy = false;
-        check();
-        paint();
-      }
-
       cv.addEventListener('pointerdown', (e) => {
         if (!cur || cur.done || busy) return;
         drawing = true; last = pos(e);
@@ -244,11 +232,10 @@
       cv.addEventListener('pointercancel', up);
 
       buyBtn.addEventListener('click', buy);
-      allBtn.addEventListener('click', scratchAll);
       const onKey = (e) => {
         if (e.code !== 'Space' || /input|select|textarea/i.test(document.activeElement.tagName)) return;
         e.preventDefault();
-        if (cur && !cur.done) scratchAll(); else buy();
+        if (!cur || cur.done) buy(); // espace = acheter un ticket (il faut gratter soi-même)
       };
       window.addEventListener('keydown', onKey);
       const onResize = () => { if (!cur) foil(); };
