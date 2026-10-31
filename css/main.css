@@ -1155,3 +1155,9 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 html { scrollbar-gutter: stable; }
 body:has(.modal) { overflow: hidden; }
 .modal, .modal__card { overscroll-behavior: contain; }
+
+/* Fenêtres : jamais de barre horizontale ; si la barre verticale apparaît, la largeur ne change pas (pas de saut) */
+.modal__card { overflow-x: hidden; scrollbar-gutter: stable; }
+/* fenêtre « Gérer » (admin) : plus large et plus compacte, pour tenir sans défiler */
+.modal__card.dmanage { width: min(620px, 100%); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); padding: 22px 22px 18px; }
+.modal__card.dmanage .dmanage__row { padding: 9px 0; }
