@@ -53,7 +53,15 @@
     mathis: { name: 'Mathis Buffalo Grill', img: 'mathis.jpg' },
     tonyargent: { name: 'Tony Billets', img: 'tonyargent.jpg' },
     presidentmali: { name: 'Président du Mali', img: 'presidentmali.jpg' },
-    eltigre: { name: 'El Tigre', img: 'eltigre.jpg' }
+    eltigre: { name: 'El Tigre', img: 'eltigre.jpg' },
+    // hors-série
+    oulman: { name: 'Oulman', img: 'oulman.jpg' },
+    liam: { name: 'Liam', img: 'liam.jpg' },
+    petitbonninchut: { name: 'Petit Bonnin Chut', img: 'petitbonninchut.jpg' },
+    bonninmousse: { name: 'Bonnin Mousse', img: 'bonninmousse.jpg' },
+    axbduo: { name: 'AXB Duo', img: 'axbduo.jpg' },
+    petitbonninnoel: { name: 'Petit Bonnin de Noël', img: 'petitbonninnoel.jpg' },
+    gillemelon: { name: 'Gille Melon', img: 'gillemelon.jpg' }
   };
   // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 95 %.
   // La rareté découle du multiplicateur : plus la carte vaut cher dans sa caisse, plus elle est rare.
@@ -64,6 +72,8 @@
       drops: [['carl', 0.25, null], ['petitbonnin', 0.5, 2600], ['tddam', 0.9, 1900], ['linkay', 1.4, 1300], ['linkaypose', 3, 600], ['tdam2', 8, 150], ['casino', 30, 30]] },
     { id: 'kawai', name: 'Caisse Kawaï', price: 50, color: '#ff7ad9', cover: 'slymefire.png',
       drops: [['slyme', 0.25, null], ['petitkawai', 0.8, 2000], ['lucascoroi', 5, 300], ['jpzkawai', 50, 25]] },
+    { id: 'horsserie', name: 'Caisse Hors-Série', price: 75, color: '#2fd3c4', cover: 'gillemelon.jpg',
+      drops: [['oulman', 0.25, null], ['liam', 0.5, 2500], ['petitbonninchut', 0.9, 1800], ['bonninmousse', 1.5, 1100], ['axbduo', 3, 550], ['petitbonninnoel', 10, 140], ['gillemelon', 45, 22]] },
     { id: 'aura', name: 'Caisse Aura', price: 100, color: '#9a6bff', cover: 'lucasco.jpg',
       drops: [['axbblesse', 0.2, null], ['axbserieux', 0.5, 2500], ['tdammasque', 0.9, 1800], ['tony', 1.4, 1200], ['tonny', 3, 600], ['olmanaura', 10, 150], ['lucasco', 35, 25]] },
     { id: 'wanted', name: 'Caisse Wanted', price: 250, color: '#e5483b', cover: 'eltigre.jpg',
@@ -294,7 +304,7 @@
     id: 'cases',
     name: 'DaveCases',
     icon: 'gift',
-    tagline: 'Six caisses à ouvrir, en Battle contre la bande ou en duel contre tes amis',
+    tagline: 'Sept caisses à ouvrir, en Battle contre la bande ou en duel contre tes amis',
     rtp: '95 %',
     isNew: true,
     hue: 30,
