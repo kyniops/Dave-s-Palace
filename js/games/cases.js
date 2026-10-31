@@ -218,24 +218,27 @@
   /** Bande d'objets qui défile et s'arrête sur `win`. */
   function spinStrip(row, box, win, dur, onTick) {
     const N = 56, WIN_AT = 48;
+    const vert = row.classList.contains('vert'); // colonnes (plusieurs caisses) : défilement vertical
     const seq = Array.from({ length: N }, (_, i) => (i === WIN_AT ? win : drawItem(box)));
     row.innerHTML = `<div class="strip__track">${seq.map((d) => itemCard(box, d)).join('')}</div><i class="strip__marker"></i>`;
     const track = row.firstElementChild;
     const first = track.children[0];
-    const step = first.offsetWidth + parseFloat(getComputedStyle(track).columnGap || 8);
-    const center = row.clientWidth / 2;
-    const target = WIN_AT * step + first.offsetWidth / 2 - center + (rng.float() - 0.5) * first.offsetWidth * 0.7;
+    const cs = getComputedStyle(track);
+    const size = vert ? first.offsetHeight : first.offsetWidth;
+    const step = size + parseFloat((vert ? cs.rowGap : cs.columnGap) || 8);
+    const center = (vert ? row.clientHeight : row.clientWidth) / 2;
+    const target = WIN_AT * step + size / 2 - center + (rng.float() - 0.5) * size * (vert ? 0.3 : 0.7);
     return new Promise((resolve) => {
       const t0 = performance.now();
       let lastIdx = -1;
       const frame = (now) => {
         const k = Math.min(1, (now - t0) / dur);
         const x = target * (1 - Math.pow(1 - k, 4));
-        track.style.transform = `translateX(${-x}px)`;
+        track.style.transform = vert ? `translateY(${-x}px)` : `translateX(${-x}px)`;
         const idx = Math.floor((x + center) / step);
         if (idx !== lastIdx) { lastIdx = idx; onTick && onTick(k); }
         if (k < 1) requestAnimationFrame(frame);
-        else { track.children[WIN_AT].classList.add('won'); resolve(track.children[WIN_AT]); }
+        else { track.children[WIN_AT].classList.add('won'); row.classList.add('done'); resolve(track.children[WIN_AT]); }
       };
       requestAnimationFrame(frame);
     });
@@ -368,12 +371,39 @@
         const bot = BOTS[(i - 1 + BOTS.length) % BOTS.length];
         return `<div class="ptag${me ? ' me' : ''}">${me ? `<span class="avatar">${esc(DP.auth.current().charAt(0).toUpperCase())}</span><b>Toi</b>` : `<img src="${IMG}${ITEMS[bot].img}" alt=""><b>${ITEMS[bot].name}</b>`}<span class="ptag__total num">${fmt(total)}</span></div>`;
       }
+      /** Plusieurs caisses : une colonne verticale par caisse ; une seule caisse ou battle : bandes horizontales. */
+      const stripsHtml = (n, fill) => {
+        const cols = mode === 'open' && n > 1;
+        const el = stage.querySelector('.cases__strips');
+        el.classList.toggle('is-cols', cols);
+        el.style.setProperty('--n', n);
+        return Array.from({ length: n }, (_, i) => cols
+          ? `<div class="strip-col"><span class="strip-col__label">Caisse ${i + 1}</span><div class="strip vert">${fill ? fill() : ''}</div></div>`
+          : `<div class="strip-row">${mode === 'battle' ? playerTag(i) : ''}<div class="strip">${fill ? fill() : ''}</div></div>`).join('');
+      };
+      let shown = ''; // résultat affiché (gardé jusqu'au prochain changement de réglage)
+      const sig = () => `${mode}|${count}|${opps}|${rounds}|${box && box.id}`;
       function idleStrips() {
         const el = stage.querySelector('.cases__strips');
         if (!el || !box) return;
+        if (shown === sig()) return;
+        shown = '';
+        stage.querySelector('.js-result')?.remove();
         const n = mode === 'open' ? count : opps + 1;
-        el.innerHTML = Array.from({ length: n }, (_, i) => `<div class="strip-row">${mode === 'battle' ? playerTag(i) : ''}<div class="strip"><div class="strip__track">${Array.from({ length: 12 }, () => itemCard(box, drawItem(box))).join('')}</div><i class="strip__marker"></i></div></div>`).join('');
-        el.querySelectorAll('.strip__track').forEach((t) => (t.style.transform = `translateX(${-rng.int(0, 200)}px)`));
+        el.innerHTML = stripsHtml(n, () => `<div class="strip__track">${Array.from({ length: 12 }, () => itemCard(box, drawItem(box))).join('')}</div><i class="strip__marker"></i>`);
+        el.querySelectorAll('.strip__track').forEach((t) => (t.style.transform = t.parentElement.classList.contains('vert') ? `translateY(${-rng.int(0, 160)}px)` : `translateX(${-rng.int(0, 200)}px)`));
+      }
+      /** Résumé sous les bandes (remplace l'ancien cadre de butin) : les cartes sont déjà dans l'inventaire. */
+      function showSummary(cardList, extra = '') {
+        stage.querySelector('.js-result')?.remove();
+        const total = round2(cardList.reduce((a, c) => a + c.value, 0));
+        const best = cardList.slice().sort((a, b) => b.value - a.value)[0];
+        const el = ui.el(`<div class="cases__result js-result">
+          <div><b class="num">${cardList.length} carte${cardList.length > 1 ? 's' : ''}</b> ajoutée${cardList.length > 1 ? 's' : ''} à ton inventaire · valeur <b class="num">${fmt(total)}</b>${best ? ` · meilleure : <b style="color:${best.rarity.c}">${esc(best.name)}</b>` : ''}${extra}</div>
+          <a class="btn btn--ghost btn--sm" href="#/inventaire">${ui.icon('layers-2', 'i--sm')}Voir l'inventaire</a>
+        </div>`);
+        stage.querySelector('.cases__strips').after(el);
+        shown = sig();
       }
       function paint() {
         countWrap.hidden = mode !== 'open';
@@ -392,69 +422,6 @@
         [countSeg, oppSeg, roundSeg].forEach((s) => s.disable(false));
         const back = stage.querySelector('.js-back');
         if (back) back.disabled = false;
-      }
-
-      /** Butin : les cartes gagnées se retournent une à une, puis vendre ou garder. */
-      async function showLoot(cardList) {
-        stage.querySelectorAll('.lootbox').forEach((n) => n.remove());
-        const total = round2(cardList.reduce((a, c) => a + c.value, 0));
-        const el = ui.el(`<div class="lootbox">
-          <div class="lootbox__head"><h4>Ton butin · <span class="num">${cardList.length}</span> carte${cardList.length > 1 ? 's' : ''}</h4><span class="muted">Ajouté à ton inventaire</span></div>
-          <div class="lootbox__cards">${cardList.map((c, i) => `<div class="lootbox__slot" data-i="${i}">${cards.html(c)}<button type="button" class="btn btn--ghost btn--sm js-sell1">Vendre · <span class="num">${fmt(c.value)}</span></button></div>`).join('')}</div>
-          <div class="lootbox__actions">
-            <button type="button" class="btn btn--primary js-sellall">${ui.icon('coins', 'i--sm')}Tout vendre · <span class="num js-left">${fmt(total)}</span></button>
-            <button type="button" class="btn btn--ghost js-keep">${ui.icon('layers-2', 'i--sm')}Tout garder</button>
-            <a class="btn btn--ghost" href="#/inventaire">Voir l’inventaire</a>
-          </div>
-        </div>`);
-        stage.querySelector('.cases').appendChild(el);
-        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        const slots = [...el.querySelectorAll('.lootbox__slot')];
-        slots.forEach((s, i) => s.animate([{ transform: 'rotateY(90deg) translateY(20px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 600, delay: i * 120, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
-        let left = cardList.map((c) => c);
-        const paintLeft = () => {
-          const v = round2(left.filter(Boolean).reduce((a, c) => a + c.value, 0));
-          el.querySelector('.js-left').textContent = fmt(v);
-          el.querySelector('.js-sellall').disabled = v === 0 && !left.some(Boolean);
-        };
-        const sellOne = async (i) => {
-          const c = left[i];
-          if (!c) return 0;
-          let got;
-          if (online()) {
-            const r = await DP.engine.call('inv_sell', { p_items: [{ id: c.id, n: 1 }] });
-            got = r ? +r.value : 0;
-          } else got = inventory.sell(c.id, 1);
-          if (!got) { ui.toast('Cette carte n’est plus dans ton inventaire.', 'error'); left[i] = null; return; }
-          left[i] = null;
-          const slot = slots[i];
-          slot.classList.add('sold');
-          slot.querySelector('.js-sell1').disabled = true;
-          slot.querySelector('.js-sell1').innerHTML = 'Vendue';
-          ui.floatText(slot, '+' + fmt(got));
-          sound.play('coin');
-          paintLeft();
-          return got;
-        };
-        el.addEventListener('click', (e) => {
-          const one = e.target.closest('.js-sell1');
-          if (one) { if (ui.confirmClick(one)) sellOne(+one.closest('.lootbox__slot').dataset.i); return; }
-          const all = e.target.closest('.js-sellall');
-          if (all) {
-            if (!ui.confirmClick(all, 'Confirmer : tout vendre')) return;
-            (async () => {
-              let sum = 0;
-              for (let i = 0; i < left.length; i++) if (left[i]) sum += await sellOne(i);
-              if (sum > 0) { sound.play('cashout'); ui.toast(`Cartes vendues : +${fmt(round2(sum))} DaveCoins`, 'win'); }
-            })();
-            return;
-          }
-          if (e.target.closest('.js-keep')) {
-            sound.play('chip');
-            ui.toast(`${left.filter(Boolean).length} carte(s) gardée(s) dans ton inventaire`, 'win');
-            el.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(10px)' }], { duration: 300 }).finished.then(() => el.remove());
-          }
-        });
       }
 
       /** Ouverture de la caisse : elle tremble, le couvercle saute, éclair. */
@@ -507,11 +474,12 @@
         await crackCrate();
         if (!alive) return;
         const stripsEl = stage.querySelector('.cases__strips');
-        stripsEl.innerHTML = wins.map(() => '<div class="strip-row"><div class="strip"></div></div>').join('');
+        stage.querySelector('.js-result')?.remove();
+        stripsEl.innerHTML = stripsHtml(wins.length);
         stripsEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         sound.play('whoosh');
         const rows = [...stripsEl.querySelectorAll('.strip')];
-        const cards = await Promise.all(wins.map((d, i) => spinStrip(rows[i], box, d, 4600 + i * 350, i === 0 ? tick : null)));
+        const cards = await Promise.all(wins.map((d, i) => spinStrip(rows[i], box, d, 4600 + i * 450, i === 0 ? tick : null)));
         if (!alive) return;
         pending = null;
         const order = wins.map((d, i) => i).sort((a, b) => wins[a][1] - wins[b][1]);
@@ -522,8 +490,9 @@
         lastOut.set(`<span class="${payout >= c ? 'pos' : ''}">${fmt(payout)} en cartes</span>`);
         if (payout < c) sound.play('lose');
         stage.querySelector('.js-crate')?.classList.remove('open');
+        showSummary(won);
         unlock();
-        await showLoot(won);
+        paint();
       }
 
       async function battle() {
@@ -556,6 +525,8 @@
 
         const running = Array(players).fill(0);
         const stripsEl = stage.querySelector('.cases__strips');
+        stripsEl.classList.remove('is-cols');
+        stage.querySelector('.js-result')?.remove();
         stripsEl.innerHTML = Array.from({ length: players }, (_, i) => `<div class="strip-row">${playerTag(i)}<div class="strip"></div></div>`).join('');
         stripsEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         const rows = [...stripsEl.querySelectorAll('.strip-row')];
@@ -596,8 +567,10 @@
         }
         sub.innerHTML = `Pot total <b class="num">${fmt(pot)}</b>`;
         stage.querySelector('.js-crate')?.classList.remove('open');
+        if (soloWin) showSummary(potCards, ' · tu remportes toutes les cartes de la battle');
+        else shown = sig();
         unlock();
-        if (soloWin) await showLoot(potCards);
+        paint();
       }
 
       goBtn.addEventListener('click', () => { if (!busy && box) (mode === 'open' ? openCases : battle)(); });

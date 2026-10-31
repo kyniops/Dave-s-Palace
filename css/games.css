@@ -827,3 +827,28 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
 .slot-stage { padding: 34px 28px; }
 .slot-stage .slot5 { background: rgba(8,10,16,.3); }
 .slot-stage { background-image: none; }
+
+/* =================== Ouverture de plusieurs caisses : colonnes verticales =================== */
+.cases__strips.is-cols { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 12px; }
+.strip-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.strip-col__label { font-family: var(--display); font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.strip.vert { flex: none; height: 430px !important; background: radial-gradient(ellipse at 50% 50%, rgba(255,107,44,.08), transparent 60%), rgba(0,0,0,.4);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent); }
+.strip.vert .strip__track { flex-direction: column; align-items: center; row-gap: 12px; column-gap: 0 !important; padding: 0 !important; height: auto; }
+.strip.vert .strip__track > .tcard { width: min(112px, 74%); }
+.strip.vert .strip__marker { left: 0; right: 0; top: 50%; bottom: auto; width: auto; height: 2px; margin: -1px 0 0; background: linear-gradient(90deg, #fff, rgba(255,255,255,.25) 30%, rgba(255,255,255,.25) 70%, #fff); }
+.strip.vert .strip__marker::before { top: 50%; left: 0; transform: translateY(-50%); border: 7px solid transparent; border-left-color: #fff; }
+.strip.vert .strip__marker::after { top: 50%; bottom: auto; left: auto; right: 0; transform: translateY(-50%); border: 7px solid transparent; border-right-color: #fff; }
+.strip.vert .tcard.won { z-index: 2; }
+/* résumé après ouverture (les cartes vont directement dans l'inventaire) */
+.cases__result { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 14px 18px; background: linear-gradient(100deg, var(--accent-soft), transparent 70%), var(--surface); border: 1px solid var(--line-2); border-left: 3px solid var(--accent); font-size: 14px; animation: wipe .5s var(--ease); }
+.cases__result b { font-family: var(--display); }
+@media (max-width: 600px) {
+  .cases__strips.is-cols { gap: 6px; }
+  .strip.vert { height: 340px !important; }
+  .strip.vert .strip__track > .tcard { width: 88%; }
+  .strip-col__label { font-size: 9px; letter-spacing: .1em; }
+}
+/* fin du défilement : la carte gagnée ressort, les autres s'effacent */
+.strip.done .strip__track > .tcard:not(.won) { opacity: .28; filter: grayscale(.7) brightness(.7); transition: opacity .5s, filter .5s; }
+.strip.done .strip__track > .tcard.won { filter: drop-shadow(0 0 16px var(--r)); }
