@@ -784,10 +784,20 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
 .mines-grid .tile-btn.open.gem { background: radial-gradient(circle, rgba(255,193,69,.32), rgba(255,107,44,.08) 55%, transparent 75%), var(--noise), #0b0d14; box-shadow: inset 0 3px 10px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,193,69,.45); }
 .mines-grid .tile-btn.open.gem > img { width: 66%; height: 66%; filter: drop-shadow(0 4px 8px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(255,193,69,.45)); animation: gem-pop .55s cubic-bezier(.2,1.8,.4,1) both; }
 @keyframes gem-pop { 0% { transform: scale(.2) rotate(-30deg); } 100% { transform: none; } }
-.mines-grid .tile-btn.open.mine { background: radial-gradient(circle, rgba(255,61,90,.32), rgba(255,61,90,.06) 60%, transparent 80%), var(--noise), #120609; box-shadow: inset 0 3px 10px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,61,90,.5); }
-.mines-grid .tile-btn.open.mine.hit { background: radial-gradient(circle, rgba(255,61,90,.7), rgba(255,61,90,.15) 60%, transparent 85%), #1d070b; animation: tile-open .3s ease, shake .4s ease .3s; }
-.mines-grid .tile-btn.open.mine.hit > .i { animation: bomb-pulse .5s ease-in-out infinite alternate; }
-@keyframes bomb-pulse { to { transform: scale(1.12); filter: drop-shadow(0 0 8px #ff3d5a); } }
+.mines-grid .tile-btn.open.mine { color: #ff6b7f; background: radial-gradient(circle, rgba(255,61,90,.14), transparent 70%), var(--noise), #110709; box-shadow: inset 0 3px 10px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,61,90,.4); }
+/* bombe bien lisible : icône claire au trait épais, halo discret */
+.mines-grid .tile-btn.open.mine > .i { width: 50%; height: 50%; stroke-width: 2.2; filter: drop-shadow(0 2px 3px rgba(0,0,0,.8)); }
+.mines-grid .tile-btn.open.mine.hit { color: #fff; background: radial-gradient(circle, rgba(255,61,90,.38), rgba(120,10,25,.25) 60%, transparent 85%), var(--noise), #1a0609; box-shadow: inset 0 3px 10px rgba(0,0,0,.7), inset 0 0 0 2px #ff3d5a; animation: tile-open .3s ease, shake .4s ease .3s; }
+.mines-grid .tile-btn.open.mine.hit > .i { filter: drop-shadow(0 0 4px rgba(255,61,90,.9)) drop-shadow(0 2px 3px rgba(0,0,0,.8)); animation: bomb-pulse .6s ease-in-out infinite alternate; }
+@keyframes bomb-pulse { to { transform: scale(1.1); } }
 .mines-grid .tile-btn.open.ghost { opacity: .4; filter: saturate(.5); }
 .mines-grid .tile-btn.open.ghost > img, .mines-grid .tile-btn.open.ghost > .i { animation: none; }
 @media (prefers-reduced-motion: reduce) { .mines-grid .tile-btn, .mines-grid .tile-btn > * { animation: none !important; } }
+/* bombe pleine : corps noir, contour et mèche colorés */
+.mines-grid .tile-btn.open.mine > .i circle { fill: #1a0a0e; }
+.mines-grid .tile-btn.open.mine.hit > .i circle { fill: #2b0710; }
+.mines-grid .tile-btn.open.mine.ghost > .i { opacity: .8; }
+/* étincelle au bout de la mèche de la bombe touchée */
+.mines-grid .tile-btn.open.mine.hit::after { inset: auto; left: 70%; top: 19%; width: 16%; height: 16%; border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, #ffd36b 35%, rgba(255,107,44,.6) 60%, transparent 72%); background-size: 100% 100%; animation: spark .18s steps(2) infinite; }
+@keyframes spark { 50% { transform: scale(.6) rotate(45deg); opacity: .7; } }
+.mines-grid .tile-btn.open.mine.ghost { opacity: .62; }
