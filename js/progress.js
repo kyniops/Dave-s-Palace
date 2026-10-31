@@ -436,5 +436,13 @@
   }
 
   setTimeout(() => { ready = true; }, 0);
-  DP.progress = { RANKS, MAX_LEVEL, levelInfo, rankOf, badge, render, summary, freeCases, caseName };
+  /** Liste des succès avec leur état (pour les titres du profil). */
+  function achievements() {
+    if (!auth.current()) return [];
+    ensureGameAchs();
+    const p = load();
+    return ACHS.map((a) => ({ id: a.id, name: a.name, desc: a.desc, icon: a.icon, tier: a.tier, cat: a.cat, got: p.ach[a.id] || 0 }));
+  }
+
+  DP.progress = { RANKS, MAX_LEVEL, levelInfo, rankOf, badge, render, summary, freeCases, caseName, achievements };
 })();

@@ -1,4 +1,4 @@
-/* Dashboards : celui du joueur (#/profil) et celui de l'admin (#/admin).
+/* Dashboards : celui du joueur (#/dashboard) et celui de l'admin (#/admin).
  * Tout est lu dans le localStorage du navigateur : chaque compte créé ici apparaît côté admin.
  */
 (() => {
@@ -179,7 +179,7 @@
 
     view.innerHTML = `
       <div class="page-head dhead">
-        <span class="avatar avatar--lg" data-reveal>${esc(name.charAt(0).toUpperCase())}</span>
+        <a href="#/profil" data-reveal>${DP.profile ? DP.profile.avatarHtml(name, 'avatar avatar--lg') : `<span class="avatar avatar--lg">${esc(name.charAt(0).toUpperCase())}</span>`}</a>
         <div><h1>${esc(name)}</h1><p>Ton dashboard · ${s.since ? 'suivi depuis le ' + new Date(s.since).toLocaleDateString('fr-FR') : 'toutes tes infos en un coup d’œil'}</p></div>
         ${(() => { const sm = DP.progress && DP.progress.summary(); return sm ? `<a class="drank" href="#/progression" style="--rc:${sm.rank.c}">${DP.progress.badge(sm.level, 46)}<span><b>Rang ${sm.rank.name} · niveau ${sm.level}</b><i><em style="width:${(sm.pct * 100).toFixed(1)}%"></em></i><small>Missions ${sm.missionsDone}/3 · Succès ${sm.achDone}/${sm.achTotal}${sm.claimable ? ` · <b class="pos">${sm.claimable} à récupérer</b>` : ''}</small></span></a>` : ''; })()}
         <div class="dhead__act"><a class="btn btn--ghost" href="#/inventaire">${I('layers-2', 'i--sm')}Inventaire</a><a class="btn btn--primary" href="#/caisses">${I('package-open', 'i--sm')}Caisses</a></div>

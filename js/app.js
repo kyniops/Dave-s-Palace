@@ -24,11 +24,12 @@
     }
     renderShell();
     const view = document.getElementById('view');
-    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page === 'dashboard' ? 'profil' : page || 'lobby');
+    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page || 'lobby');
     if (page === 'caisses') renderGame(view, games.find('cases'), { caseId: arg });
     else if (page === 'jeu' && arg === 'cases') { location.replace('#/caisses'); return; }
     else if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
-    else if (page === 'profil' || page === 'dashboard') renderProfile(view);
+    else if (page === 'dashboard') renderProfile(view);
+    else if (page === 'profil') unmountView = DP.profile.render(view);
     else if (page === 'admin') unmountView = DP_DASH.admin(view, { rerender: route });
     else if (page === 'progression') unmountView = DP.progress.render(view);
     else if (page === 'inventaire') renderInventory(view);
@@ -137,7 +138,7 @@
           <div class="topbar__right">
             <button class="icon-btn sound-btn" type="button" aria-label="Son"></button>
             <a class="lvl-chip js-lvl" href="#/progression" title="Ta progression"></a>
-            <a class="user-chip" href="#/profil"><span class="avatar">${esc(user.charAt(0).toUpperCase())}</span><span class="user-chip__name">${esc(user)}</span></a>
+            <a class="user-chip js-userchip" href="#/profil">${DP.profile.avatarHtml(user)}<span class="user-chip__name">${esc(user)}</span></a>
           </div>
         </header>
         <nav class="sidebar">
@@ -151,7 +152,8 @@
             return list.length ? `<div class="nav-title">${c}</div>` + list.map((g) => `<a class="nav-item" data-nav="${g.id}" href="#/jeu/${g.id}">${I(g.icon)}${g.name}${g.isNew ? '<span class="nav-tag">Nouveau</span>' : ''}</a>`).join('') : '';
           }).join('')}
           <div class="nav-title">Compte</div>
-          <a class="nav-item" data-nav="profil" href="#/profil">${I('layout-dashboard')}Dashboard</a>
+          <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Mon profil</a>
+          <a class="nav-item" data-nav="dashboard" href="#/dashboard">${I('layout-dashboard')}Dashboard</a>
           <a class="nav-item" data-nav="progression" href="#/progression">${I('trophy')}Progression<span class="nav-tag js-mistag" hidden></span></a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
           <a class="nav-item" data-nav="codes" href="#/codes">${I('ticket')}Codes</a>
@@ -190,6 +192,10 @@
     if (tag) { tag.hidden = !sm.claimable; tag.textContent = sm.claimable ? String(sm.claimable) : ''; tag.title = 'Missions à récupérer'; }
   }
   on('progress', paintLevel);
+  on('profile', () => {
+    const chip = document.querySelector('.js-userchip');
+    if (chip && auth.current()) chip.innerHTML = `${DP.profile.avatarHtml(auth.current())}<span class="user-chip__name">${esc(auth.current())}</span>`;
+  });
   function paintInvCount() {
     const el = document.querySelector('.js-invcount');
     if (!el) return;
@@ -428,7 +434,7 @@
           </a>`).join('')}
       </section>
 
-      <div class="section-head"><h2>Dernières parties</h2><a href="#/profil">Tout l’historique${I('chevron-right', 'i--sm')}</a></div>
+      <div class="section-head"><h2>Dernières parties</h2><a href="#/dashboard">Tout l’historique${I('chevron-right', 'i--sm')}</a></div>
       ${historyTable(s.history.slice(0, 8))}`;
 
     // filtres du catalogue
