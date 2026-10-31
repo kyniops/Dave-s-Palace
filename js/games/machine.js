@@ -407,7 +407,7 @@
             session.fsPlayed++;
             paintBanner();
             setMsg(`Free spin ${session.fsPlayed} · gains ×${S.FS_MULT}`);
-            const { grid } = S.spin(rng.float);
+            const grid = session.srv ? session.srv.fs[session.fsIdx++].grid : S.spin(rng.float).grid;
             const res = S.evaluate(grid, session.bet, S.FS_MULT);
             session.win += res.total;
             session.fsWin += res.total;
@@ -493,22 +493,29 @@
         if (busy) return;
         const bet = betIn.get();
         const stake = bet;
-        if (!wallet.place(stake)) { stopAuto(); return; }
+        let srv = null;
+        if (DP.engine && DP.engine.on) {
+          // en ligne : le serveur tire le tour, les free spins et le jackpot d'un coup
+          busy = true; paintPanel();
+          srv = await DP.engine.call('slot_spin', { p_bet: bet }, { defer: true });
+          if (!srv || !alive) { busy = false; stopAuto(); paintPanel(); return; }
+          DP.engine.debitView(stake);
+        } else if (!wallet.place(stake)) { stopAuto(); return; }
         betIn.remember();
         busy = true;
         paintPanel();
-        session = { bet, stake, win: 0, fsLeft: 0, fsPlayed: 0, fsTotal: 0, fsWin: 0 };
+        session = { bet, stake, win: 0, fsLeft: 0, fsPlayed: 0, fsTotal: 0, fsWin: 0, srv, fsIdx: 0 };
         try {
           {
             setMsg('&nbsp;');
-            const { grid } = S.spin(rng.float);
+            const grid = srv ? srv.grid : S.spin(rng.float).grid;
             const res = S.evaluate(grid, bet);
             session.win += res.total;
             session.fsLeft = session.fsTotal = res.scatter.spins;
             // jackpot : tiré avant l'animation, la cagnotte est réservée tout de suite
-            const jpMystery = res.scatter.count < 5 && rng.float() < bet / JP_MYSTERY;
-            if (res.scatter.count >= 5 || jpMystery) {
-              session.jp = DP.jackpot.win(DP.auth.current());
+            const jpMystery = srv ? srv.mystery : res.scatter.count < 5 && rng.float() < bet / JP_MYSTERY;
+            if (srv ? srv.jp > 0 : res.scatter.count >= 5 || jpMystery) {
+              session.jp = srv ? +srv.jp : DP.jackpot.win(DP.auth.current());
               session.win += session.jp;
             }
             await spinReels(grid);
@@ -520,9 +527,10 @@
           }
           if (session.fsLeft > 0) await runBonus();
 
-          const total = round2(session.win);
           const s = session;
+          const total = s.srv ? +s.srv.total : round2(s.win);
           session = null;
+          if (s.srv) DP.engine.reveal(s.srv.acct);
           settle('machine', s.stake, total, { silent: true });
           winOut.set(total > 0 ? `<span class="pos">+${fmt(total)}</span>` : '0');
           if (total > 0 && s.fsTotal) setMsg(`Total <b class="num">+${fmt(total)}</b>`);
@@ -587,6 +595,7 @@
         window.removeEventListener('resize', onResize);
         window.removeEventListener('keydown', onKey);
         // Partie en cours : les free spins restants sont joués instantanément puis réglés.
+        if (session && session.srv) { DP.engine.reveal(session.srv.acct); session = null; } // en ligne : déjà réglé par le serveur
         if (session) {
           while (session.fsLeft > 0) {
             session.fsLeft--;

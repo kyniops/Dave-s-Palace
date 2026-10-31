@@ -81,15 +81,28 @@
       const pegY = (r) => top + r * sp;
       const slotX = (k) => W / 2 + (k - rows / 2) * sp;
 
-      function drop() {
+      let dropping = false;
+      async function drop() {
         const bet = betIn.get();
-        if (!wallet.place(bet)) { stopAuto(); return; }
+        const E = DP.engine;
+        let srv = null;
+        if (E && E.on) {
+          // en ligne : le serveur tire la trajectoire
+          if (dropping) return;
+          dropping = true;
+          srv = await E.call('plinko_drop', { p_bet: bet, p_risk: risk, p_rows: rows }, { defer: true });
+          dropping = false;
+          if (!srv || !alive) { stopAuto(); return; }
+          // le compte complet n'est appliqué qu'à l'arrivée de la pièce ; en attendant, mise débitée à l'écran
+          DP.engine._pending = null;
+          E.debitView(bet);
+        } else if (!wallet.place(bet)) { stopAuto(); return; }
         betIn.remember();
         sound.play('pop');
         sound.play('chip');
         // Trajectoire tirée à l'avance : chaque rangée = gauche ou droite à 50 %.
-        const path = Array.from({ length: rows }, () => (rng.float() < 0.5 ? 0 : 1));
-        balls.push({ bet, path, rows, risk, seg: -1, t: 0, x: W / 2 + (rng.float() - 0.5) * sp * 0.2, y: -ballR, k: 0, done: false });
+        const path = srv ? srv.path : Array.from({ length: rows }, () => (rng.float() < 0.5 ? 0 : 1));
+        balls.push({ bet, path, rows, risk, seg: -1, t: 0, x: W / 2 + (rng.float() - 0.5) * sp * 0.2, y: -ballR, k: 0, done: false, acct: srv && srv.acct });
         lockControls();
         if (!raf) raf = requestAnimationFrame(loop);
       }
@@ -103,6 +116,7 @@
       function land(b) {
         b.done = true;
         const mult = TABLES[b.rows][b.risk][b.k];
+        if (b.acct && b === balls.filter((x) => x.acct).slice(-1)[0]) DP.engine.reveal(b.acct); // dernière pièce en vol : compte à jour
         settle('plinko', b.bet, round2(b.bet * mult), { silent: true });
         sound.play('land', { x: mult });
         if (mult >= 2) {
@@ -230,6 +244,8 @@
         stopAuto();
         cancelAnimationFrame(raf);
         window.removeEventListener('resize', onResize);
+        // en ligne : le serveur a déjà réglé chaque pièce
+        if (DP.engine && DP.engine.on) { const last = balls.filter((x) => x.acct).slice(-1)[0]; if (last) DP.engine.reveal(last.acct); return; }
         // Les pièces encore en l'air arrivent instantanément à destination
         balls.forEach((b) => {
           const k = b.path.reduce((a, c) => a + c, 0);

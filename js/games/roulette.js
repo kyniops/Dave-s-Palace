@@ -339,7 +339,15 @@
       async function spin() {
         const stake = total();
         if (spinning || !stake) return;
-        if (!wallet.place(stake)) return;
+        const E = DP.engine;
+        let srv = null;
+        if (E && E.on) {
+          // en ligne : le serveur tire le numéro
+          spinning = true; paint();
+          srv = await E.call('roulette_spin', { p_bets: bets }, { defer: true });
+          if (!srv || !alive) { spinning = false; paint(); return; }
+          E.debitView(stake);
+        } else if (!wallet.place(stake)) return;
         spinning = true;
         lastBets = { ...bets };
         cells.forEach((c) => c.classList.remove('hit', 'lost'));
@@ -348,9 +356,9 @@
         paint();
         sound.play('whoosh');
 
-        const n = ORDER[rng.int(0, 36)];
+        const n = srv ? srv.n : ORDER[rng.int(0, 36)];
         const idx = ORDER.indexOf(n);
-        pending = { n, stake, placed: { ...bets } };
+        pending = srv ? null : { n, stake, placed: { ...bets } };
 
         const T = 7000, TL = 5600;           // durée totale / moment où la bille tombe dans la case
         const W0 = wheelAng, WT = 360 * 1.6 + rng.float() * 120;
@@ -395,7 +403,8 @@
         pending = null;
         glowPocket = idx;
         render();
-        const pay = resolve(n, stake, lastBets, true);
+        if (srv) DP.engine.reveal(srv.acct);
+        const pay = srv ? srv.payout : resolve(n, stake, lastBets, true);
         resultEl.innerHTML = `<span class="rnum big ${color(n)}">${n}</span>`;
         history.unshift(n);
         histEl.innerHTML = history.slice(0, 10).map((h) => `<span class="rnum ${color(h)}">${h}</span>`).join('');

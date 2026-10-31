@@ -54,9 +54,9 @@
           multPill.textContent = '1.00×';
           return;
         }
-        const cur = multiplier(game.mines.size, game.picks);
-        const left = CELLS - game.mines.size - game.picks;
-        nextOut.set(left > 0 ? fmtMult(multiplier(game.mines.size, game.picks + 1)) : '—');
+        const cur = multiplier(game.m, game.picks);
+        const left = CELLS - game.m - game.picks;
+        nextOut.set(left > 0 ? fmtMult(multiplier(game.m, game.picks + 1)) : '—');
         profitOut.set(game.picks ? `${ui.coin('coin--xs')} ${fmt(game.bet * cur)}` : '—');
         multPill.textContent = fmtMult(cur);
         playBtn.innerHTML = game.picks ? `Encaisser ${fmt(game.bet * cur)}` : 'Encaisser';
@@ -70,14 +70,23 @@
         tile.innerHTML = kind === 'gem' ? `<img src="${IMG}davecoin.png" alt="DaveCoin">` : ui.icon('bomb');
       };
 
-      function start() {
+      let busy = false;
+      const online = () => DP.engine && DP.engine.on;
+      async function start() {
         const bet = betIn.get();
         const m = +minesSel.value;
-        if (!wallet.place(bet)) return;
+        if (busy) return;
+        if (online()) {
+          // en ligne : les bombes sont placées et gardées secrètes par le serveur
+          busy = true;
+          const r = await DP.engine.call('mines_start', { p_bet: bet, p_mines: m });
+          busy = false;
+          if (!r || !alive) return;
+        } else if (!wallet.place(bet)) return;
         betIn.remember();
         sound.play('bet');
         const order = rng.shuffle([...Array(CELLS).keys()]);
-        game = { bet, mines: new Set(order.slice(0, m)), picks: 0, opened: new Set() };
+        game = { bet, m, mines: new Set(online() ? [] : order.slice(0, m)), picks: 0, opened: new Set(), online: online() };
         tiles.forEach((t) => { t.className = 'tile-btn'; t.innerHTML = ''; t.disabled = false; });
         gridEl.classList.remove('idle');
         betIn.disable(true);
@@ -88,7 +97,8 @@
         paint();
       }
 
-      function end(won) {
+      let alive = true;
+      function end(won, payout) {
         const g = game;
         game = null;
         tiles.forEach((t, i) => {
@@ -102,9 +112,9 @@
         playBtn.disabled = false;
         playBtn.textContent = 'Jouer';
         playBtn.classList.replace('btn--cash', 'btn--primary');
-        const mult = multiplier(g.mines.size, g.picks);
+        const mult = multiplier(g.m, g.picks);
         if (won) {
-          const pay = round2(g.bet * mult);
+          const pay = payout != null ? payout : round2(g.bet * mult);
           settle('mines', g.bet, pay, { silent: true });
           sound.play('cashout');
           sound.play('win', { x: mult });
@@ -120,12 +130,20 @@
         paint();
       }
 
-      function pick(i) {
-        if (!game || game.opened.has(i)) return;
+      async function pick(i) {
+        if (!game || game.opened.has(i) || busy) return;
         const tile = tiles[i];
+        let srv = null;
+        if (game.online) {
+          busy = true;
+          srv = await DP.engine.call('mines_pick', { p_cell: i });
+          busy = false;
+          if (!srv || !game) return;
+          if (srv.mines) srv.mines.forEach((c) => game.mines.add(c));
+        }
         game.opened.add(i);
         tile.disabled = true;
-        if (game.mines.has(i)) {
+        if (srv ? srv.mine : game.mines.has(i)) {
           reveal(tile, 'mine');
           tile.classList.add('hit');
           end(false);
@@ -135,9 +153,10 @@
         reveal(tile, 'gem');
         sound.play('gem', { i: game.picks - 1 });
         ui.burst(tile, { n: 10 + game.picks, colors: ['#ff6b2c', '#ffc65c', '#ffffff'] });
-        ui.floatText(tile, fmtMult(multiplier(game.mines.size, game.picks)));
+        ui.floatText(tile, fmtMult(multiplier(game.m, game.picks)));
         if (game.picks >= 3) multPill.animate([{ transform: 'scale(1.35)' }, { transform: 'scale(1)' }], { duration: 300, easing: 'cubic-bezier(.2,1.6,.4,1)' });
-        if (game.picks === CELLS - game.mines.size) { end(true); return; }
+        if (srv && srv.done) { end(true, srv.payout); return; }
+        if (game.picks === CELLS - game.m) { end(true); return; }
         paint();
       }
 
@@ -150,14 +169,30 @@
         const free = tiles.map((_, i) => i).filter((i) => !game.opened.has(i));
         pick(rng.pick(free));
       });
+      async function cash() {
+        if (!game || game.picks < 1 || busy) return;
+        if (game.online) {
+          busy = true;
+          const r = await DP.engine.call('mines_cash');
+          busy = false;
+          if (!r || !game) return;
+          (r.mines || []).forEach((c) => game.mines.add(c));
+          end(true, r.payout);
+          return;
+        }
+        end(true);
+      }
       playBtn.addEventListener('click', () => {
         if (!game) start();
-        else if (game.picks > 0) end(true);
+        else if (game.picks > 0) cash();
       });
       paint();
 
       return () => {
+        alive = false;
         if (!game) return;
+        // en ligne : le serveur encaisse (ou rend la mise si aucune case n'est ouverte)
+        if (game.online) { DP.engine.call('mines_cash', {}, { silent: true }); return; }
         if (game.picks > 0) end(true); // on encaisse automatiquement en quittant
         else { wallet.credit(game.bet); game = null; } // aucune case ouverte : mise rendue
       };

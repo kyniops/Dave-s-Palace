@@ -71,9 +71,18 @@
         paint();
       });
 
+      let srv = null; // dernière réponse du serveur (en ligne)
       async function flip() {
         if (flipping) return;
-        if (!run) {
+        const E = DP.engine;
+        if (E && E.on) {
+          // en ligne : le serveur lance la pièce (et débite la mise au premier lancer)
+          flipping = true; paint();
+          srv = await E.call('flip_toss', { p_bet: run ? run.bet : betIn.get(), p_side: side }, { defer: true });
+          flipping = false;
+          if (!srv || !alive) { paint(); return; }
+          if (!run) { betIn.remember(); E.debitView(betIn.get()); run = { bet: betIn.get(), wins: 0 }; streakEl.innerHTML = ''; sound.play('bet'); }
+        } else if (!run) {
           const bet = betIn.get();
           if (!wallet.place(bet)) return;
           betIn.remember();
@@ -83,7 +92,7 @@
         }
         flipping = true;
         paint();
-        const outcome = rng.float() < 0.5 ? 'dave' : 'jpz';
+        const outcome = srv ? srv.outcome : rng.float() < 0.5 ? 'dave' : 'jpz';
         run.pending = outcome;
         // La face DaveCoin est à 0°, la face JPZ à 180° : on ajoute 5 tours puis on vise la bonne face.
         const from = rot;
@@ -116,6 +125,7 @@
         a.cancel();
         run.pending = null;
         flipping = false;
+        if (srv) DP.engine.reveal(srv.acct);
 
         const ok = outcome === side;
         streakEl.insertAdjacentHTML('beforeend', `<span class="fmini ${ok ? 'good' : 'bad'}" title="${SIDES[outcome].label}"><img src="${IMG}${SIDES[outcome].src}" alt=""></span>`);
@@ -125,6 +135,7 @@
           ui.burst(coin, { n: 14 + run.wins * 4, spread: 1.3 });
           ui.floatText(coin, fmtMult(Math.pow(STEP, run.wins)));
           coin.parentElement.animate([{ transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 350, easing: 'cubic-bezier(.2,1.6,.4,1)' });
+          if (srv && srv.done) { ui.result(stage, { win: true, mult: Math.pow(STEP, run.wins), amount: srv.payout }); sound.play('jackpot'); run = null; srv = null; paint(); return; }
           if (run.wins >= MAX_STREAK) return cashout();
         } else {
           settle('flip', run.bet, 0);
@@ -135,8 +146,19 @@
         paint();
       }
 
-      function cashout() {
+      async function cashout() {
         if (!run || !run.wins || flipping) return;
+        if (DP.engine && DP.engine.on) {
+          flipping = true; paint();
+          const r = await DP.engine.call('flip_cash');
+          flipping = false;
+          if (!r) { paint(); return; }
+          settle('flip', run.bet, r.payout);
+          ui.result(stage, { win: true, mult: r.payout / run.bet, amount: r.payout });
+          run = null; srv = null;
+          paint();
+          return;
+        }
         const m = Math.pow(STEP, run.wins);
         const pay = round2(run.bet * m);
         settle('flip', run.bet, pay);
@@ -155,6 +177,8 @@
         alive = false;
         window.removeEventListener('keydown', onKey);
         if (!run) return;
+        // en ligne : le serveur encaisse la série en cours (le lancer est déjà joué de son côté)
+        if (DP.engine && DP.engine.on) { if (run.wins > 0 || (srv && srv.win && !srv.done)) DP.engine.call('flip_cash', {}, { silent: true }); return; }
         // En quittant : le lancer en cours est résolu, puis on encaisse la série.
         let wins = run.wins;
         if (run.pending) {

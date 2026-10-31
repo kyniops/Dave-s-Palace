@@ -160,6 +160,7 @@
         if (!pending) return;
         const p = pending;
         pending = null;
+        if (p.srv) { DP.engine.reveal(p.srv.acct); return; } // en ligne : déjà réglé par le serveur
         if (p.win) inventory.add([p.target.id]);
         settle('upgrade', p.stake, p.win ? p.target.value : 0, { silent: true, credit: false });
       }
@@ -170,10 +171,20 @@
         const coins = Math.max(0, coinsIn.get());
         const list = [...sel.values()].map((x) => ({ id: x.card.id, shiny: x.shiny, n: x.n }));
         if (coins > 0 && !wallet.canAfford(coins)) { ui.toast('Pas assez de DaveCoins !', 'error'); sound.play('error'); return; }
-        if (!inventory.take(list)) { ui.toast('Ces cartes ne sont plus dans ton inventaire.', 'error'); sel.clear(); paint(); return; }
-        if (coins > 0) { wallet.place(coins); coinsIn.remember(); }
-        const r = rng.float(), win = r < ch;
-        pending = { win, target: tgt, stake: s };
+        let srv = null;
+        if (DP.engine && DP.engine.on) {
+          // en ligne : le serveur retire les cartes, tire l'aiguille et donne la carte visée
+          busy = true; paint();
+          srv = await DP.engine.call('upgrade_roll', { p_items: list, p_coins: coins, p_target: tgt.id }, { defer: true });
+          busy = false;
+          if (!srv || !alive) { sel.clear(); paint(); return; }
+          if (coins > 0) { DP.engine.debitView(coins); coinsIn.remember(); }
+        } else {
+          if (!inventory.take(list)) { ui.toast('Ces cartes ne sont plus dans ton inventaire.', 'error'); sel.clear(); paint(); return; }
+          if (coins > 0) { wallet.place(coins); coinsIn.remember(); }
+        }
+        const r = srv ? srv.r : rng.float(), win = srv ? srv.win : r < ch;
+        pending = { win, target: tgt, stake: s, srv };
         busy = true;
         paint();
         gauge.classList.remove('win', 'lose');

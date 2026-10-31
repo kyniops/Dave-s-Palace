@@ -417,10 +417,14 @@
           el.querySelector('.js-left').textContent = fmt(v);
           el.querySelector('.js-sellall').disabled = v === 0 && !left.some(Boolean);
         };
-        const sellOne = (i) => {
+        const sellOne = async (i) => {
           const c = left[i];
-          if (!c) return;
-          const got = inventory.sell(c.id, 1);
+          if (!c) return 0;
+          let got;
+          if (online()) {
+            const r = await DP.engine.call('inv_sell', { p_items: [{ id: c.id, n: 1 }] });
+            got = r ? +r.value : 0;
+          } else got = inventory.sell(c.id, 1);
           if (!got) { ui.toast('Cette carte n’est plus dans ton inventaire.', 'error'); left[i] = null; return; }
           left[i] = null;
           const slot = slots[i];
@@ -430,6 +434,7 @@
           ui.floatText(slot, '+' + fmt(got));
           sound.play('coin');
           paintLeft();
+          return got;
         };
         el.addEventListener('click', (e) => {
           const one = e.target.closest('.js-sell1');
@@ -437,9 +442,11 @@
           const all = e.target.closest('.js-sellall');
           if (all) {
             if (!ui.confirmClick(all, 'Confirmer : tout vendre')) return;
-            let sum = 0;
-            left.forEach((c, i) => { if (c) { const before = wallet.get(); sellOne(i); sum += wallet.get() - before; } });
-            if (sum > 0) { sound.play('cashout'); ui.toast(`Cartes vendues : +${fmt(sum)} DaveCoins`, 'win'); }
+            (async () => {
+              let sum = 0;
+              for (let i = 0; i < left.length; i++) if (left[i]) sum += await sellOne(i);
+              if (sum > 0) { sound.play('cashout'); ui.toast(`Cartes vendues : +${fmt(round2(sum))} DaveCoins`, 'win'); }
+            })();
             return;
           }
           if (e.target.closest('.js-keep')) {
@@ -476,17 +483,27 @@
       }
       const tick = (k) => sound.play('tick', { p: 1 - k });
 
+      const online = () => DP.engine && DP.engine.on;
       async function openCases() {
+        if (busy) return;
         const free = isFree();
-        const c = free ? 0 : cost();
-        if (free) DP.progress.freeCases.use(box.id, count);
+        let c = free ? 0 : cost();
+        let srv = null;
+        if (online()) {
+          // en ligne : le serveur tire les cartes (et utilise tes caisses offertes s'il y en a assez)
+          busy = true; paint();
+          srv = await DP.engine.call('cases_open', { p_case: box.id, p_count: count }, { defer: true });
+          if (!srv || !alive) { busy = false; paint(); return; }
+          c = +srv.cost;
+          DP.engine.debitView(c);
+        } else if (free) DP.progress.freeCases.use(box.id, count);
         else if (!wallet.place(c)) return;
         busy = true; paint();
         stage.querySelector('.js-back').disabled = true;
-        const wins = Array.from({ length: count }, () => drawItem(box));
+        const wins = srv ? srv.draws : Array.from({ length: count }, () => drawItem(box));
         const payout = round2(wins.reduce((a, d) => a + box.price * d[1], 0));
         const won = wins.map((d) => cardOf(box, d));
-        pending = { cost: c, payout, cards: won.map((x) => x.id) };
+        pending = srv ? null : { cost: c, payout, cards: won.map((x) => x.id) };
         await crackCrate();
         if (!alive) return;
         const stripsEl = stage.querySelector('.cases__strips');
@@ -499,6 +516,7 @@
         pending = null;
         const order = wins.map((d, i) => i).sort((a, b) => wins[a][1] - wins[b][1]);
         for (const i of order) { reveal(cards[i], wins[i]); await sleep(260); if (!alive) return; }
+        if (srv) DP.engine.reveal(srv.acct);
         inventory.add(won.map((x) => x.id));
         settle('cases', c, payout, { silent: true, credit: false });
         lastOut.set(`<span class="${payout >= c ? 'pos' : ''}">${fmt(payout)} en cartes</span>`);
@@ -509,12 +527,20 @@
       }
 
       async function battle() {
+        if (busy) return;
         const c = cost();
-        if (!wallet.place(c)) return;
+        let srv = null;
+        if (online()) {
+          // en ligne : le serveur tire toutes les manches
+          busy = true; paint();
+          srv = await DP.engine.call('cases_battle', { p_case: box.id, p_opps: opps, p_rounds: rounds }, { defer: true });
+          if (!srv || !alive) { busy = false; paint(); return; }
+          DP.engine.debitView(c);
+        } else if (!wallet.place(c)) return;
         busy = true; paint();
         stage.querySelector('.js-back').disabled = true;
         const players = opps + 1;
-        const draws = Array.from({ length: rounds }, () => Array.from({ length: players }, () => drawItem(box)));
+        const draws = srv ? srv.draws : Array.from({ length: rounds }, () => Array.from({ length: players }, () => drawItem(box)));
         const totals = Array(players).fill(0);
         draws.forEach((r) => r.forEach((d, p) => (totals[p] = round2(totals[p] + box.price * d[1]))));
         const pot = round2(totals.reduce((a, b) => a + b, 0));
@@ -524,7 +550,7 @@
         const soloWin = winners.length === 1 && winners[0] === 0;
         const potCards = draws.flat().map((d) => cardOf(box, d));
         // victoire seule : toutes les cartes ; égalité : la part du pot en DaveCoins
-        pending = soloWin ? { cost: c, payout: myPay, cards: potCards.map((x) => x.id) } : { cost: c, payout: myPay, coins: true };
+        pending = srv ? null : soloWin ? { cost: c, payout: myPay, cards: potCards.map((x) => x.id) } : { cost: c, payout: myPay, coins: true };
         await crackCrate();
         if (!alive) return;
 
@@ -553,6 +579,7 @@
         }
         pending = null;
         rows.forEach((row, p) => row.classList.toggle('winner', winners.includes(p)));
+        if (srv) DP.engine.reveal(srv.acct);
         if (soloWin) {
           inventory.add(potCards.map((x) => x.id));
           settle('cases', c, myPay, { silent: true, credit: false });

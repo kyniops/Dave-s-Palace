@@ -28,6 +28,7 @@
     return out;
   })();
   const SEG = 360 / SEGS.length;
+  DP.wheelSegs = { SEGS, TYPES }; // partagé avec le moteur serveur (mêmes cases)
   const BOTS = [
     { name: 'Olman', img: 'olman.jpg' }, { name: 'Tdam', img: 'tdam.png' }, { name: 'Sévaré', img: 'sevare.png' },
     { name: 'Slymefire', img: 'slymefire.png' }, { name: 'AXB', img: 'axb.png' }, { name: 'Sauce Blanche', img: 'sauceblanche.png' },
@@ -166,8 +167,23 @@
         phaseEl.textContent = 'La roue tourne';
         phaseEl.className = 'pill js-phase';
         paintBets();
-        const idx = rng.int(0, SEGS.length - 1);
-        result = { idx, id: SEGS[idx], stake: myTotal(), bets: { ...mine } };
+        const E = DP.engine;
+        if (E && E.on && myTotal() > 0) {
+          // en ligne : le serveur tire la case avec tes mises
+          phase = 'wait';
+          const bets = { ...mine };
+          E.call('wheel_spin', { p_bets: bets }, { defer: true }).then((r) => {
+            if (!alive) return;
+            if (!r) { mine = {}; E.refresh(); beginSpin(rng.int(0, SEGS.length - 1), null); return; }
+            beginSpin(r.idx, r);
+          });
+          return;
+        }
+        beginSpin(rng.int(0, SEGS.length - 1), null);
+      }
+      function beginSpin(idx, srv) {
+        phase = 'spin';
+        result = { idx, id: SEGS[idx], stake: myTotal(), bets: { ...mine }, srv };
         // l'angle final amène la case idx sous le pointeur (avec un léger décalage dans la case)
         const from = ang;
         const off = (rng.float() - 0.5) * SEG * 0.7;
@@ -196,8 +212,9 @@
         const winZone = zones[result.id];
         ui.burst(winZone, { n: result.id === 'jpz' ? 50 : 20, colors: [t.c, '#ffffff'], spread: result.id === 'jpz' ? 2 : 1.2 });
         // ta mise
+        if (result.srv) DP.engine.reveal(result.srv.acct);
         if (result.stake > 0) {
-          const pay = round2((result.bets[result.id] || 0) * t.mult);
+          const pay = result.srv ? result.srv.payout : round2((result.bets[result.id] || 0) * t.mult);
           settle('wheel', result.stake, pay, { silent: true });
           lastOut.set(pay > 0 ? `<span class="pos">+${fmt(pay)}</span>` : '0');
           if (pay > 0) {
@@ -255,7 +272,11 @@
         const z = e.target.closest('.wbet');
         if (!z || phase !== 'bet') return;
         const v = rack.get();
-        if (!wallet.place(v)) return;
+        if (DP.engine && DP.engine.on) {
+          // en ligne : la mise est envoyée au serveur au départ de la roue ; ici on la montre débitée
+          if (!wallet.canAfford(v)) { ui.toast('Pas assez de DaveCoins !', 'error'); sound.play('error'); return; }
+          DP.engine.debitView(v);
+        } else if (!wallet.place(v)) return;
         // la mise compte tout de suite (même si le jeton est encore en vol à la fin du compte à rebours)
         mine[z.dataset.id] = round2((mine[z.dataset.id] || 0) + v);
         chips.fly(rack.btnFor(v), z.querySelector('.wbet__head'), v).then(() => {
@@ -266,7 +287,7 @@
       });
       undoBtn.addEventListener('click', () => {
         if (phase !== 'bet') return;
-        wallet.credit(myTotal());
+        if (DP.engine && DP.engine.on) DP.engine.refresh(); else wallet.credit(myTotal());
         mine = {};
         sound.play('whoosh');
         paintBets();
@@ -283,6 +304,7 @@
         alive = false;
         cancelAnimationFrame(raf);
         window.removeEventListener('resize', size);
+        if (DP.engine && DP.engine.on) { if (phase === 'bet') DP.engine.refresh(); return; } // en ligne : rien n'a été envoyé, ou déjà réglé
         if (phase === 'bet') wallet.credit(myTotal());           // mises pas encore jouées : rendues
         else if (phase === 'spin' && result && result.stake > 0) { // résultat déjà tiré : réglé
           settle('wheel', result.stake, round2((result.bets[result.id] || 0) * BY[result.id].mult), { silent: true });

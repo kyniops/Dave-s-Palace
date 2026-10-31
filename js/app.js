@@ -13,6 +13,7 @@
     const hash = location.hash.replace(/^#\/?/, '');
     const [page, arg] = hash.split('/');
     if (unmountView) { try { unmountView(); } catch (e) { console.error(e); } unmountView = null; }
+    if (DP.engine) DP.engine.flush(); // résultat d'une partie quittée avant la fin de l'animation
     window.scrollTo(0, 0);
 
     if (!auth.current()) {
@@ -337,9 +338,17 @@
     modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
     modal.querySelector('.modal__close').addEventListener('click', close);
 
-    daily.addEventListener('click', () => {
+    daily.addEventListener('click', async () => {
       if (spinning || bonus.dailyLeft() > 0) return;
-      const idx = bonus.drawDaily();
+      let srv = null;
+      if ((DP.engine && DP.engine.on)) {
+        // en ligne : le serveur tire la case et vérifie le délai de 12 h
+        spinning = true; paint();
+        srv = await DP.engine.call('daily_spin', {}, { defer: true });
+        spinning = false;
+        if (!srv) { paint(); return; }
+      }
+      const idx = srv ? srv.idx : bonus.drawDaily();
       spinning = true; hi = null; paint();
       box.classList.remove('is-win');
       box.classList.add('is-spinning');
@@ -364,7 +373,8 @@
         box.classList.add('is-win');
         setTimeout(() => box.classList.remove('is-win'), 3500);
         drawDaily(g, S, ang, hi);
-        const gain = bonus.claimDaily(idx);
+        const gain = srv ? srv.amount : bonus.claimDaily(idx);
+        if (srv) DP.engine.reveal(srv.acct);
         spinning = false;
         paint();
         const big = gain >= 1000;
@@ -378,7 +388,12 @@
       };
       requestAnimationFrame(step);
     });
-    rescue.addEventListener('click', () => { const g2 = bonus.claimRescue(); if (g2) { sound.play('coin'); ui.toast(`+${fmt(g2)} DaveCoins, reviens plus fort !`, 'win'); } paint(); });
+    rescue.addEventListener('click', async () => {
+      let g2;
+      if ((DP.engine && DP.engine.on)) { const r = await DP.engine.call('rescue_claim'); g2 = r ? r.amount : 0; } else g2 = bonus.claimRescue();
+      if (g2) { sound.play('coin'); ui.toast(`+${fmt(g2)} DaveCoins, reviens plus fort !`, 'win'); }
+      paint();
+    });
   }
 
 
@@ -653,6 +668,15 @@
       const so = e.target.closest('.js-sort button');
       if (so) { sort = so.dataset.s; sound.play('click'); paintCards(); return; }
       const one = e.target.closest('.js-sell');
+      if (one && (DP.engine && DP.engine.on)) {
+        if (!ui.confirmClick(one)) return;
+        one.disabled = true;
+        DP.engine.call('inv_sell', { p_items: [{ id: one.dataset.id, n: 1, shiny: !!one.dataset.shiny }] }).then((r) => {
+          if (r) { sound.play('coin'); ui.toast(`+${fmt(r.value)} DaveCoins`, 'win'); }
+          paint();
+        });
+        return;
+      }
       if (one) {
         if (!ui.confirmClick(one)) return;
         const got = inventory.sell(one.dataset.id, 1, !!one.dataset.shiny);
@@ -661,12 +685,24 @@
         return;
       }
       const dup = e.target.closest('.js-selldup');
+      if (dup && (DP.engine && DP.engine.on)) {
+        if (!ui.confirmClick(dup, 'Confirmer : vendre les doublons')) return;
+        dup.disabled = true;
+        DP.engine.call('inv_sell', { p_items: [], p_mode: 'dups' }).then((r) => { if (r) { sound.play('cashout'); ui.toast(`Doublons vendus : +${fmt(r.value)} DaveCoins`, 'win'); } paint(); });
+        return;
+      }
       if (dup) {
         if (!ui.confirmClick(dup, 'Confirmer : vendre les doublons')) return;
         let sum = 0;
         inventory.entries().forEach((x) => { if (x.n > 1 && !x.shiny) sum += inventory.sell(x.card.id, x.n - 1); });
         if (sum) { sound.play('cashout'); ui.toast(`Doublons vendus : +${fmt(sum)} DaveCoins`, 'win'); }
         paint();
+        return;
+      }
+      if (e.target.closest('.js-sellall') && (DP.engine && DP.engine.on)) {
+        if (!confirmAll) { confirmAll = true; sound.play('click'); paintCards(); setTimeout(() => { if (confirmAll) { confirmAll = false; if (view.isConnected && tab === 'cards') paintCards(); } }, 4000); return; }
+        confirmAll = false;
+        DP.engine.call('inv_sell', { p_items: [], p_mode: 'all' }).then((r) => { if (r) { sound.play('jackpot'); ui.coinRain(body, 40); ui.toast(`Inventaire vendu : +${fmt(r.value)} DaveCoins`, 'win'); } paint(); });
         return;
       }
       if (e.target.closest('.js-sellall')) {
@@ -682,12 +718,25 @@
       const fz = e.target.closest('.js-fuse');
       if (fz) {
         const card = cards.byId[fz.dataset.id];
+        if (card && (DP.engine && DP.engine.on)) {
+          fz.disabled = true;
+          DP.engine.call('inv_fuse', { p_id: card.id }, { defer: true }).then((r) => { if (!r) return paint(); fuseAnim(card).then(() => { DP.engine.reveal(r.acct); if (view.isConnected) paint(); }); });
+          return;
+        }
         if (card && inventory.fuse(card.id)) fuseAnim(card).then(() => view.isConnected && paint());
         return;
       }
       const claim = e.target.closest('.js-claim');
       if (claim) {
         const st = cards.sets.find((x) => x.id === claim.dataset.set);
+        if ((DP.engine && DP.engine.on)) {
+          claim.disabled = true;
+          DP.engine.call('album_claim', { p_set: st.id }).then((r) => {
+            if (r) { sound.play('jackpot'); sound.play('slam'); ui.coinRain(body, 60); ui.toast(`Album complet : +${fmt(r.amount)} DaveCoins !`, 'win'); }
+            paint();
+          });
+          return;
+        }
         const got = inventory.claimSet(st);
         if (got) { sound.play('jackpot'); sound.play('slam'); ui.coinRain(body, 60); ui.burst(claim, { n: 50, colors: ['#ffc145', '#ff6b2c', '#ffffff'], spread: 2 }); ui.toast(`Album complet : +${fmt(got)} DaveCoins !`, 'win'); }
         paint();
@@ -719,9 +768,13 @@
       <div class="js-used" data-reveal></div>`;
     const form = view.querySelector('.code-box');
     const msg = form.querySelector('.code-box__msg');
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const r = promo.redeem(form.code.value);
+      let r;
+      if ((DP.engine && DP.engine.on)) {
+        const s = await DP.engine.call('promo_redeem', { p_code: form.code.value }, { silent: true });
+        r = s ? { code: s.code, amount: s.amount } : { error: DP.engine.lastError };
+      } else r = promo.redeem(form.code.value);
       if (r.error) {
         msg.textContent = r.error; msg.className = 'code-box__msg neg';
         sound.play('error');

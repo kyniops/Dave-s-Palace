@@ -119,13 +119,15 @@
     canAfford(amount) { return amount > 0 && amount <= wallet.get() + 1e-9; },
     /** Débite une mise. Renvoie false (et prévient le joueur) si elle est invalide. */
     place(amount) {
+      // en ligne, les mises passent par le serveur : aucun débit local
+      if (DP.engine && DP.engine.on) { ui.toast('Action indisponible.', 'error'); return false; }
       amount = round2(amount);
       if (!(amount > 0)) { ui.toast('Mise invalide.', 'error'); return false; }
       if (!wallet.canAfford(amount)) { ui.toast('Pas assez de DaveCoins !', 'error'); sound.play('error'); return false; }
       wallet.set(wallet.get() - amount);
       return true;
     },
-    credit(amount) { if (amount > 0) wallet.set(wallet.get() + amount); }
+    credit(amount) { if (DP.engine && DP.engine.on) return; if (amount > 0) wallet.set(wallet.get() + amount); }
   };
 
   /* ---------- Bonus ---------- */
@@ -143,6 +145,7 @@
       return 0;
     },
     claimDaily(index) {
+      if (DP.engine && DP.engine.on) return 0;
       if (bonus.dailyLeft() > 0) return 0;
       const amount = DAILY_WHEEL[index][0];
       store.set(bonus._key('bonus'), String(Date.now()));
@@ -157,6 +160,7 @@
     },
     canRescue() { return wallet.get() < 1 && bonus.rescueLeft() === 0; },
     claimRescue() {
+      if (DP.engine && DP.engine.on) return 0;
       if (!bonus.canRescue()) return 0;
       store.set(bonus._key('rescue'), String(Date.now()));
       wallet.credit(RESCUE_AMOUNT);
@@ -177,6 +181,7 @@
     SEED: JACKPOT_SEED,
     get() { const v = parseFloat(store.get('dp_jackpot')); return isNaN(v) || v < JACKPOT_SEED ? JACKPOT_SEED : round2(v); },
     feed(amount) {
+      if (DP.engine && DP.engine.on) return; // le jackpot n'est alimenté que par le serveur
       if (!(amount > 0)) return;
       const v = round2(jackpot.get() + amount);
       store.set('dp_jackpot', String(v));
@@ -203,6 +208,7 @@
     key() { return 'dp_codes_' + auth.current(); },
     used() { return store.json(promo.key(), []); },
     redeem(raw) {
+      if (DP.engine && DP.engine.on) return { error: 'Action indisponible.' };
       const code = String(raw || '').trim().toLowerCase();
       if (!code) return { error: 'Entre un code.' };
       const amount = PROMO_CODES[code];
@@ -243,6 +249,7 @@
     },
     /** DaveCoins reçus hors partie : daily, rescue, promo, album, sale. */
     income(kind, amount) {
+      if (DP.engine && DP.engine.on) return;
       if (!(amount > 0) || !auth.current()) return;
       const s = stats.get();
       s.income[kind] = round2((s.income[kind] || 0) + amount);
@@ -281,6 +288,11 @@
   /** credit:false = la valeur est gagnée sous forme d'objets (cartes) et non versée en DaveCoins. */
   function settle(game, bet, payout, { silent = false, credit = true } = {}) {
     payout = round2(payout);
+    // en ligne, le serveur a déjà réglé la partie : on ne fait que jouer le son
+    if (DP.engine && DP.engine.on) {
+      if (!silent) { if (payout > bet) sound.play(payout >= bet * 10 ? 'jackpot' : 'win', { x: payout / bet }); else if (payout === 0) sound.play('lose'); }
+      return payout;
+    }
     if (credit) wallet.credit(payout);
     if (bet > 0) jackpot.feed(round2(bet * JACKPOT_RATE));
     stats.record(game, bet, payout);
@@ -968,6 +980,7 @@
     count(id) { return inventory._get().cards[id] || 0; },
     shinyCount(id) { return inventory._get().shiny[id] || 0; },
     add(ids) {
+      if (DP.engine && DP.engine.on) return;
       const d = inventory._get();
       ids.forEach((id) => (d.cards[id] = (d.cards[id] || 0) + 1));
       inventory._save(d);
@@ -975,6 +988,7 @@
     },
     /** Vend n exemplaires d'une carte (normale ou brillante) : retire de l'inventaire et crédite la valeur. */
     sell(id, n = 1, shiny = false) {
+      if (DP.engine && DP.engine.on) return 0;
       const d = inventory._get(), bag = shiny ? d.shiny : d.cards;
       const have = bag[id] || 0;
       n = Math.min(n, have);
@@ -990,6 +1004,7 @@
     },
     /** Retire des cartes sans les vendre (DaveUpgrade). list : [{ id, shiny, n }]. */
     take(list) {
+      if (DP.engine && DP.engine.on) return false;
       const d = inventory._get();
       if (!list.every((x) => ((x.shiny ? d.shiny : d.cards)[x.id] || 0) >= x.n)) return false;
       list.forEach((x) => { const bag = x.shiny ? d.shiny : d.cards; bag[x.id] -= x.n; if (!bag[x.id]) delete bag[x.id]; });
@@ -998,6 +1013,7 @@
     },
     /** Fusion : 5 exemplaires identiques deviennent 1 carte brillante (valeur ×7). */
     fuse(id) {
+      if (DP.engine && DP.engine.on) return false;
       const d = inventory._get();
       if ((d.cards[id] || 0) < FUSE_COST || !cards.byId[id]) return false;
       d.cards[id] -= FUSE_COST;
@@ -1029,6 +1045,7 @@
     },
     /** Récompense unique quand toutes les cartes d'un album sont possédées. */
     claimSet(set) {
+      if (DP.engine && DP.engine.on) return 0;
       const p = inventory.setProgress(set);
       if (!p.complete || p.claimed) return 0;
       const d = inventory._get();

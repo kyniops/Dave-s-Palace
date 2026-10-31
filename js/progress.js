@@ -62,6 +62,7 @@
     all() { return auth.current() ? load().free : {}; },
     add(id, n = 1) { const p = load(); p.free[id] = (p.free[id] || 0) + n; save(p); },
     use(id, n = 1) {
+      if (DP.engine && DP.engine.on) return false;
       const p = load();
       if ((p.free[id] || 0) < n) return false;
       p.free[id] -= n;
@@ -162,6 +163,7 @@
     });
   }
   function claim(i) {
+    if (DP.engine && DP.engine.on) return null;
     const p = load(), m = missionsOf(p)[i];
     if (!m || !m.done || m.claimed) return null;
     m.claimed = true;
@@ -253,7 +255,8 @@
   /* ---------- Écoute des événements du casino ---------- */
   function handle(fn) {
     return (data) => {
-      if (!auth.current()) return;
+      // en ligne, la progression est calculée par le serveur
+      if (!auth.current() || (DP.engine && DP.engine.on)) return;
       const p = load();
       fn(p, data);
       save(p);
@@ -287,7 +290,7 @@
   on('income', handle((p, d) => { if (d.kind === 'daily') p.c.dailies++; }));
   on('jackpotwin', handle((p, d) => { if (d.name === auth.current()) p.c.jackpots++; }));
   on('album', handle(() => {}));
-  on('auth', () => { if (auth.current()) setTimeout(checkAch, 300); });
+  on('auth', () => { if (auth.current()) setTimeout(() => { if (!(DP.engine && DP.engine.on)) checkAch(); }, 1500); });
 
   /* ---------- Célébrations (file d'attente, affichées l'une après l'autre) ---------- */
   const pending = [];
@@ -349,7 +352,7 @@
     const paint = () => {
       const p = load(), info = levelInfo(p.xp), r = info.rank;
       const list = missionsOf(p);
-      save(p); // fige les missions du jour
+      if (!(DP.engine && DP.engine.on)) save(p); // fige les missions du jour (en ligne : c'est le serveur)
       const nextRank = RANKS.find((x) => x.from > info.level);
       const nextRw = (() => { for (let L = info.level + 1; L <= MAX_LEVEL; L++) { const rw = levelReward(L); if (rw.freeCase) return { L, rw }; } return null; })();
       const x = ctxOf(p);
@@ -408,6 +411,18 @@
     };
     view.addEventListener('click', (e) => {
       const c = e.target.closest('.js-claim');
+      if (c && DP.engine && DP.engine.on) {
+        c.disabled = true;
+        DP.engine.call('mission_claim', { p_i: +c.dataset.i }).then((rw) => {
+          if (!rw) return paint();
+          sound.play('jackpot');
+          ui.burst(c, { n: 50, colors: ['#ffc145', '#ff6b2c', '#ffffff'], spread: 2 });
+          ui.coinRain(view, 30);
+          ui.toast(`+${fmt(rw.coins)} DaveCoins · +${fmt(rw.xp)} XP${rw.freeCase ? ' · ' + caseName(rw.freeCase) + ' offerte' : ''}${rw.allDone ? ' · Journée parfaite !' : ''}`, 'win');
+          setTimeout(paint, 450);
+        });
+        return;
+      }
       if (c) {
         const rw = claim(+c.dataset.i);
         if (!rw) return;
@@ -447,5 +462,14 @@
   /** XP totale pour atteindre le niveau L (début du niveau). */
   const xpFor = (L) => { let x = 0; for (let i = 1; i < Math.min(L, MAX_LEVEL); i++) x += need(i); return x; };
 
-  DP.progress = { RANKS, MAX_LEVEL, levelInfo, rankOf, badge, render, summary, freeCases, caseName, achievements, xpFor };
+  /** Succès débloqués côté serveur : un encart par succès, ou un seul s'il y en a beaucoup. */
+  function achPopups(ids) {
+    ensureGameAchs();
+    const list = ids.map((id) => ACHS.find((x) => x.id === id)).filter(Boolean);
+    if (!list.length) return;
+    if (list.length > 3) achPopup({ icon: 'trophy', tier: 3, name: `${list.length} succès débloqués`, coins: list.reduce((t, a) => t + ACH_REWARD[a.tier].coins, 0), xp: list.reduce((t, a) => t + ACH_REWARD[a.tier].xp, 0) });
+    else list.forEach(achPopup);
+  }
+
+  DP.progress = { RANKS, MAX_LEVEL, levelInfo, rankOf, badge, render, summary, freeCases, caseName, achievements, xpFor, celebrateLevel, achPopups, missionToast, describe };
 })();

@@ -137,6 +137,7 @@
     store.set('utilisateurCourant', username);
     const res = await pull(username, { importLocal });
     startSync();
+    if (DP.engine) await DP.engine.init();
     emit('auth');
     if (res === 'imported') setTimeout(() => ui.toast('Ta partie de ce navigateur a été importée dans ton compte en ligne', 'win', 4200), 1200);
   }
@@ -222,6 +223,7 @@
     const beforeTs = store.get(syncKey(prof.username));
     await pull(prof.username);
     startSync();
+    if (DP.engine) await DP.engine.init();
     emit('session');
     // nouvelles données venues d'un autre appareil : on rafraîchit l'affichage
     if (before !== prof.username || beforeTs !== store.get(syncKey(prof.username))) emit('cloudload');
@@ -239,7 +241,7 @@
   Object.assign(jackpot, {
     get() { return jpCache; },
     feed(amount) {
-      if (!(amount > 0)) return;
+      if (!(amount > 0) || (DP.engine && DP.engine.on)) return;
       jpPending = round2(jpPending + amount);
       jpCache = round2(jpCache + amount);
       emit('jackpot', jpCache);
@@ -256,6 +258,7 @@
     }
   });
   async function flushJackpot() {
+    if (DP.engine && DP.engine.on) { jpPending = 0; return; } // alimenté par le serveur
     if (!uid || jpPending <= 0) return;
     const amount = Math.min(5000, jpPending);
     jpPending = round2(jpPending - amount);
@@ -266,14 +269,14 @@
   setInterval(flushJackpot, 3000);
   const refreshJackpot = async () => { const { data } = await sb.from('jackpot').select('*').eq('id', 1).maybeSingle(); if (data && !jpPending) setJp(data); };
   refreshJackpot();
-  setInterval(refreshJackpot, 15000);
+  setInterval(refreshJackpot, 5000);
 
   /* ---------- Fil des gros gains ---------- */
   const feedRows = [];
   cloud.feed = () => feedRows;
   async function postFeed(game, amount, mult) {
     const u = auth.current();
-    if (!uid || !u) return;
+    if (!uid || !u || (DP.engine && DP.engine.on)) return; // publié par le serveur
     await sb.from('feed').insert({ user_id: uid, username: u, game, amount: round2(amount), mult: round2(mult) });
   }
   on('played', (h) => {

@@ -92,7 +92,7 @@
       }
 
       function render() {
-        shoeOut.set(String(shoe.length));
+        shoeOut.set(String(st && st.shoeN != null ? st.shoeN : shoe.length));
         if (!st) { dealerEl.innerHTML = renderHand([]); playerEl.innerHTML = renderHand([]); }
         else {
           dealerEl.innerHTML = renderHand(st.dealer, { hideHole: st.hideHole });
@@ -112,8 +112,8 @@
       }
 
       // Seule la dernière carte ajoutée doit être animée : on coupe l'animation des autres.
-      async function give(target) {
-        target.push(draw());
+      async function give(target, card) {
+        target.push(card || draw());
         sound.play('card');
         render();
         const tot = stage.querySelectorAll('.bj__total');
@@ -127,8 +127,63 @@
         if (el) { ui.shake(el, 2); ui.floatText(el, 'Bust', 'bad'); }
       }
 
+      const online = () => DP.engine && DP.engine.on;
+      /** En ligne : ajoute les cartes reçues du serveur (avec animation) et applique les séparations. */
+      async function syncHands(view) {
+        if (view.hands.length > st.hands.length) {
+          const [c0, c1] = st.hands[0].cards;
+          st.hands = view.hands.map((h, i) => ({ cards: [i === 0 ? c0 : c1], bet: h.bet, splitAces: h.splitAces }));
+          render();
+        }
+        for (let i = 0; i < view.hands.length; i++) {
+          const h = st.hands[i], vh = view.hands[i];
+          h.bet = vh.bet; h.doubled = vh.doubled;
+          while (h.cards.length < vh.cards.length) { st.cur = i; await give(h.cards, vh.cards[h.cards.length]); if (!alive) return; }
+        }
+        st.shoeN = view.shoe;
+      }
+      async function act(action) {
+        if (!st || st.phase !== 'player') return;
+        st.phase = 'busy'; render();
+        const r = await DP.engine.call('bj_act', { p_action: action }, { defer: true });
+        if (!alive) return;
+        if (!r) { st.phase = 'player'; render(); return; }
+        if (action === 'double' || action === 'split') sound.play('bet');
+        await syncHands(r.view);
+        if (!alive) return;
+        const h = st.hands[st.cur];
+        if (h && score(h.cards).total > 21) bustFx();
+        if (r.view.phase === 'over') return finish(r.view, r.acct);
+        st.cur = r.view.cur; st.phase = 'player';
+        DP.engine.reveal(r.acct);
+        render();
+      }
+
       async function deal() {
         const bet = betIn.get();
+        if (online()) {
+          if (st) return;
+          const r = await DP.engine.call('bj_deal', { p_bet: bet }, { defer: true });
+          if (!r || !alive) return;
+          DP.engine.debitView(bet);
+          betIn.remember();
+          msgEl.textContent = '';
+          sound.play('bet');
+          const v = r.view;
+          st = { dealer: [], hands: [{ cards: [], bet, done: false }], cur: 0, phase: 'deal', hideHole: true, shoeN: v.shoe };
+          render();
+          const hole = v.dealer[1] || { r: '2', s: '♠' }; // carte cachée : sa vraie valeur reste sur le serveur
+          for (const [target, card] of [[st.hands[0].cards, v.hands[0].cards[0]], [st.dealer, v.dealer[0]], [st.hands[0].cards, v.hands[0].cards[1]], [st.dealer, hole]]) {
+            if (!alive) return;
+            await give(target, card);
+          }
+          if (!alive) return;
+          if (v.phase === 'over') return finish(v, r.acct);
+          DP.engine.reveal(r.acct);
+          st.phase = 'player';
+          render();
+          return;
+        }
         if (!wallet.place(bet)) return;
         betIn.remember();
         msgEl.textContent = '';
@@ -165,6 +220,7 @@
       }
 
       async function hit() {
+        if (online()) return act('hit');
         if (!st || st.phase !== 'player') return;
         const h = st.hands[st.cur];
         st.phase = 'busy';
@@ -177,8 +233,9 @@
         if (t >= 21) return next();
         render();
       }
-      async function stand() { if (st && st.phase === 'player') { st.phase = 'busy'; await next(); } }
+      async function stand() { if (online()) return act('stand'); if (st && st.phase === 'player') { st.phase = 'busy'; await next(); } }
       async function double() {
+        if (online()) return act('double');
         if (!st || st.phase !== 'player') return;
         const h = st.hands[st.cur];
         if (!wallet.place(h.bet)) return;
@@ -192,6 +249,7 @@
         await next();
       }
       async function split() {
+        if (online()) return act('split');
         if (!st || st.phase !== 'player') return;
         const h = st.hands[0];
         if (!wallet.place(h.bet)) return;
@@ -237,22 +295,32 @@
         return { d, dBJ, staked, paid };
       }
 
-      async function finish() {
+      async function finish(view, acct) {
         st.phase = 'dealer';
         st.hideHole = false;
+        if (view) st.dealer[1] = view.dealer[1]; // la carte cachée révélée par le serveur
         render();
         const flip = dealerEl.querySelectorAll('.card')[1];
         if (flip) { flip.classList.add('flip'); sound.play('cardFlip'); }
         await sleep(500);
         if (!alive) return;
-        if (dealerMustPlay()) {
+        if (view) {
+          while (st.dealer.length < view.dealer.length) { await give(st.dealer, view.dealer[st.dealer.length]); if (!alive) return; }
+        } else if (dealerMustPlay()) {
           while (score(st.dealer).total < 17) {
             await give(st.dealer);
             if (!alive) return;
           }
         }
 
-        const { d, dBJ, staked, paid } = resolveRound();
+        let res0;
+        if (view) {
+          view.hands.forEach((h, i) => { if (st.hands[i]) st.hands[i].result = h.result; });
+          st.phase = 'over';
+          if (acct) DP.engine.reveal(acct);
+          res0 = { d: score(st.dealer).total, dBJ: isBJ(st.dealer), staked: +view.staked, paid: +view.paid };
+        } else res0 = resolveRound();
+        const { d, dBJ, staked, paid } = res0;
         const res = st.hands.map((h) => h.result);
         msgEl.textContent = res.includes('bj') ? 'Blackjack !' : st.hands.length > 1
           ? res.map((r) => ({ win: 'Gagné', lose: 'Perdu', push: 'Égalité' }[r])).join(' · ')
@@ -297,6 +365,11 @@
       return () => {
         alive = false;
         window.removeEventListener('keydown', onKey);
+        // en ligne : on reste sur toutes les mains, le serveur fait jouer le croupier
+        if (st && online()) {
+          if (st.phase !== 'over') (async () => { for (let i = 0; i < 4; i++) { const r = await DP.engine.call('bj_act', { p_action: 'stand' }, { silent: true }); if (!r || r.view.phase === 'over') break; } })();
+          return;
+        }
         // Main en cours : on reste sur toutes les mains et le croupier joue instantanément.
         if (st && st.phase !== 'over') {
           st.hands.forEach((h) => { while (h.cards.length < 2) h.cards.push(draw()); });

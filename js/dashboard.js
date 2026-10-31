@@ -370,7 +370,8 @@
     if (o.reset) data = { davecoin_: '1000' };
     const level = DP.progress.levelInfo((parse(data.dp_prog_, {}).xp) || 0).level;
     const online = DP.cloud && DP.cloud.online;
-    if (u.name === auth.current() || !online) {
+    const engineOn = DP.engine && DP.engine.on;
+    if (!engineOn && (u.name === auth.current() || !online)) {
       SAVE_KEYS.forEach((k) => store.remove(k + u.name));
       Object.entries(data).forEach(([k, v]) => store.set(k + u.name, v));
       if (u.name === auth.current()) { DP.emit('balance', wallet.get()); DP.emit('inventory'); DP.emit('progress'); if (online) await DP.cloud.pushNow(); }

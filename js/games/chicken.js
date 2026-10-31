@@ -112,27 +112,43 @@
         }
       }
 
-      function start() {
+      const online = () => DP.engine && DP.engine.on;
+      let starting = false;
+      async function start() {
         const bet = betIn.get();
-        if (!wallet.place(bet)) return;
+        if (starting) return;
+        if (online()) {
+          // en ligne : la voie fatale est tirée et gardée secrète par le serveur
+          starting = true;
+          const r = await DP.engine.call('chicken_start', { p_bet: bet, p_lvl: level });
+          starting = false;
+          if (!r) return;
+        } else if (!wallet.place(bet)) return;
         betIn.remember();
         sound.play('bet');
         build();
         // Voie fatale tirée à l'avance : chaque voie a une probabilité p d'être occupée.
         const p = LEVELS[level].p, L = LEVELS[level].lanes;
         let deathAt = -1;
-        for (let i = 0; i < L; i++) if (rng.float() < p) { deathAt = i; break; }
-        game = { bet, lvl: level, pos: -1, deathAt, over: false, busy: false };
+        if (!online()) for (let i = 0; i < L; i++) if (rng.float() < p) { deathAt = i; break; }
+        game = { bet, lvl: level, pos: -1, deathAt, over: false, busy: false, online: online() };
         betIn.disable(true);
         lvlSeg.disable(true);
         stage.querySelectorAll('.result-pop').forEach((n) => n.remove());
         paint();
       }
 
-      function stepForward() {
+      async function stepForward() {
         if (!game || game.over || game.busy) return;
         const i = game.pos + 1;
         game.busy = true;
+        if (game.online) {
+          const r = await DP.engine.call('chicken_step');
+          if (!game) return;
+          if (!r) { game.busy = false; return; }
+          game.deathAt = r.dead ? i : -1;
+          game.srvPay = r.done ? r.payout : null;
+        }
         placeChicken(i);
         sound.play('whoosh');
         if (i === game.deathAt) {
@@ -167,7 +183,7 @@
         }, 320);
       }
 
-      function end(won) {
+      function end(won, payout) {
         const g = game;
         g.over = true;
         game = null;
@@ -175,7 +191,7 @@
         lvlSeg.disable(false);
         if (won) {
           const m = mult(g.lvl, g.pos + 1);
-          const pay = round2(g.bet * m);
+          const pay = payout != null ? payout : g.srvPay != null ? g.srvPay : round2(g.bet * m);
           settle('chicken', g.bet, pay, { silent: true });
           sound.play('cashout');
           sound.play('win', { x: m });
@@ -188,7 +204,15 @@
       }
 
       goBtn.addEventListener('click', () => (game ? stepForward() : start()));
-      cashBtn.addEventListener('click', () => { if (game && !game.busy && game.pos >= 0) end(true); });
+      cashBtn.addEventListener('click', async () => {
+        if (!game || game.busy || game.pos < 0) return;
+        if (!game.online) return end(true);
+        game.busy = true;
+        const r = await DP.engine.call('chicken_cash');
+        if (!game) return;
+        game.busy = false;
+        if (r) end(true, r.payout);
+      });
       road.addEventListener('click', (e) => {
         const lane = e.target.closest('.lane.next');
         if (lane) stepForward();
@@ -224,6 +248,7 @@
         timers.forEach(clearTimeout);
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('resize', onResize);
+        if (game && !game.over && game.online) { DP.engine.call('chicken_cash', {}, { silent: true }); return; }
         if (game && !game.over) {
           if (game.busy && game.pos + 1 === game.deathAt) settle('chicken', game.bet, 0);
           else if (game.busy) settle('chicken', game.bet, round2(game.bet * mult(game.lvl, game.pos + 2)));

@@ -175,7 +175,15 @@
       async function roll() {
         const stake = total();
         if (rolling || !stake) return;
-        if (!wallet.place(stake)) return;
+        const E = DP.engine;
+        let srv = null;
+        if (E && E.on) {
+          // en ligne : le serveur lance les dés
+          rolling = true; paint();
+          srv = await E.call('dice_roll', { p_bets: bets }, { defer: true });
+          if (!srv || !alive) { rolling = false; paint(); return; }
+          E.debitView(stake);
+        } else if (!wallet.place(stake)) return;
         rolling = true;
         lastBets = { ...bets };
         boxes.forEach((b) => { b.classList.remove('win', 'lose'); b.querySelector('.dbet__hits').textContent = ''; });
@@ -183,9 +191,9 @@
         paint();
         sound.play('dice');
 
-        const idx = [0, 1, 2].map(() => rng.int(0, 5));
+        const idx = srv ? srv.idx : [0, 1, 2].map(() => rng.int(0, 5));
         const result = idx.map((k) => FACES[k].id);
-        pending = { result, stake, placed: { ...bets } };
+        pending = srv ? null : { result, stake, placed: { ...bets } };
         const hits = {};
         let streak = 0;
         const rattle = setInterval(() => sound.play('dice'), 260);
@@ -210,7 +218,8 @@
         if (!alive) return;
 
         pending = null;
-        const pay = payout(result, lastBets);
+        const pay = srv ? srv.payout : payout(result, lastBets);
+        if (srv) DP.engine.reveal(srv.acct);
         settle('dice', stake, pay, { silent: true });
         lastOut.set(pay > 0 ? `<span class="pos">+${fmt(pay)}</span>` : '0');
         let delay = 0;

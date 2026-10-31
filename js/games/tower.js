@@ -98,16 +98,25 @@
         if (game && act) act.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
 
-      function start() {
+      const online = () => DP.engine && DP.engine.on;
+      let starting = false;
+      async function start() {
         const bet = betIn.get();
-        if (!wallet.place(bet)) return;
+        if (starting) return;
+        if (online()) {
+          // en ligne : les pièges sont tirés et gardés secrets par le serveur
+          starting = true;
+          const r = await DP.engine.call('tower_start', { p_bet: bet, p_lvl: level });
+          starting = false;
+          if (!r) return;
+        } else if (!wallet.place(bet)) return;
         betIn.remember();
         sound.play('bet');
         build();
         const L = LEVELS[level];
         // pièges tirés à l'avance pour chaque étage
-        const traps = Array.from({ length: FLOORS }, () => new Set(rng.shuffle([...Array(L.doors).keys()]).slice(0, L.traps)));
-        game = { bet, lvl: level, floor: 0, traps, busy: false };
+        const traps = online() ? Array.from({ length: FLOORS }, () => new Set()) : Array.from({ length: FLOORS }, () => new Set(rng.shuffle([...Array(L.doors).keys()]).slice(0, L.traps)));
+        game = { bet, lvl: level, floor: 0, traps, busy: false, online: online() };
         stage.querySelectorAll('.result-pop').forEach((n) => n.remove());
         paint();
       }
@@ -117,10 +126,21 @@
         btn.innerHTML = kind === 'safe' ? `<img src="${IMG}davecoin.png" alt="">` : ui.icon('skull');
       }
 
-      function choose(f, d) {
+      const setTraps = (all) => { if (all && game) all.forEach((row, f) => (game.traps[f] = new Set(row))); };
+      async function choose(f, d) {
         if (!game || game.busy || f !== game.floor) return;
         const btn = floors[f].querySelector(`.door[data-d="${d}"]`);
-        if (game.traps[f].has(d)) {
+        let srv = null;
+        if (game.online) {
+          game.busy = true;
+          srv = await DP.engine.call('tower_pick', { p_door: d });
+          if (!game) return;
+          game.busy = false;
+          if (!srv) return;
+          setTraps(srv.traps);
+          if (srv.row) game.traps[f] = new Set(srv.row);
+        }
+        if (srv ? srv.trap : game.traps[f].has(d)) {
           open(btn, 'trap');
           end(false, btn);
           return;
@@ -136,12 +156,13 @@
           if (!game) return;
           game.floor = k;
           game.busy = false;
-          if (k === FLOORS) { end(true); return; }
+          if (k === FLOORS) { end(true, srv && srv.payout); return; }
           paint();
         }, 260);
       }
 
-      function end(won, hitBtn) {
+      function end(won, hitBtn, payout) {
+        if (typeof hitBtn === 'number') { payout = hitBtn; hitBtn = null; }
         const g = game;
         game = null;
         // révèle tous les pièges
@@ -151,7 +172,7 @@
         }));
         const m = mult(g.lvl, g.floor);
         if (won) {
-          const pay = round2(g.bet * m);
+          const pay = payout != null ? payout : round2(g.bet * m);
           settle('tower', g.bet, pay, { silent: true });
           sound.play('cashout');
           sound.play('win', { x: m });
@@ -174,14 +195,25 @@
       });
       goBtn.addEventListener('click', () => {
         if (!game) start();
-        else if (game.floor > 0 && !game.busy) end(true);
+        else if (game.floor > 0 && !game.busy) cash();
       });
+      async function cash() {
+        if (!game.online) return end(true);
+        game.busy = true;
+        const r = await DP.engine.call('tower_cash');
+        if (!game) return;
+        game.busy = false;
+        if (!r) return;
+        setTraps(r.traps);
+        end(true, null, r.payout);
+      }
       randBtn.addEventListener('click', () => { if (game && !game.busy) choose(game.floor, rng.int(0, LEVELS[game.lvl].doors - 1)); });
       build();
       paint();
 
       return () => {
         if (!game) return;
+        if (game.online) { DP.engine.call('tower_cash', {}, { silent: true }); game = null; return; }
         if (game.floor > 0) settle('tower', game.bet, round2(game.bet * mult(game.lvl, game.floor)), { silent: true });
         else wallet.credit(game.bet);
         game = null;

@@ -220,16 +220,42 @@
       const MILESTONES = [2, 5, 10, 25, 50, 100];
       let engine = null;
 
-      function launch() {
+      let poll = 0, launching = false;
+      const stopPoll = () => { clearInterval(poll); poll = 0; };
+      async function launch() {
         const bet = betIn.get();
         const autoVal = parseFloat(autoIn.value) || 0;
         if (autoVal && autoVal < MIN_CASH) { ui.toast(`L’auto-encaissement doit être ≥ ${MIN_CASH}×`, 'error'); return; }
-        if (!wallet.place(bet)) return;
+        const online = DP.engine && DP.engine.on;
+        if (launching) return;
+        if (online) {
+          // en ligne : le point de crash est tiré et gardé secret par le serveur
+          launching = true;
+          const r = await DP.engine.call('rocket_start', { p_bet: bet, p_auto: autoVal });
+          launching = false;
+          if (!r || !alive) return;
+        } else if (!wallet.place(bet)) return;
         betIn.remember();
         store.set('dp_rocket_auto', String(autoVal));
         sound.play('bet');
         const now = performance.now();
-        round = { bet, crash: crashPoint(), t0: now + COUNTDOWN, cashed: false, cashMult: 0, auto: autoVal, over: false, ms: 0 };
+        round = { bet, crash: online ? Infinity : crashPoint(), t0: now + COUNTDOWN, cashed: false, cashMult: 0, auto: autoVal, over: false, ms: 0, online };
+        if (online) {
+          // le serveur dit quand la fusée a explosé (ou a été encaissée par l'auto-encaissement)
+          stopPoll();
+          const r0 = round;
+          poll = setInterval(async () => {
+            if (!alive || round !== r0 || r0.over || performance.now() < r0.t0) return;
+            if (r0.polling) return;
+            r0.polling = true;
+            const s = await DP.engine.call('rocket_poll', {}, { silent: true });
+            r0.polling = false;
+            if (!s || round !== r0) return;
+            if (s.state === 'none') { stopPoll(); return; }
+            if (s.state === 'crashed') { r0.crash = +s.crash; stopPoll(); }
+            if (s.state === 'auto' && !r0.cashed) { r0.crash = +s.crash; stopPoll(); cashout(r0.auto, s.payout); }
+          }, 250);
+        }
         betIn.disable(true);
         autoIn.disabled = true;
         btn.disabled = true;
@@ -239,12 +265,12 @@
         raf = requestAnimationFrame(tick);
       }
 
-      function cashout(m) {
+      function cashout(m, payout) {
         if (!round || round.cashed || round.over || m < MIN_CASH) return;
         round.cashed = true;
         round.cashedAt = performance.now();
         round.cashMult = round2(m);
-        const pay = round2(round.bet * round.cashMult);
+        const pay = payout != null ? payout : round2(round.bet * round.cashMult);
         settle('rocket', round.bet, pay, { silent: true });
         sound.play('cashout');
         sound.play('win', { x: round.cashMult });
@@ -272,7 +298,7 @@
         const elapsed = now - round.t0;
         let m = multAt(elapsed);
         engine.set(m);
-        if (round.auto && !round.cashed && m >= round.auto && round.auto <= round.crash) cashout(round.auto);
+        if (!round.online && round.auto && !round.cashed && m >= round.auto && round.auto <= round.crash) cashout(round.auto);
         // Une fois encaissé, on laisse voler 1,5 s puis on révèle le point de crash.
         const reveal = round.cashed && now - round.cashedAt > 1500;
         if (m >= round.crash || reveal) {
@@ -320,6 +346,7 @@
       }
 
       function finish() {
+        stopPoll();
         lastBeep = 1;
         round = null;
         betIn.disable(false);
@@ -338,7 +365,21 @@
 
       btn.addEventListener('click', () => {
         if (!round) launch();
-        else if (performance.now() >= round.t0) cashout(multAt(performance.now() - round.t0));
+        else if (performance.now() >= round.t0) {
+          if (!round.online) return cashout(multAt(performance.now() - round.t0));
+          // en ligne : c'est le serveur qui décide (son horloge, son point de crash)
+          if (round.cashing || round.cashed || round.over) return;
+          const r0 = round;
+          r0.cashing = true;
+          btn.disabled = true;
+          DP.engine.call('rocket_cash').then((s) => {
+            r0.cashing = false;
+            if (!s || round !== r0) return;
+            stopPoll();
+            r0.crash = +s.crash;
+            if (s.state === 'cashed') cashout(+s.mult, s.payout);
+          });
+        }
       });
       const onKey = (e) => {
         if (e.code === 'Space' && !e.target.closest('input')) { e.preventDefault(); if (!btn.disabled) btn.click(); }
@@ -358,6 +399,8 @@
         window.removeEventListener('resize', onResize);
         // Quitter ne rembourse jamais : si le vol a dépassé 1.01× on encaisse comme avec le bouton,
         // sinon la manche se termine sans toi (auto-encaissement s'il est réglé, sinon mise perdue).
+        stopPoll();
+        if (round && round.online) { if (!round.cashed && !round.over) DP.engine.call('rocket_cash', {}, { silent: true }); return; }
         if (round && !round.cashed && !round.over) {
           const now = performance.now();
           const m = now >= round.t0 ? multAt(now - round.t0) : 1;
