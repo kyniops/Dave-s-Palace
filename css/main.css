@@ -1077,3 +1077,9 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .frow__act { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 @media (max-width: 600px) { .frow { flex-wrap: wrap; } .frow__act { width: 100%; justify-content: flex-start; } }
+
+/* ---------- Admin : alertes ---------- */
+.dbadge { display: inline-block; margin-left: 8px; padding: 2px 7px; font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; vertical-align: middle; }
+.dbadge.bad { background: rgba(255,61,90,.18); color: #ff6b7f; box-shadow: inset 0 0 0 1px rgba(255,61,90,.5); }
+.dbadge.warn { background: rgba(255,193,69,.14); color: var(--coin); box-shadow: inset 0 0 0 1px rgba(255,193,69,.45); cursor: help; }
+.dmanage__warn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,193,69,.1); color: var(--coin); font-size: 13px; }

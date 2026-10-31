@@ -860,7 +860,7 @@
     });
     const load = async () => {
       if (!(DP.cloud && DP.cloud.online)) { paint(); return; }
-      try { list = await DP.cloud.players(); } catch { list = []; }
+      try { list = (await DP.cloud.players()).filter((p) => !p.banned); } catch { list = []; }
       if (alive) paint();
     };
     load();

@@ -340,6 +340,8 @@
       const bal = parseFloat(get('davecoin_'));
       return {
         name: n, id, raw, s,
+        banned: !!(players && (players.find((p) => p.id === id) || {}).banned),
+        badName: !!auth.usernameProblem(n),
         balance: isNaN(bal) ? 0 : round2(bal),
         net: round2(s.won - s.wagered),
         copies: inv.reduce((a, [, c]) => a + c, 0),
@@ -378,7 +380,21 @@
     u.raw = data;
   }
 
+  /** Signaux d'alerte : banni, pseudo interdit, résultats statistiquement improbables (triche probable). */
+  function suspicion(u) {
+    const s = u.s, why = [];
+    if (s.played >= 30 && s.wagered > 0 && s.won / s.wagered > 1.6) why.push(`RTP ${Math.round((s.won / s.wagered) * 100)} % sur ${s.played} parties`);
+    if (u.balance > 50000 && s.wagered < u.balance * 0.2) why.push('solde élevé avec très peu de mises');
+    if (s.played > 0 && s.wins / s.played > 0.85 && s.played >= 30) why.push(`${Math.round((s.wins / s.played) * 100)} % de victoires`);
+    return why;
+  }
+  const flags = (u) => {
+    const sus = suspicion(u);
+    return `${u.banned ? '<span class="dbadge bad">Banni</span>' : ''}${u.badName ? '<span class="dbadge warn">Pseudo interdit</span>' : ''}${sus.length ? `<span class="dbadge warn" title="${esc(sus.join(' · '))}">Suspect</span>` : ''}`;
+  };
+
   function manage(u, done) {
+    const online = DP.cloud && DP.cloud.online;
     const parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
     const lvl = DP.progress.levelInfo((parse(u.raw.dp_prog_, {}).xp) || 0).level;
     const cardOpts = (DP.cases ? DP.cases.list : []).map((c) => `<optgroup label="${esc(c.name)}">${Object.values(cards.byId).filter((x) => x.set === c.id).sort((a, b) => a.value - b.value).map((x) => `<option value="${x.id}">${esc(x.name)} · ${x.rarity.label} · ${fmt(x.value)}</option>`).join('')}</optgroup>`).join('');
@@ -387,6 +403,7 @@
       <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
       <h3>${I('shield')}Gérer ${esc(u.name)}</h3>
       <p class="muted">Solde actuel <b class="num">${fmt(u.balance)}</b> · niveau <b class="num">${lvl}</b> · ${u.unique} cartes différentes</p>
+      ${suspicion(u).length ? `<p class="dmanage__warn">${I('triangle-alert', 'i--sm')}Suspect : ${esc(suspicion(u).join(' · '))}</p>` : ''}
       <form class="dmanage__row" data-a="coins"><label>DaveCoins</label><input name="v" type="number" step="1" min="0" placeholder="Montant" required>
         <button class="btn btn--primary btn--sm" name="op" value="add" type="submit">Ajouter</button><button class="btn btn--ghost btn--sm" name="op" value="sub" type="submit">Retirer</button><button class="btn btn--ghost btn--sm" name="op" value="set" type="submit">Fixer à</button></form>
       <form class="dmanage__row" data-a="level"><label>Niveau</label><input name="v" type="number" min="1" max="${DP.progress.MAX_LEVEL}" step="1" value="${lvl}" required>
@@ -396,6 +413,10 @@
       <form class="dmanage__row" data-a="card"><label>Carte</label><select name="id">${cardOpts}</select><input name="n" type="number" min="1" max="50" value="1">
         <label class="dmanage__chk"><input name="shiny" type="checkbox">Brillante</label>
         <button class="btn btn--primary btn--sm" name="op" value="give" type="submit">Donner</button><button class="btn btn--ghost btn--sm" name="op" value="take" type="submit">Retirer</button></form>
+      ${online ? `<form class="dmanage__row" data-a="rename"><label>Pseudo</label><input name="v" maxlength="20" value="${esc(u.name)}" required style="width:180px">
+        <button class="btn btn--primary btn--sm" type="submit">Renommer</button>${u.badName ? '<span class="dbadge bad">Pseudo interdit</span>' : ''}</form>
+      <form class="dmanage__row" data-a="ban"><label>${u.banned ? 'Compte banni' : 'Bannir'}</label>
+        ${u.banned ? `<button class="btn btn--primary btn--sm" type="submit">Débannir</button>` : `<input name="why" maxlength="80" placeholder="Raison (optionnel)" style="width:220px"><button class="btn btn--ghost btn--sm btn--danger" type="submit">Bannir</button>`}</form>` : ''}
       <div class="dmanage__danger"><button class="btn btn--ghost btn--sm js-reset" type="button">${I('trash-2', 'i--sm')}Réinitialiser le compte</button><span class="muted">Remet à zéro : 1 000 DaveCoins, aucune carte, niveau 1.</span></div>
       <p class="dmanage__msg" role="status"></p>
     </div></div>`);
@@ -408,9 +429,21 @@
       try { await applyTo(u, mutate); msg.className = 'dmanage__msg pos'; msg.textContent = text; DP.sound.play('win'); ui.toast(`${u.name} : ${text}`, 'win'); setTimeout(close, 700); }
       catch (err) { msg.className = 'dmanage__msg neg'; msg.textContent = adminErr(err); DP.sound.play('error'); modal.querySelectorAll('button').forEach((b) => (b.disabled = false)); }
     };
+    const runServer = async (fn, text) => {
+      modal.querySelectorAll('button').forEach((b) => (b.disabled = true));
+      try { await fn(); msg.className = 'dmanage__msg pos'; msg.textContent = text; DP.sound.play('win'); ui.toast(`${u.name} : ${text}`, 'win'); setTimeout(close, 700); }
+      catch (err) { msg.className = 'dmanage__msg neg'; msg.textContent = /interdit|invalide|pris|Pseudo/i.test(err.message || '') ? err.message : adminErr(err); DP.sound.play('error'); modal.querySelectorAll('button').forEach((b) => (b.disabled = false)); }
+    };
     modal.addEventListener('submit', (e) => {
       e.preventDefault();
       const f = e.target, a = f.dataset.a, op = e.submitter ? e.submitter.value : '';
+      if (a === 'rename') { const v = f.v.value.trim(); if (v && v !== u.name) runServer(() => DP.cloud.admin.rename(u.id, v), `renommé en ${v}`); return; }
+      if (a === 'ban') {
+        const b = f.querySelector('button');
+        if (!u.banned && !ui.confirmClick(b, 'Confirmer le bannissement')) return;
+        runServer(() => DP.cloud.admin.ban(u.id, !u.banned, f.why ? f.why.value.trim() : ''), u.banned ? 'débanni' : 'banni');
+        return;
+      }
       if (a === 'coins') {
         const v = round2(Math.abs(parseFloat(f.v.value)));
         if (!(v >= 0)) return;
@@ -527,7 +560,7 @@
       const list = users.slice().sort((a, b) => { const x = valOf(a, sortKey), y = valOf(b, sortKey); return (typeof x === 'string' ? x.localeCompare(y) : x - y) * sortDir; });
       usersBox.innerHTML = `<table class="history dtable dusers"><thead><tr>${COLS.map(([k, l]) => `<th class="${k === 'name' ? '' : 'num'} sortable ${k === sortKey ? 'on' : ''}" data-k="${k}">${l}${k === sortKey ? (sortDir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}<th class="num">Actions</th></tr></thead>
         <tbody>${list.map((u) => `<tr data-u="${esc(u.name)}">
-          <td>${DP.profile.link(u.name, `<span class="g">${DP.profile.avatarHtml(u.name)}${esc(u.name)}${u.name === auth.current() ? ' <small class="muted">(toi)</small>' : ''}</span>`)}</td>
+          <td>${DP.profile.link(u.name, `<span class="g">${DP.profile.avatarHtml(u.name)}${esc(u.name)}${u.name === auth.current() ? ' <small class="muted">(toi)</small>' : ''}</span>`)}${flags(u)}</td>
           <td class="num js-ubal">${fmt(u.balance)}</td><td class="num">${fmt(u.s.played)}</td><td class="num">${fmt(u.s.wagered)}</td>
           <td class="num ${tone(u.net)}">${signed(u.net)}</td><td class="num">${pct(u.s.won, u.s.wagered)}</td>
           <td class="num">${u.unique} <small class="muted">(${u.copies})</small></td><td class="num">${fmt(u.invValue)}</td><td class="num muted">${ago(u.last)}</td>

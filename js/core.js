@@ -56,7 +56,17 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   /* ---------- Comptes ---------- */
+  // Pseudos : lettres, chiffres, _ et - (2 à 20). Mots interdits comparés sans accents ni séparateurs, « leet » compris.
+  const FORBIDDEN = /(pute|salope|connard|connas|encule|nique|ntm|fdp|batard|^bite|bite$|couille|^chatte|chatte$|pede|tapette|gouine|negre|negro|nigg|bougnoul|youpin|nazi|hitler|porn|sexe|fuck|shit|bitch|fagg|gay|salpd|merde|cocu|^pd$)/;
+  const cleanName = (n) => String(n).toLowerCase().replace(/[_\-.@ ]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[0134578@$]/g, (c) => ({ 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', 8: 'b', '@': 'a', $: 's' }[c]));
+  const usernameProblem = (name) => {
+    if (!/^[A-Za-z0-9_-]{2,20}$/.test(name)) return 'Pseudo : 2 à 20 caractères, lettres, chiffres, _ et - uniquement (pas d’espace ni d’accent).';
+    if (FORBIDDEN.test(cleanName(name))) return 'Ce pseudo contient un mot interdit.';
+    return null;
+  };
   const auth = {
+    usernameProblem,
     users() { return store.json('utilisateurs', []); },
     current() { return store.get('utilisateurCourant'); },
     login(name, password) {
@@ -70,8 +80,8 @@
     },
     register(name, password) {
       name = (name || '').trim();
-      if (name.length < 2) return 'Le pseudo doit faire au moins 2 caractères.';
-      if (name.length > 20) return 'Le pseudo doit faire 20 caractères maximum.';
+      const bad = usernameProblem(name);
+      if (bad) return bad;
       if (!password || password.length < 3) return 'Le mot de passe doit faire au moins 3 caractères.';
       const users = auth.users();
       if (users.some((u) => u.prenom.toLowerCase() === name.toLowerCase())) return 'Ce pseudo est déjà pris.';

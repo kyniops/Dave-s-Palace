@@ -47,6 +47,7 @@
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${S.uid}` }, (p) => {
         S.notifs.unshift(p.new);
         emit('notifs');
+        if (p.new.kind === 'renamed' && p.new.payload && p.new.payload.new) { DP.cloud.renamed(p.new.payload.new); return; }
         ui.toast(textOf(p.new).replace(/<[^>]+>/g, ''), 'win', 4200);
         sound.play('coin');
         if (/^friend_/.test(p.new.kind)) loadFriends();
@@ -74,8 +75,9 @@
     async search(q) {
       q = q.trim();
       if (q.length < 1) return [];
-      const { data } = await sb().from('profiles').select('id, username').ilike('username', `%${q.replace(/[%_]/g, '')}%`).limit(12);
-      return (data || []).filter((p) => p.id !== S.uid);
+      let r = await sb().from('profiles').select('id, username, banned').ilike('username', `%${q.replace(/[%_]/g, '')}%`).limit(12);
+      if (r.error) r = await sb().from('profiles').select('id, username').ilike('username', `%${q.replace(/[%_]/g, '')}%`).limit(12);
+      return (r.data || []).filter((p) => p.id !== S.uid && !p.banned);
     },
     async request(userId) { if (await act(sb().from('friendships').insert({ requester: S.uid, addressee: userId }))) { sound.play('chip'); ui.toast('Demande d’ami envoyée', 'win'); await loadFriends(); } },
     async accept(fid) { if (await act(sb().from('friendships').update({ status: 'accepted' }).eq('id', fid))) { sound.play('win'); await Promise.all([loadFriends(), loadNotifs()]); } },
@@ -93,6 +95,7 @@
     if (n.kind === 'friend_accept') return `${who(n)} a accepté ta demande d’ami`;
     if (n.kind === 'friend_win') { const g = games.find(p.game); return p.game === 'jackpot' ? `Ton ami ${who(n)} a remporté le JACKPOT : ${fmt(p.amount)} !` : `Ton ami ${who(n)} gagne +${fmt(p.amount)} sur ${g ? g.name : esc(p.game)}`; }
     if (n.kind === 'admin') return 'Un admin a modifié ton compte';
+    if (n.kind === 'renamed') return `Un admin t’a renommé : <b>${esc((n.payload || {}).old || '')}</b> → <b>${esc((n.payload || {}).new || '')}</b>`;
     return esc(n.kind);
   }
   const iconOf = (k) => ({ friend_request: 'user-plus', friend_accept: 'user-check', friend_win: 'trophy', admin: 'shield' }[k] || 'bell');

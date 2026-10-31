@@ -143,8 +143,8 @@
 
   auth.register = async (name, password) => {
     name = (name || '').trim();
-    if (name.length < 2) return 'Le pseudo doit faire au moins 2 caractères.';
-    if (name.length > 20) return 'Le pseudo doit faire 20 caractères maximum.';
+    const bad = auth.usernameProblem(name);
+    if (bad) return bad;
     if (!password || password.length < 6) return 'Le mot de passe doit faire au moins 6 caractères.';
     const { data: taken } = await sb.from('profiles').select('id').ilike('username', name).maybeSingle();
     if (taken) return 'Ce pseudo est déjà pris.';
@@ -153,19 +153,23 @@
     if (!data.session) return 'Inscription faite, mais la confirmation par email est activée sur le serveur.';
     uid = data.user.id;
     const { error: e2 } = await sb.from('profiles').insert({ id: uid, username: name });
-    if (e2) { await sb.auth.signOut(); uid = null; return /duplicate|unique/i.test(e2.message) ? 'Ce pseudo est déjà pris.' : errFr(e2); }
+    if (e2) { await sb.auth.signOut(); uid = null; return /duplicate|unique|déjà pris/i.test(e2.message) ? 'Ce pseudo est déjà pris.' : /interdit|invalide/i.test(e2.message) ? e2.message : errFr(e2); }
     await enter(name, { importLocal: hasLocal(name) });
     return null;
   };
   auth.login = async (name, password) => {
     name = (name || '').trim();
-    const { data, error } = await sb.auth.signInWithPassword({ email: emailOf(name), password: password || '' });
+    // l'adresse interne ne change pas quand l'admin renomme un joueur : on la retrouve par le pseudo
+    let email = emailOf(name);
+    try { const { data: em } = await sb.rpc('login_email', { p_username: name }); if (em) email = em; } catch { /* fonction absente */ }
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: password || '' });
     if (error) {
       // ancien compte local de ce navigateur pas encore passé en ligne : on le signale
       if (auth.users().some((u) => u.prenom.toLowerCase() === name.toLowerCase())) return 'Ce compte existe seulement sur ce navigateur : clique sur « Inscription » avec le même pseudo (mot de passe de 6 caractères minimum) pour le passer en ligne, ta partie sera importée.';
       return errFr(error);
     }
     uid = data.user.id;
+    if (await bannedReason() !== null) { const why = await bannedReason(); await sb.auth.signOut(); uid = null; return 'Ce compte a été banni' + (why ? ' : ' + why : '.'); }
     const { data: prof } = await sb.from('profiles').select('username').eq('id', uid).maybeSingle();
     let username = prof ? prof.username : name;
     if (!prof) await sb.from('profiles').insert({ id: uid, username });
@@ -175,6 +179,35 @@
   const localLogout = auth.logout;
   auth.logout = () => { push(true).finally(() => sb.auth.signOut()); clearInterval(pushTimer); uid = null; localLogout(); };
 
+  /* ---------- Bannissement ---------- */
+  /** null si le compte n'est pas banni, sinon la raison ('' si aucune). */
+  async function bannedReason() {
+    if (!uid) return null;
+    const { data, error } = await sb.from('profiles').select('banned, banned_reason').eq('id', uid).maybeSingle();
+    if (error || !data || !data.banned) return null;
+    return data.banned_reason || '';
+  }
+  async function kickIfBanned() {
+    const why = await bannedReason();
+    if (why === null) return false;
+    clearInterval(pushTimer); uid = null;
+    await sb.auth.signOut();
+    localLogout();
+    ui.toast('Ton compte a été banni' + (why ? ' : ' + why : '.'), 'error', 6000);
+    emit('cloudload');
+    return true;
+  }
+  setInterval(() => { if (uid) kickIfBanned(); }, 30000);
+
+  /** Renommé par un admin : on reprend la partie sous le nouveau pseudo. */
+  cloud.renamed = async (newName) => {
+    if (!uid) return;
+    store.set('utilisateurCourant', newName);
+    await pull(newName);
+    ui.toast(`Un admin t’a renommé en « ${newName} »`, 'win', 5000);
+    emit('cloudload');
+  };
+
   /* ---------- Session déjà ouverte au chargement ---------- */
   cloud.ready = (async () => {
     const { data } = await sb.auth.getSession();
@@ -183,6 +216,7 @@
     uid = s.user.id;
     const { data: prof } = await sb.from('profiles').select('username').eq('id', uid).maybeSingle();
     if (!prof) { await sb.auth.signOut(); uid = null; store.remove('utilisateurCourant'); emit('cloudload'); return; }
+    if (await kickIfBanned()) return;
     const before = auth.current();
     store.set('utilisateurCourant', prof.username);
     const beforeTs = store.get(syncKey(prof.username));
@@ -249,6 +283,7 @@
   });
   (async () => {
     const { data } = await sb.from('feed').select('*').order('created_at', { ascending: false }).limit(20);
+    // (les gains d'un joueur banni sont supprimés côté serveur au moment du bannissement)
     if (data) { feedRows.push(...data); emit('livefeed'); }
   })();
 
@@ -301,17 +336,21 @@
   };
 
   cloud.players = async ({ withData = false } = {}) => {
+    let profRes = await sb.from('profiles').select('id, username, created_at, banned, banned_reason');
+    if (profRes.error) profRes = await sb.from('profiles').select('id, username, created_at');
     const [{ data: profs }, { data: saves }] = await Promise.all([
-      sb.from('profiles').select('id, username, created_at'),
+      Promise.resolve(profRes),
       sb.from('saves').select(withData ? 'user_id, balance, level, wagered, biggest_win, updated_at, data' : 'user_id, balance, level, wagered, biggest_win, updated_at')
     ]);
     const byId = Object.fromEntries((saves || []).map((s) => [s.user_id, s]));
-    return (profs || []).map((p) => ({ id: p.id, name: p.username, ...(byId[p.id] || { balance: 0, level: 1, wagered: 0, biggest_win: 0 }) }));
+    return (profs || []).map((p) => ({ id: p.id, name: p.username, banned: !!p.banned, bannedReason: p.banned_reason || '', ...(byId[p.id] || { balance: 0, level: 1, wagered: 0, biggest_win: 0 }) }));
   };
   cloud.uid = () => uid;
   /* Actions d'administration (refusées par le serveur si le compte n'est pas admin) */
   cloud.admin = {
     setSave: async (userId, data, balance, level) => { const { error } = await sb.rpc('admin_set_save', { p_user: userId, p_data: data, p_balance: balance, p_level: level }); if (error) throw error; },
+    ban: async (userId, banned, reason) => { const { error } = await sb.rpc('admin_ban', { p_user: userId, p_banned: banned, p_reason: reason || null }); if (error) throw error; },
+    rename: async (userId, name) => { const bad = auth.usernameProblem(name); if (bad) throw new Error(bad); const { error } = await sb.rpc('admin_rename', { p_user: userId, p_name: name }); if (error) throw error; },
     setJackpot: async (amount) => { const { error } = await sb.rpc('admin_set_jackpot', { p_amount: amount }); if (error) throw error; await refreshJackpot(); },
     clearFeed: async () => { const { error } = await sb.rpc('admin_clear_feed'); if (error) throw error; feedRows.length = 0; emit('livefeed'); }
   };
