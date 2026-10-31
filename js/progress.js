@@ -17,8 +17,8 @@
     { name: 'JPZ', from: 90, c: '#ff6b2c', c2: '#7a1f00' }
   ];
   const rankOf = (level) => [...RANKS].reverse().find((r) => level >= r.from);
-  // XP pour passer du niveau L au niveau L+1 (1 XP par DaveCoin misé)
-  const need = (L) => Math.round(60 * Math.pow(L, 1.5)) + 40;
+  // XP pour passer du niveau L au niveau L+1 (1 XP par DaveCoin misé) : courbe raide, les hauts rangs se méritent
+  const need = (L) => Math.round(300 * Math.pow(L, 1.6)) + 200;
   function levelInfo(xp) {
     let L = 1, left = xp;
     while (L < MAX_LEVEL && left >= need(L)) { left -= need(L); L++; }
@@ -45,10 +45,13 @@
 
   /* ---------- État du joueur ---------- */
   const key = () => 'dp_prog_' + auth.current();
-  const blank = () => ({ xp: 0, level: 1, c: { missions: 0, fullDays: 0, sold: 0, shinies: 0, jackpots: 0, dailies: 0 }, ach: {}, free: {}, m: null });
+  const blank = () => ({ xp: 0, level: 1, top: 1, c: { missions: 0, fullDays: 0, sold: 0, shinies: 0, jackpots: 0, dailies: 0 }, ach: {}, free: {}, m: null });
   function load() {
-    const p = Object.assign(blank(), store.json(key(), {}));
+    const raw = store.json(key(), {});
+    const p = Object.assign(blank(), raw);
     p.c = Object.assign(blank().c, p.c);
+    // plus haut niveau déjà récompensé (les anciens comptes gardent leurs récompenses, sans les toucher deux fois)
+    if (raw.top == null) p.top = Math.max(1, raw.level || 1);
     return p;
   }
   const save = (p) => { store.setJson(key(), p); emit('progress', p); };
@@ -81,16 +84,17 @@
     p.xp = round2(p.xp + n);
     const after = levelInfo(p.xp).level;
     p.level = after;
-    if (after <= before) return;
+    if (after <= before || after <= p.top) return;
     // plusieurs niveaux d'un coup : récompenses cumulées, une seule célébration
     const total = { coins: 0, cases: [] };
     let rankUp = false;
-    for (let L = before + 1; L <= after; L++) {
+    for (let L = Math.max(before, p.top) + 1; L <= after; L++) {
       const rw = levelReward(L);
       total.coins += rw.coins;
       if (rw.freeCase) { p.free[rw.freeCase] = (p.free[rw.freeCase] || 0) + 1; total.cases.push(rw.freeCase); }
       if (rankOf(L).from === L) rankUp = true;
     }
+    p.top = after;
     queue(() => { giveCoins(total.coins, 'level'); celebrateLevel(after, total, rankUp); });
   }
 
