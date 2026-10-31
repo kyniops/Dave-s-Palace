@@ -227,7 +227,7 @@
     const size = vert ? first.offsetHeight : first.offsetWidth;
     const step = size + parseFloat((vert ? cs.rowGap : cs.columnGap) || 8);
     const center = (vert ? row.clientHeight : row.clientWidth) / 2;
-    const target = WIN_AT * step + size / 2 - center + (rng.float() - 0.5) * size * (vert ? 0.3 : 0.7);
+    const target = WIN_AT * step + size / 2 - center + (rng.float() - 0.5) * size * 0.3;
     return new Promise((resolve) => {
       const t0 = performance.now();
       let lastIdx = -1;
@@ -371,15 +371,15 @@
         const bot = BOTS[(i - 1 + BOTS.length) % BOTS.length];
         return `<div class="ptag${me ? ' me' : ''}">${me ? `<span class="avatar">${esc(DP.auth.current().charAt(0).toUpperCase())}</span><b>Toi</b>` : `<img src="${IMG}${ITEMS[bot].img}" alt=""><b>${ITEMS[bot].name}</b>`}<span class="ptag__total num">${fmt(total)}</span></div>`;
       }
-      /** Plusieurs caisses : une colonne verticale par caisse ; une seule caisse ou battle : bandes horizontales. */
+      /** Une bande horizontale par caisse (titrée quand il y en a plusieurs), ou par joueur en battle. */
       const stripsHtml = (n, fill) => {
-        const cols = mode === 'open' && n > 1;
+        const cols = false;
         const el = stage.querySelector('.cases__strips');
         el.classList.toggle('is-cols', cols);
         el.style.setProperty('--n', n);
         return Array.from({ length: n }, (_, i) => cols
           ? `<div class="strip-col"><span class="strip-col__label">Caisse ${i + 1}</span><div class="strip vert">${fill ? fill() : ''}</div></div>`
-          : `<div class="strip-row">${mode === 'battle' ? playerTag(i) : ''}<div class="strip">${fill ? fill() : ''}</div></div>`).join('');
+          : `<div class="strip-row${mode === 'open' && n > 1 ? ' is-multi' : ''}">${mode === 'battle' ? playerTag(i) : n > 1 ? `<span class="strip-tag"><small>Caisse</small><b class="num">${i + 1}</b></span>` : ''}<div class="strip">${fill ? fill() : ''}</div></div>`).join('');
       };
       let shown = ''; // résultat affiché (gardé jusqu'au prochain changement de réglage)
       const sig = () => `${mode}|${count}|${opps}|${rounds}|${box && box.id}`;

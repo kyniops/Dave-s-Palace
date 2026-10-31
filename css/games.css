@@ -852,3 +852,11 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
 /* fin du défilement : la carte gagnée ressort, les autres s'effacent */
 .strip.done .strip__track > .tcard:not(.won) { opacity: .28; filter: grayscale(.7) brightness(.7); transition: opacity .5s, filter .5s; }
 .strip.done .strip__track > .tcard.won { filter: drop-shadow(0 0 16px var(--r)); }
+/* plusieurs caisses en bandes horizontales : bien séparées et numérotées */
+.cases__strips:has(.is-multi) { gap: 14px; }
+.strip-row.is-multi { padding: 8px 10px 8px 8px; background: rgba(0,0,0,.25); border: 1px solid var(--line); border-left: 3px solid var(--c, var(--accent)); }
+.strip-tag { flex: none; width: 58px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: var(--display); text-transform: uppercase; }
+.strip-tag small { font-size: 9px; letter-spacing: .16em; color: var(--muted); }
+.strip-tag b { font-size: 26px; line-height: 1; color: var(--c, var(--accent)); }
+.strip-row.is-multi .strip { border-color: transparent; background: rgba(0,0,0,.3); }
+@media (max-width: 600px) { .strip-tag { width: 34px; } .strip-tag b { font-size: 18px; } .strip-tag small { display: none; } .strip-row.is-multi { padding: 6px; } }
