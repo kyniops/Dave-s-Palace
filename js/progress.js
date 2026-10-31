@@ -121,7 +121,7 @@
     fuse: { t: [1, 1, 1], hardOnly: true, text: () => 'Fusionne 5 cartes identiques en carte brillante' }
   };
   const gameName = (id) => (games.find(id) || { name: id }).name;
-  const missionGames = () => games.list.filter((g) => g.id !== 'cases').map((g) => g.id);
+  const missionGames = () => games.list.filter((g) => g.id !== 'cases' && g.id !== 'upgrade').map((g) => g.id);
 
   function makeMissions(day) {
     const rnd = seeded(auth.current() + '|' + day);

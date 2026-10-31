@@ -965,6 +965,14 @@
       emit('sold', { id, n, shiny });
       return value;
     },
+    /** Retire des cartes sans les vendre (DaveUpgrade). list : [{ id, shiny, n }]. */
+    take(list) {
+      const d = inventory._get();
+      if (!list.every((x) => ((x.shiny ? d.shiny : d.cards)[x.id] || 0) >= x.n)) return false;
+      list.forEach((x) => { const bag = x.shiny ? d.shiny : d.cards; bag[x.id] -= x.n; if (!bag[x.id]) delete bag[x.id]; });
+      inventory._save(d);
+      return true;
+    },
     /** Fusion : 5 exemplaires identiques deviennent 1 carte brillante (valeur ×7). */
     fuse(id) {
       const d = inventory._get();

@@ -40,7 +40,7 @@
   const brand = () => `<span class="brand__mark">${I('crown')}</span><span class="brand__name">Dave’s Palace</span>`;
   // Rayons du lobby (et groupes du menu)
   const CATS = ['Originaux', 'Table', 'Machines', 'En direct'];
-  const CAT_OF = { machine: 'Machines', wheel: 'En direct', roulette: 'Table', blackjack: 'Table' };
+  const CAT_OF = { machine: 'Machines', wheel: 'En direct', roulette: 'Table', blackjack: 'Table', upgrade: 'Collection' };
   const catOf = (g) => CAT_OF[g.id] || 'Originaux';
   const casinoGames = () => games.list.filter((g) => g.id !== 'cases');
 
@@ -144,6 +144,7 @@
           <div class="nav-title">Collection</div>
           <a class="nav-item nav-item--hero" data-nav="caisses" href="#/caisses">${I('package-open')}Caisses<span class="nav-tag">Ouvrir</span></a>
           <a class="nav-item" data-nav="inventaire" href="#/inventaire">${I('layers-2')}Inventaire<span class="nav-tag nav-tag--count js-invcount"></span></a>
+          <a class="nav-item" data-nav="upgrade" href="#/jeu/upgrade">${I('trending-up')}DaveUpgrade<span class="nav-tag">Nouveau</span></a>
           ${CATS.map((c) => {
             const list = casinoGames().filter((g) => catOf(g) === c);
             return list.length ? `<div class="nav-title">${c}</div>` + list.map((g) => `<a class="nav-item" data-nav="${g.id}" href="#/jeu/${g.id}">${I(g.icon)}${g.name}${g.isNew ? '<span class="nav-tag">Nouveau</span>' : ''}</a>`).join('') : '';
@@ -535,7 +536,7 @@
       <section class="statbar js-invstats" data-reveal></section>
       <div class="section-head" data-reveal>
         <div class="seg js-tab"><button type="button" data-t="cards" class="on">Mes cartes</button><button type="button" data-t="sets">Collection</button></div>
-        <a href="#/caisses">Ouvrir des caisses${I('chevron-right', 'i--sm')}</a>
+        <span class="inv-links"><a href="#/jeu/upgrade">${I('trending-up', 'i--sm')}DaveUpgrade</a><a href="#/caisses">Ouvrir des caisses${I('chevron-right', 'i--sm')}</a></span>
       </div>
       <div class="js-body"></div>`;
     const statsEl = view.querySelector('.js-invstats');

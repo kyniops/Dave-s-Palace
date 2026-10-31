@@ -32,6 +32,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 - Page **Codes** : codes promo qui donnent des DaveCoins, une fois par compte
 - **Jackpot global** : 1 % de chaque mise l'alimente ; gagné sur DaveMachine avec 5 cartes Free JPZ ou par déclenchement mystère (chance proportionnelle à la mise)
 - **Progression** (#/progression) : niveaux 1 à 100 (1 DaveCoin misé = 1 XP) et 7 rangs de Bronze à JPZ, récompenses à chaque niveau et caisse offerte tous les 5 niveaux ; 3 missions quotidiennes (facile, moyenne, difficile) ; 58 succès
+- **DaveUpgrade** : sacrifie des cartes (et des DaveCoins) pour viser une carte plus chère ; chance = 95 % × mise ÷ valeur visée (max 80 %), aiguille sur une jauge
 - **Fusion** : 5 cartes identiques deviennent une carte **brillante** (valeur ×7, cadre arc-en-ciel)
 - **Dashboard joueur** (#/profil) : solde, bilan, taux de victoire, RTP perso, courbe du solde, détail par jeu, bilan des 14 derniers jours, bonus et minuteurs, gains hors jeu, collection et albums, jackpot, historique des 50 dernières parties
 - **Dashboard admin** (#/admin, code `palace-admin`) : tous les comptes du navigateur (tri par colonne, créditer / débiter un joueur), économie par jeu avec RTP réel et théorique, activité, DaveCoins distribués, codes promo, jackpot
