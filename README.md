@@ -18,7 +18,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 | **DaveChicken** | Traverse la route voie après voie, 4 difficultés | 99 % |
 | **DaveDice** | Pose des jetons sur un ou plusieurs membres de la bande, 3 dés en 3D : ×2 / ×3 / ×12 par case | 95,8 % |
 | **DaveFlip** | DaveCoin ou JPZ, enchaîne les victoires ×1,98 | 99 % |
-| **DaveCases** | Vitrine de 5 caisses (10 à 500), ouverture ×1 à ×4, mode Battle contre la bande, chances affichées | 95 % |
+| **DaveCases** | 5 caisses à thème : Bande (10), Gamers (25), Kawaï (50), Aura (100), Royale JPZ (500) ; 33 cartes, chaque photo dans une seule caisse ; ouverture ×1 à ×4, mode Battle, chances affichées | 95 % |
 | **DaveTower** | 10 étages, une porte par étage, 4 difficultés, encaissement à tout moment | 98 % |
 | **DaveWheel** | Roue en direct : 12 s de mises, la bande mise avec toi, ×2 / ×3,1 / ×5 / JPZ ×50 | ≈ 96 % |
 

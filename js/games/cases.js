@@ -7,40 +7,60 @@
   const { IMG, rng, fmt, wallet, settle, sound, ui, round2, sleep, esc, cards, inventory } = DP;
   const RTP = 0.95;
 
+  // Une photo = une carte, présente dans une seule caisse (le thème de la caisse suit la photo)
   const ITEMS = {
-    olman: { name: 'Olman', img: 'olman.png' },
+    // la bande
+    olman: { name: 'Olman', img: 'olman.jpg' },
     tdam: { name: 'Tdam', img: 'tdam.png' },
-    sevare: { name: 'Sévaré', img: 'sevare.png' },
-    slyme: { name: 'Slymefire', img: 'slymefire.png' },
-    axb: { name: 'AXB', img: 'axb.png' },
-    sauce: { name: 'Sauce Blanche', img: 'sauceblanche.png' },
-    casino: { name: 'La Machine', img: 'casino.png', flat: true },
-    jpz: { name: 'JPZ Royal', img: 'jpz.png' },
-    billy: { name: 'Billy', img: 'billy.jpg' },
-    carl: { name: 'Carl', img: 'carl.jpg' },
-    linkay: { name: 'Linkay', img: 'linkay.jpg' },
-    lucasco: { name: 'Lucasco Aura', img: 'lucasco.jpg' },
-    olmanaura: { name: 'Olman Aura', img: 'olmanaura.jpg' },
-    petitbonnin: { name: 'Petit Bonnin', img: 'petitbonnin.jpg' },
-    tdam2: { name: 'Tdam Télécommande', img: 'tdam2.jpg' },
-    tddam: { name: 'Tddam', img: 'tddam.jpg' },
     yohan: { name: 'Yohan', img: 'yohan.jpg' },
-    jppz: { name: 'JPZ et son chien', img: 'jppz.jpg' },
+    axb: { name: 'AXB', img: 'axb.png' },
+    billy: { name: 'Billy', img: 'billy.jpg' },
+    sevare: { name: 'Sévaré', img: 'sevare.png' },
+    nathan: { name: 'Nathan', img: 'nathan.jpg' },
+    nathanmuscle: { name: 'Nathan Musclé', img: 'nathanmuscle.jpg' },
+    // les gamers
+    carl: { name: 'Carl', img: 'carl.jpg' },
+    petitbonnin: { name: 'Petit Bonnin', img: 'petitbonnin.jpg' },
+    tddam: { name: 'Tddam', img: 'tddam.jpg' },
+    linkay: { name: 'Linkay', img: 'linkay.jpg' },
+    linkaypose: { name: 'Linkay Posé', img: 'linkaypose.jpg' },
+    tdam2: { name: 'Tdam Télécommande', img: 'tdam2.jpg' },
+    casino: { name: 'La Machine', img: 'casino.png', flat: true },
+    // kawaï
+    slyme: { name: 'Slymefire Kawaï', img: 'slymefire.png' },
+    petitkawai: { name: 'Petit Bonnin Kawaï', img: 'petitkawai.jpg' },
+    lucascoroi: { name: 'Lucasco Roi du Poker', img: 'lucascoroi.jpg' },
+    jpzkawai: { name: 'JPZ Kawaï', img: 'jpzkawai.jpg' },
+    // aura
+    axbblesse: { name: 'AXB Blessé', img: 'axbblesse.jpg' },
+    axbserieux: { name: 'AXB Sérieux', img: 'axbserieux.jpg' },
+    tdammasque: { name: 'Tdam Masqué', img: 'tdammasque.jpg' },
+    tony: { name: 'Tony', img: 'tony.jpg' },
+    tonny: { name: 'Tony le Boss', img: 'tonny.jpg' },
+    olmanaura: { name: 'Olman Aura', img: 'olmanaura.jpg' },
+    lucasco: { name: 'Lucasco Aura', img: 'lucasco.jpg' },
+    // la royauté
+    jpzcap: { name: 'JPZ Casquette', img: 'jpzcap.jpg' },
+    sauce: { name: 'Sauce Blanche', img: 'sauceblanche.png' },
     jpz2: { name: 'Free JPZ', img: 'jpz2.jpg' },
-    charis: { name: 'JPZ Charismatique', img: 'jpzcharis.jpg' }
+    jppz: { name: 'JPZ et son chien', img: 'jppz.jpg' },
+    charis: { name: 'JPZ Charismatique', img: 'jpzcharis.jpg' },
+    jpz: { name: 'JPZ Royal', img: 'jpz.png' },
+    forton: { name: 'Absolute Forton', img: 'forton.jpg' }
   };
-  // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 95 %
+  // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 95 %.
+  // La rareté découle du multiplicateur : plus la carte vaut cher dans sa caisse, plus elle est rare.
   const CASES = [
     { id: 'bande', name: 'Caisse de la Bande', price: 10, color: '#ff6b2c', cover: 'sevare.png',
-      drops: [['olman', 0.3, null], ['tdam', 0.5, 2600], ['sevare', 0.8, 2000], ['slyme', 1.2, 1500], ['axb', 2, 900], ['sauce', 5, 280], ['casino', 15, 70], ['jpz', 50, 15]] },
-    { id: 'aura', name: 'Caisse Aura', price: 50, color: '#9a6bff', cover: 'lucasco.jpg',
-      drops: [['yohan', 0.2, null], ['linkay', 0.5, 2500], ['billy', 0.8, 1800], ['petitbonnin', 1.2, 1300], ['tddam', 2.5, 800], ['olmanaura', 6, 200], ['lucasco', 20, 45], ['jpz2', 80, 8]] },
-    { id: 'sauce', name: 'Caisse Sauce Blanche', price: 100, color: '#e9ecf2', cover: 'sauceblanche.png',
-      drops: [['olman', 0.15, null], ['tdam', 0.4, 2500], ['sevare', 0.7, 1800], ['slyme', 1.1, 1200], ['axb', 2.5, 700], ['sauce', 8, 180], ['casino', 30, 40], ['jpz', 120, 6]] },
-    { id: 'tdam', name: 'Caisse Tdam & Co', price: 250, color: '#2dd4bf', cover: 'tddam.jpg',
-      drops: [['carl', 0.15, null], ['tdam2', 0.4, 2500], ['tddam', 0.7, 1800], ['sevare', 1.1, 1200], ['petitbonnin', 2.5, 700], ['billy', 8, 180], ['olmanaura', 30, 40], ['jppz', 150, 5]] },
+      drops: [['olman', 0.3, null], ['tdam', 0.5, 2600], ['yohan', 0.8, 2000], ['axb', 1.2, 1500], ['billy', 2, 900], ['sevare', 4.5, 300], ['nathan', 12, 90], ['nathanmuscle', 40, 18]] },
+    { id: 'gamers', name: 'Caisse Gamers', price: 25, color: '#2ea8ff', cover: 'linkay.jpg',
+      drops: [['carl', 0.25, null], ['petitbonnin', 0.5, 2600], ['tddam', 0.9, 1900], ['linkay', 1.4, 1300], ['linkaypose', 3, 600], ['tdam2', 8, 150], ['casino', 30, 30]] },
+    { id: 'kawai', name: 'Caisse Kawaï', price: 50, color: '#ff7ad9', cover: 'slymefire.png',
+      drops: [['slyme', 0.25, null], ['petitkawai', 0.8, 2000], ['lucascoroi', 5, 300], ['jpzkawai', 50, 25]] },
+    { id: 'aura', name: 'Caisse Aura', price: 100, color: '#9a6bff', cover: 'lucasco.jpg',
+      drops: [['axbblesse', 0.2, null], ['axbserieux', 0.5, 2500], ['tdammasque', 0.9, 1800], ['tony', 1.4, 1200], ['tonny', 3, 600], ['olmanaura', 10, 150], ['lucasco', 35, 25]] },
     { id: 'royale', name: 'Caisse Royale JPZ', price: 500, color: '#ffc145', cover: 'jpz.png',
-      drops: [['olman', 0.1, null], ['tdam', 0.3, 2400], ['sevare', 0.6, 1600], ['slyme', 1, 1100], ['axb', 3, 600], ['sauce', 12, 120], ['charis', 60, 22], ['jpz', 500, 2]] }
+      drops: [['jpzcap', 0.15, null], ['sauce', 0.4, 2400], ['jpz2', 0.8, 1700], ['jppz', 1.5, 1100], ['charis', 6, 300], ['jpz', 40, 25], ['forton', 300, 2]] }
   ];
   CASES.forEach((c) => {
     const rest = c.drops.slice(1);
@@ -155,6 +175,40 @@
 
   // Exposé pour la vitrine du lobby
   DP.cases = { list: CASES, crateHtml, rarity };
+
+  /* Migration (v2) : chaque objet n'existe plus que dans une caisse. Les cartes des anciens comptes
+   * sont rattachées à la même photo, quelle que soit la caisse d'origine. Rien n'est perdu. */
+  (() => {
+    const { store } = DP;
+    if (store.get('dp_cards_v') === '2') return;
+    const byKey = {};
+    Object.values(cards.byId).forEach((c) => (byKey[c.key] = c.id));
+    const remap = (id) => (cards.byId[id] ? id : byKey[String(id).split(':')[1]] || null);
+    const moveBag = (bag = {}) => {
+      const out = {};
+      Object.entries(bag).forEach(([id, n]) => { const nid = remap(id); if (nid) out[nid] = (out[nid] || 0) + n; });
+      return out;
+    };
+    const FREE = { sauce: 'aura', tdam: 'aura' };
+    DP.auth.users().forEach((u) => {
+      const name = u.prenom;
+      const inv = store.json('dp_inv_' + name, null);
+      if (inv) { inv.cards = moveBag(inv.cards); inv.shiny = moveBag(inv.shiny); store.setJson('dp_inv_' + name, inv); }
+      const pr = store.json('dp_profile_' + name, null);
+      if (pr) {
+        if (pr.avatar && pr.avatar.type === 'card') pr.avatar.id = remap(pr.avatar.id);
+        if (pr.banner && pr.banner.type === 'card') pr.banner.id = remap(pr.banner.id);
+        pr.showcase = (pr.showcase || []).map((k) => { const [id, sh] = k.split('|'); const nid = remap(id); return nid ? nid + '|' + sh : null; }).filter(Boolean);
+        store.setJson('dp_profile_' + name, pr);
+      }
+      const pg = store.json('dp_prog_' + name, null);
+      if (pg && pg.free) {
+        Object.keys(FREE).forEach((old) => { if (pg.free[old]) { pg.free[FREE[old]] = (pg.free[FREE[old]] || 0) + pg.free[old]; delete pg.free[old]; } });
+        store.setJson('dp_prog_' + name, pg);
+      }
+    });
+    store.set('dp_cards_v', '2');
+  })();
 
   DP.games.register({
     id: 'cases',

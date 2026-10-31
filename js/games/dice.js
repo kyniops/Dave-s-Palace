@@ -6,7 +6,7 @@
   const { IMG, rng, fmt, wallet, settle, sound, ui, chips, round2, sleep } = DP;
   const FACES = [
     { id: 'axb', name: 'AXB', src: 'axb.png' },
-    { id: 'olman', name: 'Olman', src: 'olman.png' },
+    { id: 'olman', name: 'Olman', src: 'olman.jpg' },
     { id: 'sauce', name: 'Sauce Blanche', src: 'sauceblanche.png' },
     { id: 'sevare', name: 'Sévaré', src: 'sevare.png' },
     { id: 'slyme', name: 'Slymefire', src: 'slymefire.png' },

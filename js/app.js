@@ -476,7 +476,7 @@
   }
 
   function tickerHtml() {
-    const crew = [['Olman', 'olman.png'], ['Tdam', 'tdam.png'], ['Sévaré', 'sevare.png'], ['Slymefire', 'slymefire.png'], ['AXB', 'axb.png'], ['Sauce Blanche', 'sauceblanche.png'],
+    const crew = [['Olman', 'olman.jpg'], ['Tdam', 'tdam.png'], ['Nathan', 'nathan.jpg'], ['Tony', 'tony.jpg'], ['Sévaré', 'sevare.png'], ['Slymefire', 'slymefire.png'], ['AXB', 'axb.png'], ['Sauce Blanche', 'sauceblanche.png'],
       ['Billy', 'billy.jpg'], ['Carl', 'carl.jpg'], ['Linkay', 'linkay.jpg'], ['Lucasco', 'lucasco.jpg'], ['Petit Bonnin', 'petitbonnin.jpg'], ['Yohan', 'yohan.jpg'], ['Tddam', 'tddam.jpg']];
     return Array.from({ length: 10 }, () => {
       const [name, img] = rng.pick(crew);

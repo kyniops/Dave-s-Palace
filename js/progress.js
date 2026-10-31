@@ -25,7 +25,7 @@
     const n = L < MAX_LEVEL ? need(L) : 1;
     return { level: L, into: L < MAX_LEVEL ? left : n, need: n, pct: L < MAX_LEVEL ? left / n : 1, rank: rankOf(L) };
   }
-  const caseForLevel = (L) => (L >= 40 ? 'royale' : L >= 30 ? 'tdam' : L >= 20 ? 'sauce' : L >= 10 ? 'aura' : 'bande');
+  const caseForLevel = (L) => (L >= 40 ? 'royale' : L >= 30 ? 'aura' : L >= 20 ? 'kawai' : L >= 10 ? 'gamers' : 'bande');
   const levelReward = (L) => ({ coins: 50 * L, freeCase: L % 5 === 0 ? caseForLevel(L) : null });
   const caseName = (id) => ((DP.cases && DP.cases.list.find((c) => c.id === id)) || { name: 'Caisse' }).name;
 
@@ -432,7 +432,7 @@
     ensureGameAchs();
     const p = load(), info = levelInfo(p.xp);
     const list = missionsOf(p);
-    return { ...info, xp: p.xp, claimable: list.filter((m) => m.done && !m.claimed).length, missionsDone: list.filter((m) => m.claimed).length, achDone: Object.keys(p.ach).length, achTotal: ACHS.length };
+    return { ...info, xp: p.xp, claimable: list.filter((m) => m.done && !m.claimed).length, missionsDone: list.filter((m) => m.claimed).length, achDone: ACHS.filter((a) => p.ach[a.id]).length, achTotal: ACHS.length };
   }
 
   setTimeout(() => { ready = true; }, 0);
