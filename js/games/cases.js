@@ -616,7 +616,7 @@
         busy = false; paint();
         if (!r) return;
         sound.play('chip');
-        ui.toast(`Défi envoyé à ${esc(f.name)} ! Tu seras prévenu dès qu’il répond.`, 'win', 4500);
+        location.hash = '#/duel/' + r.id; // lobby : le duel se lance en direct quand l'ami accepte
       }
       goBtn.addEventListener('click', () => {
         if (busy || !box) return;
@@ -636,7 +636,7 @@
         const sub = stage.querySelector('.js-sub');
         setTimeout(() => {
           if (!alive) return;
-          if (sub) sub.innerHTML = `Duel contre <b>${esc(duelCtx.name)}</b> · ${d.rounds} manche${d.rounds > 1 ? 's' : ''}`;
+          if (sub) sub.innerHTML = `${opts.live ? '<b class="pos">En direct</b> · ' : ''}Duel contre <b>${esc(duelCtx.name)}</b> · ${d.rounds} manche${d.rounds > 1 ? 's' : ''}`;
           DP.emit('bigwin', { game: 'duel', x: 10 }); // phonk pour le duel
           battle({ draws: mine ? d.draws : d.draws.map((r) => [r[1], r[0]]), cost: +d.cost, acct: null });
         }, 700);

@@ -37,13 +37,12 @@
     else if (page === 'classement') unmountView = renderLeaderboard(view);
     else if (page === 'amis') unmountView = DP.social.render(view);
     else if (page === 'duel' && arg) {
-      // rediffusion d'un duel de caisses (résultat tiré par le serveur)
+      // lobby d'attente puis duel en direct (ou rediffusion), résultat tiré par le serveur
       view.innerHTML = `<div class="empty">${I('swords', 'i--lg')}<strong>Chargement du duel…</strong></div>`;
       const token = location.hash;
-      DP.social.duel(+arg).then((d) => {
+      unmountView = DP.social.duelView(view, +arg, (d, live) => {
         if (location.hash !== token) return;
-        if (!d) { view.innerHTML = `<div class="empty">${I('swords', 'i--lg')}<strong>Duel introuvable</strong>Il n’existe pas, ou il n’a pas encore été joué.<a class="btn btn--primary" style="margin-top:10px" href="#/amis">Mes duels</a></div>`; return; }
-        renderGame(view, games.find('cases'), { caseId: d.case_id, duel: d, otherName: d.otherName });
+        renderGame(view, games.find('cases'), { caseId: d.case_id, duel: d, otherName: d.otherName, live });
       });
     }
     else if (page === 'joueur' && arg) {

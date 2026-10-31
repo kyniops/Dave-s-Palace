@@ -50,11 +50,17 @@
         S.notifs.unshift(p.new);
         emit('notifs');
         if (p.new.kind === 'renamed' && p.new.payload && p.new.payload.new) { DP.cloud.renamed(p.new.payload.new); return; }
-        ui.toast(textOf(p.new).replace(/<[^>]+>/g, ''), 'win', 4200);
-        sound.play('coin');
+        const pl = p.new.payload || {};
+        // dans le lobby du duel : pas de toast (il gâcherait la surprise), le duel se lance en direct
+        const inLobby = /^duel/.test(p.new.kind) && location.hash === '#/duel/' + pl.duel;
+        if (!inLobby) {
+          const txt = p.new.kind === 'duel_result' ? `${p.new.from_name || 'Ton ami'} a relevé ton défi ! Ouvre la cloche pour voir le duel.` : textOf(p.new).replace(/<[^>]+>/g, '');
+          ui.toast(txt, 'win', 4200);
+          sound.play('coin');
+        }
         if (/^friend_/.test(p.new.kind)) loadFriends();
         // duel réglé / refusé par l'ami : le solde et l'inventaire ont changé côté serveur
-        if ((p.new.kind === 'duel_result' || p.new.kind === 'duel_declined' || p.new.kind === 'admin') && DP.engine && DP.engine.on) DP.engine.refresh();
+        if ((p.new.kind === 'duel_result' || p.new.kind === 'duel_declined' || p.new.kind === 'admin') && !inLobby && DP.engine && DP.engine.on) DP.engine.refresh();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => loadFriends())
       .subscribe();
@@ -89,10 +95,61 @@
     /** Un duel (avec le pseudo de l'adversaire), ou null. */
     async duel(id) {
       const { data } = await sb().from('duels').select('*').eq('id', id).maybeSingle();
-      if (!data || data.status !== 'done') return null;
+      if (!data) return null;
       const other = data.challenger === S.uid ? data.opponent : data.challenger;
       await names([other]);
       return { ...data, otherName: S.names[other] || 'Ton ami' };
+    },
+    /**
+     * Page d'un duel : lobby d'attente tant que l'ami n'a pas répondu (mise à jour en direct),
+     * puis play(duel, live) dès que le serveur l'a réglé. Renvoie la fonction de nettoyage.
+     */
+    duelView(view, id, play) {
+      let alive = true, ch = null, poll = null, lobby = false, busy = false;
+      const stop = () => { alive = false; clearInterval(poll); if (ch) { try { sb().removeChannel(ch); } catch { /* ignore */ } ch = null; } };
+      const msg = (title, txt) => { view.innerHTML = `<div class="empty">${I('swords', 'i--lg')}<strong>${title}</strong>${txt}<a class="btn btn--primary" style="margin-top:10px" href="#/amis">Mes duels</a></div>`; };
+      const paintLobby = (d) => {
+        const mine = d.challenger === S.uid, me = auth.current(), other = d.otherName;
+        const card = (name, state) => `<div class="dlobby__p">${DP.profile.avatarHtml(name)}<b>${esc(name)}</b><small>${state}</small></div>`;
+        view.innerHTML = `<section class="dlobby">
+          <p class="dlobby__eye">${I('swords', 'i--sm')}Duel de caisses</p>
+          <div class="dlobby__vs">${card(mine ? me : other, '<span class="pos">Prêt</span>')}<span class="dlobby__x">VS</span>${card(mine ? other : me, mine ? '<span class="dlobby__wait">En attente<i>.</i><i>.</i><i>.</i></span>' : 'À toi de répondre')}</div>
+          <p class="dlobby__info">${esc(DP.progress.caseName(d.case_id))} · ${d.rounds} manche${d.rounds > 1 ? 's' : ''} · mise <b class="num">${fmt(d.cost)}</b> chacun</p>
+          <p class="muted">${mine ? `Reste sur cette page : le duel se lance en direct dès que <b>${esc(other)}</b> accepte.` : `<b>${esc(other)}</b> t’attend dans le lobby.`}</p>
+          <div class="dlobby__act">${mine ? '<button type="button" class="btn btn--ghost js-lcancel">Annuler le défi</button>' : '<button type="button" class="btn btn--primary js-lacc">Accepter le duel</button><button type="button" class="btn btn--ghost js-lref">Refuser</button>'}</div>
+        </section>`;
+        view.querySelector('.dlobby__act').addEventListener('click', async (e) => {
+          const b = e.target.closest('button');
+          if (!b || busy) return;
+          if (b.classList.contains('js-lcancel') && !ui.confirmClick(b, 'Confirmer l’annulation')) return;
+          busy = true; b.disabled = true;
+          if (b.classList.contains('js-lacc')) await social.duelAccept(id);
+          else await social.duelDecline(id);
+          busy = false; b.disabled = false;
+          check();
+        });
+      };
+      const check = async () => {
+        let d = null;
+        try { d = await social.duel(id); } catch { d = null; }
+        if (!alive) return;
+        if (!d) { stop(); msg('Duel introuvable', 'Il n’existe pas, ou il n’est pas à toi.'); return; }
+        if (d.status === 'done') { const live = lobby; stop(); if (live) sound.play('win'); play(d, live); return; }
+        if (d.status !== 'pending') {
+          stop();
+          const mine = d.challenger === S.uid;
+          msg(d.status === 'declined' ? (mine ? `${esc(d.otherName)} a refusé le duel` : 'Duel refusé') : d.status === 'cancelled' ? 'Défi annulé' : 'Défi expiré', mine ? 'Ta mise t’a été rendue.' : '');
+          if (DP.engine && DP.engine.on) DP.engine.refresh();
+          return;
+        }
+        if (!lobby) { lobby = true; paintLobby(d); }
+      };
+      ch = sb().channel('duel-' + id + '-' + Date.now())
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'duels', filter: `id=eq.${id}` }, () => check())
+        .subscribe();
+      poll = setInterval(check, 4000); // filet de sécurité si le direct décroche
+      check();
+      return stop;
     },
     async duels() {
       const { data } = await sb().from('duels').select('*').order('created_at', { ascending: false }).limit(20);
@@ -267,7 +324,7 @@
         <div class="flist">${list.length ? list.map((d) => `<div class="frow"><div class="dduel"><b>${d.mine ? 'Toi → ' + esc(d.other) : esc(d.other) + ' → toi'}</b><small>${lbl(d)}</small></div>
           <div class="frow__act"><span class="dduel__res">${res(d)}</span>
           ${d.status === 'pending' && !d.mine ? `<button type="button" class="btn btn--primary btn--sm js-dacc" data-d="${d.id}">Accepter</button><button type="button" class="btn btn--ghost btn--sm js-dref" data-d="${d.id}">Refuser</button>` : ''}
-          ${d.status === 'pending' && d.mine ? `<button type="button" class="btn btn--ghost btn--sm js-dref" data-mine="1" data-d="${d.id}">Annuler</button>` : ''}
+          ${d.status === 'pending' && d.mine ? `<a class="btn btn--primary btn--sm" href="#/duel/${d.id}">Lobby</a><button type="button" class="btn btn--ghost btn--sm js-dref" data-mine="1" data-d="${d.id}">Annuler</button>` : ''}
           ${d.status === 'done' ? `<a class="btn btn--ghost btn--sm" href="#/duel/${d.id}">Revoir</a>` : ''}</div></div>`).join('') : '<p class="muted">Aucun duel pour l’instant.</p>'}</div>`;
     }
     const offNotifDuel = on('notifs', () => paintDuels());
