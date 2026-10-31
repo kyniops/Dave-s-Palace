@@ -186,10 +186,7 @@
     });
     app.querySelector('.wallet__bonus').addEventListener('click', openBonus);
     app.querySelector('.js-bonus').addEventListener('click', () => { closeSidebar(); openBonus(); });
-    const sb = app.querySelector('.sound-btn');
-    const paintSound = () => (sb.innerHTML = I(sound.muted ? 'volume-x' : 'volume-2'));
-    sb.addEventListener('click', () => { sound.toggle(); paintSound(); sound.play('click'); });
-    paintSound();
+    DP.music.attach(app.querySelector('.sound-btn'));
     refreshTopbar();
     paintInvCount();
     paintLevel();

@@ -287,7 +287,7 @@
    * pour que chaque réussite sonne un cran plus haut que la précédente.
    */
   const sound = (() => {
-    let ctx = null, master = null, verbIn = null, noiseBuf = null;
+    let ctx = null, master = null, verbIn = null, noiseBuf = null, sfxVol = 1;
     const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28, 31, 33, 36];
     const hz = (semi, base = 523.25) => base * Math.pow(2, semi / 12); // base = Do5
 
@@ -298,7 +298,7 @@
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.2;
       master = ctx.createGain();
-      master.gain.value = 0.75;
+      master.gain.value = 0.75 * sfxVol;
       master.connect(comp).connect(ctx.destination);
       // Réverbération : réponse impulsionnelle générée (bruit qui décroît)
       const len = ctx.sampleRate * 1.8;
@@ -368,6 +368,8 @@
 
     const api = {
       muted: store.get('dp_muted') === '1',
+      /** Volume des effets (0 à 1). */
+      setVolume(v) { sfxVol = Math.max(0, Math.min(1, v)); if (master) master.gain.value = 0.75 * sfxVol; },
       toggle() { api.muted = !api.muted; store.set('dp_muted', api.muted ? '1' : '0'); emit('sound', api.muted); return api.muted; },
       tone(f, d = 0.1, type = 'sine', v = 0.15, t = 0) { tone({ f, d, type, v, t }); },
       play(name, o = {}) {

@@ -1023,3 +1023,16 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 /* bouton armé : demande de confirmation */
 .btn.btn--confirm { border-color: var(--lose) !important; color: #fff !important; background: rgba(255,61,90,.18) !important; animation: confirm-pulse .7s ease-in-out infinite alternate; }
 @keyframes confirm-pulse { to { background: rgba(255,61,90,.32); } }
+
+/* ---------- Panneau de volume ---------- */
+.volpop { position: fixed; z-index: 120; width: 280px; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: rgba(10,12,18,.97); border: 1px solid var(--line-2); box-shadow: var(--shadow); backdrop-filter: blur(10px); animation: lvl-pop .25s var(--ease) both;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+.volrow { display: flex; align-items: center; gap: 12px; }
+.volrow__mute { width: 36px; height: 36px; }
+.volrow__main { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.volrow__main span { display: flex; justify-content: space-between; font-family: var(--display); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.volrow__main b { color: var(--text); font-weight: 600; }
+.volrow input[type=range] { --v: 50%; -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: linear-gradient(90deg, var(--accent) var(--v), var(--surface-3) var(--v)); outline: none; cursor: pointer; }
+.volrow input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: #fff; box-shadow: 0 0 0 3px var(--accent), 0 2px 6px rgba(0,0,0,.6); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.volrow input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border: 0; background: #fff; box-shadow: 0 0 0 3px var(--accent); }
+.ix-nav__cta .icon-btn { margin-right: 4px; }

@@ -151,7 +151,7 @@
         <header class="ix-nav">
           <span class="brand"><span class="brand__mark">${I('crown')}</span><span class="brand__name">Dave’s Palace</span></span>
           <nav><a href="#ix-casino">Casino</a><a href="#ix-cases">Caisses</a><a href="#ix-jackpot">Jackpot</a></nav>
-          <div class="ix-nav__cta"><button type="button" class="btn btn--ghost btn--sm js-login">Se connecter</button><button type="button" class="btn btn--primary btn--sm js-signup">S’inscrire</button></div>
+          <div class="ix-nav__cta"><button type="button" class="icon-btn js-vol"></button><button type="button" class="btn btn--ghost btn--sm js-login">Se connecter</button><button type="button" class="btn btn--primary btn--sm js-signup">S’inscrire</button></div>
         </header>
 
         <section class="ix-hero">
@@ -229,6 +229,7 @@
       root.querySelectorAll('.js-hero-in').forEach((el, i) => el.animate([{ transform: 'translateY(24px)', opacity: 0, filter: 'blur(6px)' }, { transform: 'none', opacity: 1, filter: 'none' }], { duration: 900, delay: 1100 + i * 140, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
     }
     M().magnetic(root.querySelectorAll('.js-mag'), 0.2);
+    DP.music.attach(root.querySelector('.js-vol'));
     DP.emit('lobby'); // dessine les illustrations en canvas (roues) des cartes de jeux
     M().tilt(root.querySelectorAll('.ix-game'), 10);
 

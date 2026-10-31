@@ -40,6 +40,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 - **Dashboard admin** (#/admin, code `palace-admin`) : tous les comptes du navigateur (tri par colonne, créditer / débiter un joueur), économie par jeu avec RTP réel et théorique, activité, DaveCoins distribués, codes promo, jackpot
 - Tirages avec `crypto.getRandomValues`, gains calculés à partir des probabilités réelles
 - Quitter une page en pleine partie règle la partie (encaissement ou remboursement), aucune mise perdue
+- Musique d'ambiance en boucle (démarre au premier clic) et panneau de volume : musique et effets réglables séparément, bouton « Tout couper », réglages mémorisés
 - Sound design 100 % synthétisé (Web Audio : compresseur, réverbération, gammes qui montent à chaque réussite), effets visuels (particules, secousses, pluie de DaveCoins), raccourcis clavier, responsive mobile
 - Direction artistique « espace profond » : champ d'étoiles animé en parallaxe, étoiles filantes, verre fumé, icônes [Lucide](https://lucide.dev) (licence ISC)
 
@@ -56,6 +57,7 @@ js/icons.js           icônes SVG (Lucide + icônes maison)
 css/games.css         mise en page des jeux + styles de chaque jeu
 js/core.js            portefeuille, comptes, stats, sons, composants UI
 js/progress.js        niveaux, rangs, missions, succès, caisses offertes
+js/music.js           musique d'ambiance et panneau de volume
 js/cloud.js           version en ligne (Supabase : comptes, sauvegarde, jackpot, fil, classement)
 js/profile.js         profil personnalisable (photo, bannière, titres, vitrine)
 js/dashboard.js       dashboards joueur et admin
