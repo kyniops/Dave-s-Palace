@@ -309,13 +309,17 @@
     return () => {};
   }
 
-  /** Lit toutes les données de chaque compte du navigateur. */
-  function collect() {
-    return auth.users().map((u) => {
-      const n = u.prenom, s = stats.of(n);
-      const invRaw = Object.assign({ cards: {} }, store.json('dp_inv_' + n, {})).cards;
+  /** Lit toutes les données de chaque compte (du serveur en ligne, sinon du navigateur). */
+  function collect(players) {
+    const parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
+    const src = players
+      ? players.map((p) => ({ n: p.name, get: (k) => (p.data || {})[k] ?? null }))
+      : auth.users().map((u) => ({ n: u.prenom, get: (k) => store.get(k + u.prenom) }));
+    return src.map(({ n, get }) => {
+      const s = Object.assign({ played: 0, wagered: 0, won: 0, wins: 0, biggestWin: 0, biggestMult: 0, perGame: {}, games: {}, days: {}, curve: [], income: {}, history: [] }, parse(get('dp_stats_'), {}));
+      const invRaw = Object.assign({ cards: {} }, parse(get('dp_inv_'), {})).cards;
       const inv = Object.entries(invRaw).filter(([id]) => cards.byId[id]);
-      const bal = parseFloat(store.get('davecoin_' + n));
+      const bal = parseFloat(get('davecoin_'));
       return {
         name: n, s,
         balance: isNaN(bal) ? 0 : round2(bal),
@@ -323,7 +327,7 @@
         copies: inv.reduce((a, [, c]) => a + c, 0),
         unique: inv.length,
         invValue: round2(inv.reduce((a, [id, c]) => a + cards.byId[id].value * c, 0)),
-        codes: store.json('dp_codes_' + n, []),
+        codes: parse(get('dp_codes_'), []),
         last: s.history[0] ? s.history[0].t : s.curve.length ? s.curve[s.curve.length - 1].t : null
       };
     });
@@ -331,7 +335,14 @@
 
   function admin(view, ctx) {
     if (!adminOpen()) return lockScreen(view, () => ctx.rerender());
-    const users = collect();
+    const online = DP.cloud && DP.cloud.online;
+    if (online && !ctx.players) {
+      view.innerHTML = `<div class="empty">${I('users', 'i--lg')}<strong>Chargement des joueurs…</strong></div>`;
+      let alive = true;
+      DP.cloud.players({ withData: true }).then((players) => { if (alive && view.isConnected) admin(view, { ...ctx, players }); }).catch(() => {});
+      return () => { alive = false; };
+    }
+    const users = collect(online ? ctx.players : null);
     const sum = (f) => round2(users.reduce((a, u) => a + f(u), 0));
     const wagered = sum((u) => u.s.wagered), won = sum((u) => u.s.won), played = sum((u) => u.s.played);
     const circ = sum((u) => u.balance);
@@ -354,7 +365,7 @@
     view.innerHTML = `
       <div class="page-head dhead">
         <span class="game-head__ico" data-reveal>${I('shield', 'i--lg')}</span>
-        <div><h1>Admin</h1><p>Toute l’économie du casino, compte par compte (données de ce navigateur)</p></div>
+        <div><h1>Admin</h1><p>Toute l’économie du casino, compte par compte (${DP.cloud && DP.cloud.online ? 'tous les joueurs en ligne' : 'données de ce navigateur'})</p></div>
         <div class="dhead__act"><button class="btn btn--ghost js-lock" type="button">${I('lock', 'i--sm')}Verrouiller</button></div>
       </div>
 
@@ -432,6 +443,7 @@
       const tr = e.target.closest('tr'), u = users.find((x) => x.name === tr.dataset.u);
       const amount = round2(parseFloat(e.target.querySelector('input').value));
       if (!u || !amount) return;
+      if (online && u.name !== auth.current()) { ui.toast('En ligne, seul le joueur lui-même peut modifier son solde.', 'error'); return; }
       u.balance = Math.max(0, round2(u.balance + amount));
       if (u.name === auth.current()) wallet.set(u.balance);
       else store.set('davecoin_' + u.name, String(u.balance));

@@ -32,6 +32,7 @@
     else if (page === 'profil') unmountView = DP.profile.render(view);
     else if (page === 'admin') unmountView = DP_DASH.admin(view, { rerender: route });
     else if (page === 'progression') unmountView = DP.progress.render(view);
+    else if (page === 'classement') unmountView = renderLeaderboard(view);
     else if (page === 'inventaire') renderInventory(view);
     else if (page === 'codes') renderCodes(view);
     else renderLobby(view);
@@ -106,13 +107,18 @@
     };
     tabs.forEach((t) => t.addEventListener('click', () => { mode = t.dataset.m; paint(); sound.play('click'); history.replaceState(null, '', mode === 'register' ? '#/inscription' : '#/connexion'); }));
     app.querySelector('.back-intro').addEventListener('click', () => (window.DP_INTRO ? DP_INTRO.transitionTo('#/') : (location.hash = '#/')));
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const submit = form.querySelector('button[type=submit]');
+      if (submit.disabled) return;
       const fn = mode === 'register' ? auth.register : auth.login;
-      const problem = fn(form.user.value, form.pass.value);
-      if (problem) { err.textContent = problem; sound.play('error'); return; }
+      const label = submit.innerHTML;
+      submit.disabled = true;
+      submit.innerHTML = 'Connexion…';
+      err.textContent = '';
+      const problem = await fn(form.user.value, form.pass.value);
+      if (problem) { submit.disabled = false; submit.innerHTML = label; err.textContent = problem; sound.play('error'); return; }
       sound.play('coin');
-      form.querySelector('button[type=submit]').disabled = true;
       if (window.DP_INTRO) DP_INTRO.transitionTo('#/lobby');
       else { location.hash = '#/lobby'; route(); }
     });
@@ -154,6 +160,7 @@
           <div class="nav-title">Compte</div>
           <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Mon profil</a>
           <a class="nav-item" data-nav="dashboard" href="#/dashboard">${I('layout-dashboard')}Dashboard</a>
+          <a class="nav-item" data-nav="classement" href="#/classement">${I('trophy')}Classement${DP.cloud && DP.cloud.online ? '<span class="nav-tag nav-tag--live">Live</span>' : ''}</a>
           <a class="nav-item" data-nav="progression" href="#/progression">${I('trophy')}Progression<span class="nav-tag js-mistag" hidden></span></a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
           <a class="nav-item" data-nav="codes" href="#/codes">${I('ticket')}Codes</a>
@@ -476,6 +483,12 @@
   }
 
   function tickerHtml() {
+    const live = DP.cloud && DP.cloud.online ? DP.cloud.feed() : [];
+    if (live.length >= 3) {
+      const rows = live.slice(0, 12);
+      while (rows.length < 10) rows.push(...rows.slice(0, 10 - rows.length));
+      return rows.map((r) => { const g = games.find(r.game); return `<span class="ticker__item"><i class="ticker__dot"></i>${DP.profile ? DP.profile.avatarHtml(r.username) : ''}<b>${esc(r.username)}</b> ${r.game === 'jackpot' ? 'remporte le <b class="pos">JACKPOT</b>' : 'gagne'} <span class="pos num">+${fmt(r.amount)}</span>${r.game === 'jackpot' ? '' : ' sur ' + (g ? g.name : esc(r.game))}</span>`; }).join('');
+    }
     const crew = [['Olman', 'olman.jpg'], ['Tdam', 'tdam.png'], ['Nathan', 'nathan.jpg'], ['Tony', 'tony.jpg'], ['Sévaré', 'sevare.png'], ['Slymefire', 'slymefire.png'], ['AXB', 'axb.png'], ['Sauce Blanche', 'sauceblanche.png'],
       ['Billy', 'billy.jpg'], ['Carl', 'carl.jpg'], ['Linkay', 'linkay.jpg'], ['Lucasco', 'lucasco.jpg'], ['Petit Bonnin', 'petitbonnin.jpg'], ['Yohan', 'yohan.jpg'], ['Tddam', 'tddam.jpg']];
     return Array.from({ length: 10 }, () => {
@@ -789,6 +802,50 @@
     }, 180);
   }
   window.addEventListener('hashchange', navigate);
+  on('cloudload', () => { document.querySelector('.shell') && document.querySelector('.shell').remove(); route(); });
+
+  /* ---------- Classement (version en ligne) ---------- */
+  function renderLeaderboard(view) {
+    let sortKey = 'balance', alive = true, list = [];
+    const COLS = [['balance', 'Solde'], ['level', 'Niveau'], ['wagered', 'Total misé'], ['biggest_win', 'Plus gros gain']];
+    view.innerHTML = `
+      <div class="page-head" data-reveal><span class="game-head__ico">${I('trophy', 'i--lg')}</span>
+        <div><h1>Classement</h1><p>${DP.cloud && DP.cloud.online ? 'Tous les joueurs du Palace, en direct.' : 'Disponible sur la version en ligne du site.'}</p></div></div>
+      <div class="section-head" data-reveal><div class="seg js-lsort">${COLS.map(([k, l]) => `<button type="button" data-k="${k}" class="${k === sortKey ? 'on' : ''}">${l}</button>`).join('')}</div><span class="js-lcount"></span></div>
+      <div class="js-lb" data-reveal><div class="empty">${I('history', 'i--lg')}<strong>Chargement…</strong></div></div>`;
+    const box = view.querySelector('.js-lb');
+    const paint = () => {
+      if (!list.length) { box.innerHTML = `<div class="empty">${I('users', 'i--lg')}<strong>Aucun joueur</strong>${DP.cloud && DP.cloud.online ? 'Sois le premier !' : 'Le classement fonctionne sur le site en ligne.'}</div>`; return; }
+      const rows = list.slice().sort((a, b) => (+b[sortKey] || 0) - (+a[sortKey] || 0));
+      view.querySelector('.js-lcount').textContent = `${rows.length} joueur${rows.length > 1 ? 's' : ''}`;
+      const podium = rows.slice(0, 3);
+      box.innerHTML = `
+        <div class="lb-podium">${[1, 0, 2].map((i) => podium[i] ? `<div class="lb-pod p${i + 1}">
+          ${DP.profile.avatarHtml(podium[i].name, 'avatar avatar--lg')}<span class="lb-pod__rank">${i + 1}</span>
+          <b>${esc(podium[i].name)}</b><span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
+        <div class="table-wrap"><table class="history lb-table"><thead><tr><th>#</th><th>Joueur</th>${COLS.map(([k, l]) => `<th class="num ${k === sortKey ? 'on' : ''}">${l}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map((r, i) => { const sm = DP.progress.rankOf(r.level || 1); return `<tr class="${r.name === auth.current() ? 'me' : ''}"><td class="num">${i + 1}</td>
+          <td><span class="g">${DP.profile.avatarHtml(r.name)}${esc(r.name)}<small style="color:${sm.c}">${sm.name}</small></span></td>
+          <td class="num">${fmt(+r.balance || 0)}</td><td class="num">${r.level || 1}</td><td class="num">${fmt(+r.wagered || 0)}</td><td class="num">${r.biggest_win ? '+' + fmt(+r.biggest_win) : '—'}</td></tr>`; }).join('')}</tbody></table></div>`;
+    };
+    view.querySelector('.js-lsort').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      sortKey = b.dataset.k;
+      view.querySelectorAll('.js-lsort button').forEach((x) => x.classList.toggle('on', x === b));
+      sound.play('click');
+      paint();
+    });
+    const load = async () => {
+      if (!(DP.cloud && DP.cloud.online)) { paint(); return; }
+      try { list = await DP.cloud.players(); } catch { list = []; }
+      if (alive) paint();
+    };
+    load();
+    const t = setInterval(load, 20000);
+    M.reveal(view, '[data-reveal]');
+    return () => { alive = false; clearInterval(t); };
+  }
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal').forEach((m) => m.remove()); });
   M.splash(I('crown'));
   route();
