@@ -646,12 +646,15 @@
       if (so) { sort = so.dataset.s; sound.play('click'); paintCards(); return; }
       const one = e.target.closest('.js-sell');
       if (one) {
+        if (!ui.confirmClick(one)) return;
         const got = inventory.sell(one.dataset.id, 1, !!one.dataset.shiny);
         if (got) { sound.play('coin'); ui.floatText(one, '+' + fmt(got)); }
         paint();
         return;
       }
-      if (e.target.closest('.js-selldup')) {
+      const dup = e.target.closest('.js-selldup');
+      if (dup) {
+        if (!ui.confirmClick(dup, 'Confirmer : vendre les doublons')) return;
         let sum = 0;
         inventory.entries().forEach((x) => { if (x.n > 1 && !x.shiny) sum += inventory.sell(x.card.id, x.n - 1); });
         if (sum) { sound.play('cashout'); ui.toast(`Doublons vendus : +${fmt(sum)} DaveCoins`, 'win'); }

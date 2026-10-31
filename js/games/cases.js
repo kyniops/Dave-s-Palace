@@ -433,8 +433,10 @@
         };
         el.addEventListener('click', (e) => {
           const one = e.target.closest('.js-sell1');
-          if (one) { sellOne(+one.closest('.lootbox__slot').dataset.i); return; }
-          if (e.target.closest('.js-sellall')) {
+          if (one) { if (ui.confirmClick(one)) sellOne(+one.closest('.lootbox__slot').dataset.i); return; }
+          const all = e.target.closest('.js-sellall');
+          if (all) {
+            if (!ui.confirmClick(all, 'Confirmer : tout vendre')) return;
             let sum = 0;
             left.forEach((c, i) => { if (c) { const before = wallet.get(); sellOne(i); sum += wallet.get() - before; } });
             if (sum > 0) { sound.play('cashout'); ui.toast(`Cartes vendues : +${fmt(sum)} DaveCoins`, 'win'); }

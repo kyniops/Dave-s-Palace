@@ -534,8 +534,8 @@ body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
 .crate__glow { position: absolute; left: 50%; top: 30%; width: 240%; aspect-ratio: 1; transform: translate(-50%, -50%) scale(.3); opacity: 0; pointer-events: none; z-index: 0;
   background: radial-gradient(circle, rgba(255,255,255,.95) 0 5%, color-mix(in srgb, var(--c) 75%, transparent) 13%, transparent 40%), repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--c) 55%, transparent) 0 5deg, transparent 5deg 20deg);
   -webkit-mask: radial-gradient(circle, #000 18%, transparent 62%); mask: radial-gradient(circle, #000 18%, transparent 62%); }
-.crate.open .crate__glow { animation: crate-rays 1.6s cubic-bezier(.16,1,.3,1) forwards; }
-@keyframes crate-rays { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0); } 25% { opacity: 1; } 100% { opacity: .55; transform: translate(-50%, -50%) scale(1) rotate(40deg); } }
+.crate.open .crate__glow { animation: crate-rays .9s cubic-bezier(.16,1,.3,1) forwards; }
+@keyframes crate-rays { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0); } 20% { opacity: 1; } 55% { opacity: .7; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05) rotate(25deg); } }
 .crate__shadow { position: absolute; left: 6%; right: 6%; bottom: -8px; height: 12px; border-radius: 50%; background: rgba(0,0,0,.7); filter: blur(6px); z-index: 0; }
 .crate.open .crate__lid { transform: translate(-16%, -150%) rotate(-38deg); opacity: 0; transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .6s ease .2s; }
 .crate.open .crate__svg { animation: crate-pop .5s var(--ease); }

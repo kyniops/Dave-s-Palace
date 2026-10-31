@@ -773,6 +773,17 @@
       }
       g.restore();
     },
+    /** Confirmation en deux clics : le 1er arme le bouton (« Confirmer ? »), le 2e valide. Renvoie true au 2e clic. */
+    confirmClick(btn, text = 'Confirmer la vente') {
+      if (btn.dataset.armed === '1') { clearTimeout(btn._armT); btn.dataset.armed = ''; return true; }
+      btn._label = btn.innerHTML;
+      btn.dataset.armed = '1';
+      btn.classList.add('btn--confirm');
+      btn.innerHTML = text + ' ?';
+      sound.play('click');
+      btn._armT = setTimeout(() => { if (!btn.isConnected) return; btn.dataset.armed = ''; btn.classList.remove('btn--confirm'); btn.innerHTML = btn._label; }, 3500);
+      return false;
+    },
     bulbs(el, n = 32) {
       el.querySelectorAll('.bulbring').forEach((x) => x.remove());
       const ring = document.createElement('div');

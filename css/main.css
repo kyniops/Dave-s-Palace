@@ -1019,3 +1019,7 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .dadmin-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .dadmin-row input { width: 150px; }
 @media (max-width: 600px) { .dmanage__row > label:first-child { flex-basis: 100%; } }
+
+/* bouton armé : demande de confirmation */
+.btn.btn--confirm { border-color: var(--lose) !important; color: #fff !important; background: rgba(255,61,90,.18) !important; animation: confirm-pulse .7s ease-in-out infinite alternate; }
+@keyframes confirm-pulse { to { background: rgba(255,61,90,.32); } }
