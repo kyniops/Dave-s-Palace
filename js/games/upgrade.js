@@ -49,8 +49,11 @@
       const { panel, stage } = ui.layout(root);
       const sel = new Map(); // clé → { card, shiny, n }
       let target = null, mult = 2, busy = false, alive = true, pending = null, needleAt = 0;
+      // sens de rotation choisi par le joueur (1 = horaire, -1 = anti-horaire), mémorisé
+      let dir = DP.store.get('dp_up_dir') === '-1' ? -1 : 1;
 
       const coinsIn = ui.betInput(panel, { label: 'DaveCoins en plus (optionnel)', initial: 0, gameId: 'upgrade' });
+      const dirSeg = ui.segmented(panel, { label: 'Sens de rotation', value: dir, options: [{ value: 1, label: '↻ Horaire' }, { value: -1, label: '↺ Anti-horaire' }], onChange: (v) => { dir = v; DP.store.set('dp_up_dir', String(v)); paintDir(); } });
       const multSeg = ui.segmented(panel, { label: 'Multiplicateur visé', value: mult, options: MULTS.map((m) => ({ value: m, label: '×' + String(m).replace('.', ',') })), onChange: (v) => { mult = v; target = autoTarget(); paint(); } });
       const stakeOut = ui.readout(panel, 'Mise totale', '0');
       const chanceOut = ui.readout(panel, 'Chance', '—');
@@ -69,6 +72,12 @@
         </div>`;
       const $ = (s) => stage.querySelector(s);
       const gauge = $('.js-gauge'), arc = gauge.querySelector('.ugauge__arc'), needle = gauge.querySelector('.ugauge__needle');
+      /** La zone de victoire part du haut dans le sens choisi : même chance, côté miroir. */
+      function paintDir() {
+        arc.setAttribute('transform', dir > 0 ? 'rotate(-90 150 150)' : 'translate(300 0) scale(-1 1) rotate(-90 150 150)');
+        gauge.classList.toggle('ccw', dir < 0);
+      }
+      paintDir();
 
       const stake = () => round2([...sel.values()].reduce((a, x) => a + valueOf(x.card, x.shiny) * x.n, 0) + Math.max(0, coinsIn.get()));
       const itemsN = () => [...sel.values()].reduce((a, x) => a + x.n, 0);
@@ -114,6 +123,7 @@
         clearBtn.disabled = busy || !items.length;
         coinsIn.disable(busy);
         multSeg.disable(busy);
+        dirSeg.disable(busy);
         goBtn.innerHTML = target ? `Upgrader · ${(ch * 100).toFixed(ch < 0.1 ? 2 : 1).replace('.', ',')} %` : 'Upgrader';
       }
 
@@ -171,7 +181,8 @@
         stage.querySelectorAll('.ustake__c').forEach((c, i) => c.animate([{ transform: 'none' }, { transform: 'translateY(-6px) scale(1.04)', filter: 'brightness(1.3)' }], { duration: 400, delay: i * 40, fill: 'forwards' }));
         sound.play('whoosh');
         // l'aiguille fait plusieurs tours puis s'arrête sur r (fraction du cercle)
-        const from = needleAt, to = Math.ceil(from) + 4 + r, dur = 5200, t0 = performance.now();
+        // l'aiguille s'arrête à r tour depuis le haut, dans le sens choisi (la zone gagnante va dans le même sens)
+        const from = needleAt, to = dir > 0 ? Math.ceil(from) + 4 + r : Math.floor(from) - 4 - r, dur = 5200, t0 = performance.now();
         let lastTick = Math.floor(from * 40);
         await new Promise((res) => {
           const step = (now) => {
@@ -185,7 +196,7 @@
           };
           requestAnimationFrame(step);
         });
-        needleAt = to % 1;
+        needleAt = to % 1; // garde le signe : l'aiguille repart d'où elle s'est arrêtée
         if (!alive) return;
         gauge.classList.remove('spin');
         await sleep(250);

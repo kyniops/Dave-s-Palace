@@ -115,7 +115,8 @@
   }
 
   /* ---------- Transition vers une autre page ---------- */
-  function transitionTo(hash) {
+  /** Volet plein écran puis changement de page. before() s'exécute pendant que l'écran est couvert. */
+  function transitionTo(hash, before) {
     sound.play('whoosh');
     window.DP_SPACE && DP_SPACE.warp(true);
     const sh = document.createElement('div');
@@ -127,7 +128,10 @@
     b.animate([{ transform: 'translateY(-100%)' }, { transform: 'none' }], { duration: 520, delay: 90, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'forwards' });
     sh.querySelector('.shutter__mark').animate([{ transform: 'scale(.3) rotate(-90deg)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 500, delay: 300, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' });
     setTimeout(() => {
-      location.hash = hash;
+      before && before();
+      // même adresse : on force le rendu (sinon aucun hashchange n'est émis)
+      if (location.hash === hash || (hash === '#/' && !location.hash)) window.dispatchEvent(new HashChangeEvent('hashchange'));
+      else location.hash = hash;
       window.DP_SPACE && DP_SPACE.warp(false);
       sh.animate([{ clipPath: 'inset(0 0 0 0)' }, { clipPath: 'inset(0 0 100% 0)' }], { duration: 650, delay: 120, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'forwards' }).finished.then(() => sh.remove());
     }, 760);

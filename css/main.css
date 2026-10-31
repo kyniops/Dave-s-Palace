@@ -873,3 +873,9 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .fuse__txt.done span { letter-spacing: .08em; color: var(--coin); text-transform: none; font-size: 15px; }
 .fuse__txt.done small { margin-top: 6px; font-size: 11px; color: var(--dim); }
 @media (max-width: 600px) { .fuse__c { width: 76px; } .fuse__res { width: 180px; } .fuse__stage { height: 300px; } }
+
+/* ---------- Transitions entre les pages ---------- */
+.route-bar { position: fixed; left: 0; right: 0; top: calc(var(--topbar) + env(safe-area-inset-top, 0px) - 1px); z-index: 35; height: 2px; pointer-events: none; transform-origin: left; transform: scaleX(0); opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--accent) 30%, #ffc145 70%, #fff); box-shadow: 0 0 10px var(--accent); }
+.img-soft { transition: opacity .5s ease, filter .6s ease; }
+.img-soft.img-wait { opacity: 0; filter: blur(8px); }

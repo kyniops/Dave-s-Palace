@@ -111,8 +111,9 @@
       const problem = fn(form.user.value, form.pass.value);
       if (problem) { err.textContent = problem; sound.play('error'); return; }
       sound.play('coin');
-      location.hash = '#/lobby';
-      route();
+      form.querySelector('button[type=submit]').disabled = true;
+      if (window.DP_INTRO) DP_INTRO.transitionTo('#/lobby');
+      else { location.hash = '#/lobby'; route(); }
     });
     paint();
     form.user.focus();
@@ -164,7 +165,10 @@
 
     app.querySelector('.burger').addEventListener('click', () => document.body.classList.toggle('nav-open'));
     app.querySelector('.scrim').addEventListener('click', closeSidebar);
-    app.querySelector('.logout').addEventListener('click', () => { auth.logout(); location.hash = ''; route(); });
+    app.querySelector('.logout').addEventListener('click', () => {
+      if (window.DP_INTRO) { DP_INTRO.transitionTo('#/', () => auth.logout()); return; }
+      auth.logout(); location.hash = ''; route();
+    });
     app.querySelector('.wallet__bonus').addEventListener('click', openBonus);
     app.querySelector('.js-bonus').addEventListener('click', () => { closeSidebar(); openBonus(); });
     const sb = app.querySelector('.sound-btn');
@@ -734,7 +738,51 @@
     M.magnetic(view.querySelectorAll('.panel .btn--lg'), 0.08);
   }
 
-  window.addEventListener('hashchange', route);
+  /* ---------- Transitions entre les pages ----------
+   * Sortie rapide (fondu, léger flou), rendu de la nouvelle page, entrée douce.
+   * Un trait orange sous la barre du haut suit le chargement.
+   */
+  const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let navTimer = 0, navOut = null, bar = null;
+  function routeBar(phase) {
+    if (!bar) { bar = document.createElement('div'); bar.className = 'route-bar'; document.body.appendChild(bar); }
+    bar.getAnimations().forEach((a) => a.cancel());
+    if (phase === 'start') bar.animate([{ transform: 'scaleX(0)', opacity: 1 }, { transform: 'scaleX(.75)', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' });
+    else bar.animate([{ transform: 'scaleX(.75)', opacity: 1 }, { transform: 'scaleX(1)', opacity: 1, offset: 0.5 }, { transform: 'scaleX(1)', opacity: 0 }], { duration: 520, easing: 'ease-out', fill: 'forwards' });
+  }
+  /** Les images de la page apparaissent en fondu une fois chargées. */
+  function softImages(root) {
+    root.querySelectorAll('img').forEach((img) => {
+      if (img.complete && img.naturalWidth) return;
+      img.classList.add('img-soft', 'img-wait');
+      const done = () => img.classList.remove('img-wait');
+      img.addEventListener('load', done, { once: true });
+      img.addEventListener('error', done, { once: true });
+    });
+  }
+  function enterView() {
+    const view = document.getElementById('view');
+    if (!view) return;
+    softImages(view);
+    if (reducedMotion()) return;
+    view.animate([{ opacity: 0, transform: 'translateY(18px)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }], { duration: 520, easing: 'cubic-bezier(.16,1,.3,1)' });
+    routeBar('end');
+  }
+  function navigate() {
+    const view = document.getElementById('view');
+    clearTimeout(navTimer);
+    if (navOut) { navOut.cancel(); navOut = null; }
+    // hors de l'application (présentation, connexion) ou animations réduites : rendu direct
+    if (!view || !view.firstElementChild || !auth.current() || reducedMotion()) { route(); enterView(); return; }
+    routeBar('start');
+    navOut = view.animate([{ opacity: 1, transform: 'none', filter: 'blur(0)' }, { opacity: 0, transform: 'translateY(-10px)', filter: 'blur(4px)' }], { duration: 180, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' });
+    navTimer = setTimeout(() => {
+      if (navOut) { navOut.cancel(); navOut = null; }
+      route();
+      enterView();
+    }, 180);
+  }
+  window.addEventListener('hashchange', navigate);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal').forEach((m) => m.remove()); });
   M.splash(I('crown'));
   route();
