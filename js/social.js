@@ -8,6 +8,8 @@
   const S = { ready: false, available: true, uid: null, friends: [], notifs: [], names: {}, channel: null };
   const sb = () => DP.cloud && DP.cloud.sb;
   const online = () => !!(DP.cloud && DP.cloud.online && DP.cloud.uid());
+  // recherche « contient » : %, _ et \ du pseudo sont pris tels quels
+  const likeEsc = (q) => q.replace(/[%_\\]/g, (c) => '\\' + c);
   const missing = (e) => e && /relation|does not exist|schema cache|not find/i.test(e.message || '');
 
   /* ---------- Données ---------- */
@@ -51,6 +53,8 @@
         ui.toast(textOf(p.new).replace(/<[^>]+>/g, ''), 'win', 4200);
         sound.play('coin');
         if (/^friend_/.test(p.new.kind)) loadFriends();
+        // duel réglé / refusé par l'ami : le solde et l'inventaire ont changé côté serveur
+        if ((p.new.kind === 'duel_result' || p.new.kind === 'duel_declined' || p.new.kind === 'admin') && DP.engine && DP.engine.on) DP.engine.refresh();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => loadFriends())
       .subscribe();
@@ -75,8 +79,8 @@
     async search(q) {
       q = q.trim();
       if (q.length < 1) return [];
-      let r = await sb().from('profiles').select('id, username, banned').ilike('username', `%${q.replace(/[%_]/g, '')}%`).limit(12);
-      if (r.error) r = await sb().from('profiles').select('id, username').ilike('username', `%${q.replace(/[%_]/g, '')}%`).limit(12);
+      let r = await sb().from('profiles').select('id, username, banned').ilike('username', `%${likeEsc(q)}%`).limit(12);
+      if (r.error) r = await sb().from('profiles').select('id, username').ilike('username', `%${likeEsc(q)}%`).limit(12);
       return (r.data || []).filter((p) => p.id !== S.uid && !p.banned);
     },
     async request(userId) { if (await act(sb().from('friendships').insert({ requester: S.uid, addressee: userId }))) { sound.play('chip'); ui.toast('Demande d’ami envoyée', 'win'); await loadFriends(); } },
