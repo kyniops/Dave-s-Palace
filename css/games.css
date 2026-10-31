@@ -758,3 +758,37 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
 .fmini.good { box-shadow: 0 0 0 2px var(--win); }
 .flip-next { margin-top: 14px; font-family: var(--display); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .flip-next b { color: var(--accent); }
+
+/* =================== DaveMine : cases en relief texturées =================== */
+.mines-grid .tile-btn {
+  border: 0; isolation: isolate;
+  clip-path: polygon(10% 0, 100% 0, 100% 90%, 90% 100%, 0 100%, 0 10%);
+  background: var(--noise), linear-gradient(160deg, #2a3045 0%, #171b28 55%, #0e111a 100%);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.13), inset 0 -4px 0 rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.07), inset 0 -18px 24px -14px rgba(0,0,0,.6);
+  transition: transform .18s var(--ease), box-shadow .2s, filter .2s;
+}
+/* emblème au centre : losange gravé */
+.mines-grid .tile-btn::before { content: ''; position: absolute; left: 50%; top: 50%; z-index: -1; width: 26%; aspect-ratio: 1; transform: translate(-50%, -50%) rotate(45deg);
+  border: 1px solid rgba(255,107,44,.35); background: linear-gradient(135deg, rgba(255,107,44,.12), transparent 60%); box-shadow: 0 0 0 4px rgba(0,0,0,.25), inset 0 0 6px rgba(0,0,0,.6); transition: border-color .2s, background .2s, transform .3s var(--ease); }
+/* reflet qui passe au survol */
+.mines-grid .tile-btn::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.14) 50%, transparent 65%); background-size: 260% 100%; background-position: 140% 0; transition: background-position .6s var(--ease); }
+.mines-grid .tile-btn:not(:disabled):hover { transform: translateY(-4px); filter: brightness(1.18); box-shadow: inset 0 2px 0 rgba(255,255,255,.18), inset 0 -4px 0 rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,107,44,.65), inset 0 -18px 24px -14px rgba(0,0,0,.6); }
+.mines-grid .tile-btn:not(:disabled):hover::after { background-position: -40% 0; }
+.mines-grid .tile-btn:not(:disabled):hover::before { border-color: var(--accent); background: linear-gradient(135deg, rgba(255,107,44,.35), transparent 70%); transform: translate(-50%, -50%) rotate(135deg); }
+.mines-grid .tile-btn:not(:disabled):active { transform: translateY(1px) scale(.97); }
+.mines-grid.idle .tile-btn:not(.open) { opacity: .7; filter: saturate(.6); }
+/* révélées : la case s'enfonce */
+.mines-grid .tile-btn.open { transform: none; filter: none; animation: tile-open .45s cubic-bezier(.2,1.4,.4,1);
+  box-shadow: inset 0 3px 10px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,255,255,.05); }
+.mines-grid .tile-btn.open::before { display: none; }
+@keyframes tile-open { 0% { transform: rotateY(90deg) scale(.9); } 100% { transform: none; } }
+.mines-grid .tile-btn.open.gem { background: radial-gradient(circle, rgba(255,193,69,.32), rgba(255,107,44,.08) 55%, transparent 75%), var(--noise), #0b0d14; box-shadow: inset 0 3px 10px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,193,69,.45); }
+.mines-grid .tile-btn.open.gem > img { width: 66%; height: 66%; filter: drop-shadow(0 4px 8px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(255,193,69,.45)); animation: gem-pop .55s cubic-bezier(.2,1.8,.4,1) both; }
+@keyframes gem-pop { 0% { transform: scale(.2) rotate(-30deg); } 100% { transform: none; } }
+.mines-grid .tile-btn.open.mine { background: radial-gradient(circle, rgba(255,61,90,.32), rgba(255,61,90,.06) 60%, transparent 80%), var(--noise), #120609; box-shadow: inset 0 3px 10px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,61,90,.5); }
+.mines-grid .tile-btn.open.mine.hit { background: radial-gradient(circle, rgba(255,61,90,.7), rgba(255,61,90,.15) 60%, transparent 85%), #1d070b; animation: tile-open .3s ease, shake .4s ease .3s; }
+.mines-grid .tile-btn.open.mine.hit > .i { animation: bomb-pulse .5s ease-in-out infinite alternate; }
+@keyframes bomb-pulse { to { transform: scale(1.12); filter: drop-shadow(0 0 8px #ff3d5a); } }
+.mines-grid .tile-btn.open.ghost { opacity: .4; filter: saturate(.5); }
+.mines-grid .tile-btn.open.ghost > img, .mines-grid .tile-btn.open.ghost > .i { animation: none; }
+@media (prefers-reduced-motion: reduce) { .mines-grid .tile-btn, .mines-grid .tile-btn > * { animation: none !important; } }
