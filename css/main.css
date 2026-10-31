@@ -996,3 +996,10 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .lb-table .g small { margin-left: 6px; font-family: var(--display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
 .lb-table .avatar, .ticker__item .avatar { width: 26px; height: 26px; font-size: 12px; }
 @media (max-width: 600px) { .lb-podium { gap: 6px; } .lb-pod b { font-size: 13px; } .lb-pod .avatar--lg { width: 48px; height: 48px; } }
+
+/* ---------- Liens vers les profils publics ---------- */
+.plink { display: inline-flex; align-items: center; gap: 8px; color: inherit; transition: color .2s; }
+.plink:hover { color: var(--accent); }
+.plink:hover .avatar { box-shadow: inset 0 0 0 1px var(--accent); }
+.lb-pod .plink { flex-direction: column; }
+.ticker__item .plink { gap: 6px; }

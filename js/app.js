@@ -24,7 +24,7 @@
     }
     renderShell();
     const view = document.getElementById('view');
-    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page || 'lobby');
+    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page === 'joueur' ? 'classement' : page || 'lobby');
     if (page === 'caisses') renderGame(view, games.find('cases'), { caseId: arg });
     else if (page === 'jeu' && arg === 'cases') { location.replace('#/caisses'); return; }
     else if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
@@ -33,6 +33,11 @@
     else if (page === 'admin') unmountView = DP_DASH.admin(view, { rerender: route });
     else if (page === 'progression') unmountView = DP.progress.render(view);
     else if (page === 'classement') unmountView = renderLeaderboard(view);
+    else if (page === 'joueur' && arg) {
+      const who = decodeURIComponent(arg);
+      if (who.toLowerCase() === (auth.current() || '').toLowerCase()) { location.replace('#/profil'); return; }
+      unmountView = DP.profile.renderPublic(view, who);
+    }
     else if (page === 'inventaire') renderInventory(view);
     else if (page === 'codes') renderCodes(view);
     else renderLobby(view);
@@ -487,7 +492,7 @@
     if (live.length >= 3) {
       const rows = live.slice(0, 12);
       while (rows.length < 10) rows.push(...rows.slice(0, 10 - rows.length));
-      return rows.map((r) => { const g = games.find(r.game); return `<span class="ticker__item"><i class="ticker__dot"></i>${DP.profile ? DP.profile.avatarHtml(r.username) : ''}<b>${esc(r.username)}</b> ${r.game === 'jackpot' ? 'remporte le <b class="pos">JACKPOT</b>' : 'gagne'} <span class="pos num">+${fmt(r.amount)}</span>${r.game === 'jackpot' ? '' : ' sur ' + (g ? g.name : esc(r.game))}</span>`; }).join('');
+      return rows.map((r) => { const g = games.find(r.game); return `<span class="ticker__item"><i class="ticker__dot"></i>${DP.profile.link(r.username, DP.profile.avatarHtml(r.username) + `<b>${esc(r.username)}</b>`)} ${r.game === 'jackpot' ? 'remporte le <b class="pos">JACKPOT</b>' : 'gagne'} <span class="pos num">+${fmt(r.amount)}</span>${r.game === 'jackpot' ? '' : ' sur ' + (g ? g.name : esc(r.game))}</span>`; }).join('');
     }
     const crew = [['Olman', 'olman.jpg'], ['Tdam', 'tdam.png'], ['Nathan', 'nathan.jpg'], ['Tony', 'tony.jpg'], ['Sévaré', 'sevare.png'], ['Slymefire', 'slymefire.png'], ['AXB', 'axb.png'], ['Sauce Blanche', 'sauceblanche.png'],
       ['Billy', 'billy.jpg'], ['Carl', 'carl.jpg'], ['Linkay', 'linkay.jpg'], ['Lucasco', 'lucasco.jpg'], ['Petit Bonnin', 'petitbonnin.jpg'], ['Yohan', 'yohan.jpg'], ['Tddam', 'tddam.jpg']];
@@ -802,6 +807,9 @@
     }, 180);
   }
   window.addEventListener('hashchange', navigate);
+  // photos des autres joueurs arrivées : on rafraîchit le bandeau du lobby
+  on('profiles', () => { const tr = document.querySelector('.ticker__track'); if (tr && DP.cloud.feed().length >= 3) tr.innerHTML = tickerHtml() + tickerHtml(); });
+  on('livefeed', () => { const tr = document.querySelector('.ticker__track'); if (tr && DP.cloud.feed().length >= 3) tr.innerHTML = tickerHtml() + tickerHtml(); });
   on('cloudload', () => { document.querySelector('.shell') && document.querySelector('.shell').remove(); route(); });
 
   /* ---------- Classement (version en ligne) ---------- */
@@ -821,11 +829,11 @@
       const podium = rows.slice(0, 3);
       box.innerHTML = `
         <div class="lb-podium">${[1, 0, 2].map((i) => podium[i] ? `<div class="lb-pod p${i + 1}">
-          ${DP.profile.avatarHtml(podium[i].name, 'avatar avatar--lg')}<span class="lb-pod__rank">${i + 1}</span>
-          <b>${esc(podium[i].name)}</b><span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
+          ${DP.profile.link(podium[i].name, DP.profile.avatarHtml(podium[i].name, 'avatar avatar--lg'))}<span class="lb-pod__rank">${i + 1}</span>
+          ${DP.profile.link(podium[i].name, `<b>${esc(podium[i].name)}</b>`)}<span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
         <div class="table-wrap"><table class="history lb-table"><thead><tr><th>#</th><th>Joueur</th>${COLS.map(([k, l]) => `<th class="num ${k === sortKey ? 'on' : ''}">${l}</th>`).join('')}</tr></thead>
         <tbody>${rows.map((r, i) => { const sm = DP.progress.rankOf(r.level || 1); return `<tr class="${r.name === auth.current() ? 'me' : ''}"><td class="num">${i + 1}</td>
-          <td><span class="g">${DP.profile.avatarHtml(r.name)}${esc(r.name)}<small style="color:${sm.c}">${sm.name}</small></span></td>
+          <td>${DP.profile.link(r.name, `<span class="g">${DP.profile.avatarHtml(r.name)}${esc(r.name)}<small style="color:${sm.c}">${sm.name}</small></span>`)}</td>
           <td class="num">${fmt(+r.balance || 0)}</td><td class="num">${r.level || 1}</td><td class="num">${fmt(+r.wagered || 0)}</td><td class="num">${r.biggest_win ? '+' + fmt(+r.biggest_win) : '—'}</td></tr>`; }).join('')}</tbody></table></div>`;
     };
     view.querySelector('.js-lsort').addEventListener('click', (e) => {

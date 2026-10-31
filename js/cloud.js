@@ -219,6 +219,37 @@
     .subscribe();
 
   /* ---------- Classement et admin ---------- */
+  /* Profils (photo, bannière, titre…) de tous les joueurs, pour les afficher partout */
+  let profCache = {};
+  cloud.profiles = () => profCache;
+  const fillProfiles = (rows, names) => {
+    rows.forEach((r) => {
+      const n = names[r.user_id];
+      if (!n || !r.prof) return;
+      try { profCache[n.toLowerCase()] = JSON.parse(r.prof); } catch { /* ignore */ }
+    });
+  };
+  async function loadProfiles() {
+    const [{ data: profs }, { data: rows }] = await Promise.all([
+      sb.from('profiles').select('id, username'),
+      sb.from('saves').select('user_id, prof:data->>dp_profile_')
+    ]);
+    if (!profs || !rows) return;
+    fillProfiles(rows, Object.fromEntries(profs.map((p) => [p.id, p.username])));
+    emit('profiles');
+  }
+  loadProfiles();
+  setInterval(loadProfiles, 60000);
+
+  /** Fiche complète d'un joueur (profil public), ou null s'il n'existe pas. */
+  cloud.player = async (name) => {
+    const { data: prof } = await sb.from('profiles').select('id, username').ilike('username', name).maybeSingle();
+    if (!prof) return null;
+    const { data: save } = await sb.from('saves').select('balance, level, wagered, biggest_win, data').eq('user_id', prof.id).maybeSingle();
+    if (save && save.data && save.data.dp_profile_) { try { profCache[prof.username.toLowerCase()] = JSON.parse(save.data.dp_profile_); } catch { /* ignore */ } }
+    return { id: prof.id, name: prof.username, ...(save || { balance: 0, data: {} }) };
+  };
+
   cloud.players = async ({ withData = false } = {}) => {
     const [{ data: profs }, { data: saves }] = await Promise.all([
       sb.from('profiles').select('id, username, created_at'),

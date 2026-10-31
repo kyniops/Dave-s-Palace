@@ -5,7 +5,15 @@
   const { auth, stats, store, ui, sound, cards, inventory, fmt, esc, on, emit, IMG } = DP;
   const I = ui.icon;
   const key = (name) => 'dp_profile_' + name;
-  const get = (name = auth.current()) => Object.assign({ avatar: null, banner: { type: 'preset', id: 'orbite' }, title: 'new', bio: '', showcase: [] }, store.json(key(name), {}));
+  const BLANK = () => ({ avatar: null, banner: { type: 'preset', id: 'orbite' }, title: 'new', bio: '', showcase: [] });
+  // les autres joueurs : profils récupérés du serveur (version en ligne)
+  const others = () => (DP.cloud && DP.cloud.online && DP.cloud.profiles ? DP.cloud.profiles() : {});
+  const get = (name = auth.current()) => {
+    if (name !== auth.current() && others()[name.toLowerCase()]) return Object.assign(BLANK(), others()[name.toLowerCase()]);
+    return Object.assign(BLANK(), store.json(key(name), {}));
+  };
+  /** Lien vers le profil public d'un joueur. */
+  const link = (name, inner, cls = '') => `<a class="plink ${cls}" href="#/joueur/${encodeURIComponent(name)}">${inner}</a>`;
   function set(patch) {
     const p = Object.assign(get(), patch);
     try { localStorage.setItem(key(auth.current()), JSON.stringify(p)); }
@@ -51,7 +59,67 @@
     if (b.type === 'card' && cards.byId[b.id]) return `background-image:url(${IMG}${cards.byId[b.id].img})`;
     return '';
   }
-  const bannerClass = (p) => { const b = p.banner || {}; return b.type === 'upload' ? 'pb--upload' : b.type === 'card' ? 'pb--card' : 'pb--' + (BANNERS.find((x) => x.id === b.id && x.ok()) ? b.id : 'orbite'); };
+  const bannerClass = (p, trusted = false) => { const b = p.banner || {}; return b.type === 'upload' ? 'pb--upload' : b.type === 'card' ? 'pb--card' : 'pb--' + (BANNERS.find((x) => x.id === b.id && (trusted || x.ok())) ? b.id : 'orbite'); };
+  /** Nom d'un titre à partir de son identifiant (sans vérifier qu'il est débloqué : profil d'un autre joueur). */
+  function titleById(id) {
+    if (id && id.startsWith('rank_') && DP.progress) { const r = DP.progress.RANKS.find((x) => 'rank_' + x.name === id); if (r) return { name: 'Rang ' + r.name, color: r.c, tier: 0 }; }
+    if (id && id.startsWith('ach_') && DP.progress) { const a = DP.progress.achievements().find((x) => 'ach_' + x.id === id); if (a) return { name: a.name, tier: a.tier }; }
+    return { name: 'Nouveau venu', tier: 0 };
+  }
+
+  /* ---------- Profil public d'un autre joueur ---------- */
+  function renderPublic(view, name) {
+    let alive = true;
+    view.innerHTML = `<div class="empty">${I('user', 'i--lg')}<strong>Chargement du profil…</strong></div>`;
+    const parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
+    const show = (pl) => {
+      if (!alive) return;
+      if (!pl) { view.innerHTML = `<div class="empty">${I('users', 'i--lg')}<strong>Joueur introuvable</strong>Aucun joueur ne s’appelle « ${esc(name)} ».<a class="btn btn--primary" style="margin-top:10px" href="#/classement">Voir le classement</a></div>`; return; }
+      const d = pl.data || {};
+      const p = Object.assign(BLANK(), parse(d.dp_profile_, {}));
+      const s = Object.assign({ played: 0, biggestWin: 0, biggestMult: 0, wagered: 0 }, parse(d.dp_stats_, {}));
+      const prog = Object.assign({ xp: 0, ach: {} }, parse(d.dp_prog_, {}));
+      const inv = Object.assign({ cards: {}, shiny: {} }, parse(d.dp_inv_, {}));
+      const info = DP.progress.levelInfo(prog.xp || 0);
+      const achs = DP.progress.achievements();
+      const got = achs.filter((a) => prog.ach[a.id]).map((a) => ({ ...a, got: prog.ach[a.id] }));
+      const uniq = new Set([...Object.keys(inv.cards || {}), ...Object.keys(inv.shiny || {})].filter((id) => cards.byId[id])).size;
+      const showcase = (p.showcase || []).map((k) => { const [id, sh] = k.split('|'); return cards.byId[id] && ((sh === '1' ? inv.shiny : inv.cards) || {})[id] ? { card: cards.byId[id], shiny: sh === '1' } : null; }).filter(Boolean);
+      const t = titleById(p.title);
+      view.innerHTML = `
+        <section class="pcard" style="--rc:${info.rank.c}">
+          <div class="pbanner ${bannerClass(p, true)}" style="${bannerStyle(p)}"><span class="pbanner__fx"></span></div>
+          <div class="pcard__body">
+            <div class="pcard__avatar">${avatarHtml(pl.name, 'avatar avatar--xl')}<span class="pcard__lvl">${DP.progress.badge(info.level, 44)}</span></div>
+            <div class="pcard__id">
+              <h1>${esc(pl.name)}</h1>
+              <div class="pcard__tags">${titleHtml(t)}<span class="prank">Rang ${info.rank.name} · niveau ${info.level}</span></div>
+              ${p.bio ? `<p class="pcard__bio">${esc(p.bio)}</p>` : ''}
+            </div>
+            <a class="btn btn--ghost" href="#/classement">${I('trophy', 'i--sm')}Classement</a>
+          </div>
+          <div class="pstats">
+            <div><span>Solde</span><b class="num">${fmt(+pl.balance || 0)}</b></div>
+            <div><span>Parties</span><b class="num">${fmt(s.played)}</b></div>
+            <div><span>Plus gros gain</span><b class="num">${s.biggestWin ? '+' + fmt(s.biggestWin) : '—'}</b></div>
+            <div><span>Collection</span><b class="num">${uniq} / ${Object.keys(cards.byId).length}</b></div>
+          </div>
+        </section>
+        <div class="pgrid">
+          <section class="ppanel"><header><h2>Vitrine</h2><span>${showcase.length} / 3</span></header>
+            ${showcase.length ? `<div class="pshow">${showcase.map((x) => `<div>${cards.html(x.card, { shiny: x.shiny })}</div>`).join('')}</div>` : `<div class="empty">${I('layers-2', 'i--lg')}<strong>Vitrine vide</strong>${esc(pl.name)} n’expose encore aucune carte.</div>`}
+          </section>
+          <section class="ppanel"><header><h2>Succès</h2><span>${got.length} / ${achs.length}</span></header>
+            ${got.length ? `<ul class="plast">${got.sort((a, b) => b.got - a.got).slice(0, 6).map((a) => `<li class="t${a.tier}"><span class="plast__ico">${I(a.icon, 'i--sm')}</span><b>${esc(a.name)}</b><small>${new Date(a.got).toLocaleDateString('fr-FR')}</small></li>`).join('')}</ul>` : '<p class="muted">Aucun succès pour l’instant.</p>'}
+          </section>
+        </div>`;
+      DP_MOTION.tilt(view.querySelectorAll('.pshow .tcard'), 12);
+      DP_MOTION.reveal(view, '.pcard, .ppanel');
+    };
+    if (!(DP.cloud && DP.cloud.online)) { show(null); return () => {}; }
+    DP.cloud.player(name).then(show).catch(() => show(null));
+    return () => { alive = false; };
+  }
 
   /** Réduit une image importée (recadrage centré) et renvoie un JPEG en data URL. */
   function shrink(file, w, h) {
@@ -190,5 +258,5 @@
     return () => {};
   }
 
-  DP.profile = { get, avatarHtml, titleOf, titleHtml, render };
+  DP.profile = { get, avatarHtml, titleOf, titleHtml, render, renderPublic, link };
 })();

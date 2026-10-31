@@ -421,7 +421,7 @@
       const list = users.slice().sort((a, b) => { const x = valOf(a, sortKey), y = valOf(b, sortKey); return (typeof x === 'string' ? x.localeCompare(y) : x - y) * sortDir; });
       usersBox.innerHTML = `<table class="history dtable dusers"><thead><tr>${COLS.map(([k, l]) => `<th class="${k === 'name' ? '' : 'num'} sortable ${k === sortKey ? 'on' : ''}" data-k="${k}">${l}${k === sortKey ? (sortDir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}<th class="num">Créditer</th></tr></thead>
         <tbody>${list.map((u) => `<tr data-u="${esc(u.name)}">
-          <td><span class="g"><span class="avatar">${esc(u.name.charAt(0).toUpperCase())}</span>${esc(u.name)}${u.name === auth.current() ? ' <small class="muted">(toi)</small>' : ''}</span></td>
+          <td>${DP.profile.link(u.name, `<span class="g">${DP.profile.avatarHtml(u.name)}${esc(u.name)}${u.name === auth.current() ? ' <small class="muted">(toi)</small>' : ''}</span>`)}</td>
           <td class="num js-ubal">${fmt(u.balance)}</td><td class="num">${fmt(u.s.played)}</td><td class="num">${fmt(u.s.wagered)}</td>
           <td class="num ${tone(u.net)}">${signed(u.net)}</td><td class="num">${pct(u.s.won, u.s.wagered)}</td>
           <td class="num">${u.unique} <small class="muted">(${u.copies})</small></td><td class="num">${fmt(u.invValue)}</td><td class="num muted">${ago(u.last)}</td>
