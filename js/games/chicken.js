@@ -178,6 +178,7 @@
           const cover = lanes[i].querySelector('.lane__cover');
           ui.burst(cover, { n: 10 + i });
           ui.floatText(cover, fmtMult(mult(game.lvl, i + 1)));
+          if (mult(game.lvl, i + 1) >= 10 && !game.hyped) { game.hyped = true; DP.emit('bigwin', { game: 'chicken', x: 10 }); }
           if (i === LEVELS[game.lvl].lanes - 1) { end(true); return; }
           paint();
         }, 320);

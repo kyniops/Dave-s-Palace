@@ -41,7 +41,7 @@ Aucun serveur, aucune installation : ouvre `index.html` dans ton navigateur et c
 - **Dashboard admin** (#/admin, code `palace-admin`) : tous les comptes du navigateur (tri par colonne, créditer / débiter un joueur), économie par jeu avec RTP réel et théorique, activité, DaveCoins distribués, codes promo, jackpot
 - Tirages avec `crypto.getRandomValues`, gains calculés à partir des probabilités réelles
 - Quitter une page en pleine partie règle la partie (encaissement ou remboursement), aucune mise perdue
-- Musique d'ambiance en boucle (démarre au premier clic) et panneau de volume : musique et effets réglables séparément, bouton « Tout couper », réglages mémorisés
+- Musique d'ambiance acoustique en boucle (démarre au premier clic) ; la version phonk prend le relais pendant les gros moments (gain ×10 et plus, free spins, jackpot, carte légendaire, fusée au-delà de ×5…) en démarrant sur un drop, avec fondu croisé et panneau de volume : musique et effets réglables séparément, bouton « Tout couper », réglages mémorisés
 - Sound design 100 % synthétisé (Web Audio : compresseur, réverbération, gammes qui montent à chaque réussite), effets visuels (particules, secousses, pluie de DaveCoins), raccourcis clavier, responsive mobile
 - Direction artistique « espace profond » : champ d'étoiles animé en parallaxe, étoiles filantes, verre fumé, icônes [Lucide](https://lucide.dev) (licence ISC)
 

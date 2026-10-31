@@ -378,6 +378,7 @@
         spinning = false;
         paint();
         const big = gain >= 1000;
+        if (gain >= 2500) DP.emit('bigwin', { game: 'daily', x: 50 });
         sound.play(big ? 'jackpot' : 'win', { x: gain / 100 });
         if (big) sound.play('slam');
         ui.burst(box, { n: big ? 70 : 30, colors: ['#ffc145', '#ff6b2c', '#ffffff'], spread: big ? 2.4 : 1.4 });

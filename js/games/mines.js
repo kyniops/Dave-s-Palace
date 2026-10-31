@@ -154,6 +154,7 @@
         sound.play('gem', { i: game.picks - 1 });
         ui.burst(tile, { n: 10 + game.picks, colors: ['#ff6b2c', '#ffc65c', '#ffffff'] });
         ui.floatText(tile, fmtMult(multiplier(game.m, game.picks)));
+        if (multiplier(game.m, game.picks) >= 10 && !game.hyped) { game.hyped = true; DP.emit('bigwin', { game: 'mines', x: 10 }); }
         if (game.picks >= 3) multPill.animate([{ transform: 'scale(1.35)' }, { transform: 'scale(1)' }], { duration: 300, easing: 'cubic-bezier(.2,1.6,.4,1)' });
         if (srv && srv.done) { end(true, srv.payout); return; }
         if (game.picks === CELLS - game.m) { end(true); return; }

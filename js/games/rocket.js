@@ -327,6 +327,7 @@
         const ms = MILESTONES.filter((x) => m >= x).length;
         if (ms > round.ms) {
           round.ms = ms;
+          if (m >= 5 && !round.hyped && !round.cashed) { round.hyped = true; DP.emit('bigwin', { game: 'rocket', x: 10 }); } // la fusée s'envole
           sound.play('gem', { i: ms + 3 });
           ui.flash(stage, 'rgba(255,107,44,.18)');
           multEl.animate([{ transform: 'translate(-50%,-50%) scale(1.25)' }, { transform: 'translate(-50%,-50%) scale(1)' }], { duration: 400, easing: 'cubic-bezier(.2,1.6,.4,1)' });

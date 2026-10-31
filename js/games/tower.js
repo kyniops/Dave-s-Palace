@@ -151,6 +151,7 @@
         sound.play('streak', { i: k + (game.lvl === 'extreme' ? 3 : game.lvl === 'hard' ? 1 : 0) });
         ui.burst(btn, { n: 10 + k * 3 });
         ui.floatText(btn, fmtMult(mult(game.lvl, k)));
+        if (mult(game.lvl, k) >= 10 && !game.hyped) { game.hyped = true; DP.emit('bigwin', { game: 'tower', x: 10 }); }
         floors[f].querySelectorAll('.door').forEach((x, j) => { if (j !== d) x.classList.add('dim'); });
         setTimeout(() => {
           if (!game) return;

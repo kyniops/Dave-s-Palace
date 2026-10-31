@@ -11,8 +11,9 @@
     sfxVol: num('dp_sfx_vol', 1)
   };
 
-  /* Deux versions du même morceau : acoustique dans les menus, phonk dans les jeux.
-   * Le passage de l'une à l'autre se fait par un fondu croisé ; chaque version reprend là où elle s'était arrêtée. */
+  /* Deux versions du même morceau : l'acoustique tourne partout, la phonk prend le relais pendant les
+   * gros moments (gros gain, free spins, jackpot, carte légendaire, fusée qui s'envole) puis repasse la main.
+   * Le passage se fait par un fondu croisé ; la phonk démarre juste avant un de ses « drops ». */
   const mk = (src) => { const a = new Audio(src); a.loop = true; a.preload = 'auto'; a.volume = 0; return a; };
   const tracks = { calm: mk('assets/audio/ambiance.mp3'), hype: mk('assets/audio/phonk.mp3') };
   tracks.hype.preload = 'none'; // téléchargée seulement au premier jeu ouvert
@@ -39,7 +40,27 @@
     fades.set(k, requestAnimationFrame(step));
   }
   /** Version voulue selon la page : jeux et caisses → phonk, le reste → acoustique. */
-  const wanted = () => (/^#\/(jeu|caisses)/.test(location.hash) ? 'hype' : 'calm');
+  // moments où la phonk passe à pleine puissance (analyse du morceau), pris à tour de rôle
+  const DROPS = [15, 73, 139, 169];
+  let dropIdx = 0, hypeUntil = 0, hold = false, hypeTimer = 0;
+  const wanted = () => (hold || Date.now() < hypeUntil ? 'hype' : 'calm');
+  function update() {
+    const k = wanted();
+    if (k === current) return;
+    if (k === 'hype' && started) {
+      // nouvelle montée : on se cale une seconde avant un drop pour que le beat tombe quand le son arrive
+      tracks.hype.currentTime = Math.max(0, DROPS[dropIdx++ % DROPS.length] - 1);
+    }
+    switchTo(k, k === 'hype' ? 1100 : 2600);
+  }
+  /** Lance la phonk pendant `ms` (prolongée si un autre gros moment arrive). */
+  function hype(ms = 14000) {
+    hypeUntil = Math.max(hypeUntil, Date.now() + ms);
+    clearTimeout(hypeTimer);
+    hypeTimer = setTimeout(update, hypeUntil - Date.now() + 50);
+    update();
+  }
+  on('bigwin', (e) => hype(e && e.x >= 50 ? 24000 : 14000));
   function switchTo(k, ms = XFADE) {
     if (k === current && !tracks[k].paused) return fadeTo(k, target(k), ms);
     const old = current;
@@ -58,17 +79,18 @@
   }
   const kick = () => { if (!started) play(); };
   ['pointerdown', 'keydown', 'touchstart'].forEach((e) => window.addEventListener(e, kick, { passive: true }));
-  window.addEventListener('hashchange', () => { if (started) switchTo(wanted()); else current = wanted(); });
   // onglet caché : la musique se met en pause, et reprend au retour
   document.addEventListener('visibilitychange', () => {
     const a = tracks[current];
     if (document.hidden) { if (!a.paused) { a.pause(); a._was = true; } }
     else if (a._was) { a._was = false; if (!state.musicMuted) a.play().catch(() => {}); }
   });
-  // free spins et jackpot de DaveMachine : la musique s'efface pour laisser la place à la leur
+  // free spins et jackpot de DaveMachine : phonk pendant toute la séquence, puis encore quelques secondes
   new MutationObserver(() => {
-    const d = document.body.classList.contains('fs-party') || document.body.classList.contains('jp-party') ? 0.3 : 1;
-    if (d !== duck) { duck = d; if (started) fadeTo(current, target(current), 1200); }
+    const h = document.body.classList.contains('fs-party') || document.body.classList.contains('jp-party');
+    if (h === hold) return;
+    hold = h;
+    if (!h) hype(6000); else update();
   }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
   /* ---------- Réglages ---------- */
@@ -150,5 +172,5 @@
     return btn;
   }
 
-  DP.music = { attach, tracks, current: () => current };
+  DP.music = { attach, tracks, hype, current: () => current };
 })();

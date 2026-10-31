@@ -446,6 +446,7 @@
         if (!quiet) sound.play('streak', { i: rr.lvl });
         ui.burst(card, { n: 8 + rr.lvl * 3, colors: [rr.c, '#ffffff'], spread: 1 + rr.lvl / 10 });
         ui.floatText(card, '+' + fmt(round2(box.price * d[1])));
+        if (rr.lvl >= 10 && !quiet) DP.emit('bigwin', { game: 'cases', x: rr.lvl >= 14 ? 100 : 20 }); // carte légendaire ou mythique
         if (rr.lvl >= 10) { ui.shake(stage, rr.lvl >= 14 ? 2 : 1); ui.coinRain(stage, rr.lvl >= 14 ? 60 : 25); sound.play('jackpot'); }
       }
       const tick = (k) => sound.play('tick', { p: 1 - k });

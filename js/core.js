@@ -288,6 +288,8 @@
   /** credit:false = la valeur est gagnée sous forme d'objets (cartes) et non versée en DaveCoins. */
   function settle(game, bet, payout, { silent = false, credit = true } = {}) {
     payout = round2(payout);
+    // gros gain : la musique passe en version phonk
+    if (bet > 0 && payout >= bet * 10 && payout - bet >= 50) emit('bigwin', { game, x: payout / bet });
     // en ligne, le serveur a déjà réglé la partie : on ne fait que jouer le son
     if (DP.engine && DP.engine.on) {
       if (!silent) { if (payout > bet) sound.play(payout >= bet * 10 ? 'jackpot' : 'win', { x: payout / bet }); else if (payout === 0) sound.play('lose'); }

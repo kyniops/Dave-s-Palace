@@ -184,6 +184,7 @@
           if (coins > 0) { wallet.place(coins); coinsIn.remember(); }
         }
         const r = srv ? srv.r : rng.float(), win = srv ? srv.win : r < ch;
+        const pending0 = s;
         pending = { win, target: tgt, stake: s, srv };
         busy = true;
         paint();
@@ -216,6 +217,7 @@
         $('.js-x').textContent = win ? '+' + fmt(tgt.value) : 'Cartes perdues';
         const tEl = $('.js-target .tcard');
         if (win) {
+          if (tgt.value / pending0 >= 5) DP.emit('bigwin', { game: 'upgrade', x: 20 }); // upgrade risqué réussi
           gauge.classList.add('win');
           sound.play('jackpot'); sound.play('slam');
           ui.flash(stage);
