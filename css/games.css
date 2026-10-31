@@ -512,29 +512,39 @@ body.fs-party .wallet { animation: fs-wallet 1s ease-in-out infinite; }
 .vault__best b { color: var(--text); }
 
 /* la caisse */
-.crate { --w: 150px; position: relative; width: var(--w); height: calc(var(--w) * .82); transition: transform .5s var(--ease); }
-.crate--lg { --w: 190px; }
+.crate { --w: 150px; position: relative; width: var(--w); height: calc(var(--w) * .83); transition: transform .5s var(--ease); isolation: isolate; }
+.crate--lg { --w: 220px; }
 .crate--sm { --w: 112px; }
-.crate__body { position: absolute; left: 0; right: 0; bottom: 0; height: 74%;
-  background:
-    linear-gradient(90deg, var(--c) 0 9%, transparent 9% 91%, var(--c) 91%),
-    radial-gradient(circle, #d9dce4 0 2px, transparent 2.5px) 6% 12% / 100% 100% no-repeat,
-    radial-gradient(circle, #d9dce4 0 2px, transparent 2.5px) 94% 12% / 100% 100% no-repeat,
-    linear-gradient(180deg, #2a2f3e, #141721 60%, #0d0f16);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), inset 0 -4px 0 rgba(0,0,0,.4);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px)); }
-.crate__body::after { content: ''; position: absolute; left: 9%; right: 9%; top: 46%; height: 4px; background: rgba(0,0,0,.35); }
-.crate__lid { position: absolute; left: -4%; right: -4%; top: 0; height: 30%; z-index: 2; transform-origin: 10% 100%; transition: transform .5s var(--ease);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 85%, #fff), var(--c) 55%, color-mix(in srgb, var(--c) 70%, #000));
-  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
-.crate__lid i { position: absolute; left: 50%; top: 22%; width: 34%; height: 4px; transform: translateX(-50%); background: rgba(0,0,0,.3); }
-.crate__lock { position: absolute; left: 50%; top: -2px; z-index: 3; width: 16%; height: 18%; transform: translateX(-50%); background: linear-gradient(180deg, #e9ecf2, #9aa0ae); clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%); }
-.crate__emblem { position: absolute; left: 50%; top: 54%; width: 40%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 3px var(--c), 0 0 0 5px #0d0f16, 0 6px 14px rgba(0,0,0,.7); background: #0d0f16; }
-.crate__emblem img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.crate__shadow { position: absolute; left: 6%; right: 6%; bottom: -14px; height: 12px; border-radius: 50%; background: rgba(0,0,0,.6); filter: blur(6px); z-index: -1; }
-.crate.open .crate__lid { transform: translate(-18%, -160%) rotate(-38deg); opacity: 0; transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .6s ease .2s; }
-.crate.open .crate__body { animation: crate-pop .5s var(--ease); }
-@keyframes crate-pop { 30% { transform: scaleY(.92) scaleX(1.05); } }
+.crate__svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; z-index: 1; filter: drop-shadow(0 10px 14px rgba(0,0,0,.7)); }
+/* couvercle (élément à part pour s'ouvrir) */
+.crate__lid { position: absolute; left: 0; right: 0; top: 0; height: 39.8%; z-index: 3; transform-origin: 8% 100%; transition: transform .5s var(--ease); filter: drop-shadow(0 4px 6px rgba(0,0,0,.6)); }
+.crate__lidsvg { display: block; width: 100%; height: 100%; overflow: visible; }
+.crate__svg .crate__latch { filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+/* halo au sol + lueurs */
+.crate__floor { position: absolute; left: 50%; bottom: -10%; width: 120%; height: 30%; transform: translateX(-50%); z-index: 0; border-radius: 50%; background: radial-gradient(ellipse, color-mix(in srgb, var(--c) 45%, transparent), transparent 65%); filter: blur(6px); animation: crate-breathe 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes crate-breathe { 50% { opacity: .55; } }
+.crate__leds { animation: crate-led 2.4s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes crate-led { 50% { opacity: .55; } }
+/* reflet qui passe sur la coque */
+.crate__shine { position: absolute; left: 4%; right: 4%; top: 6%; bottom: 4%; z-index: 4; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,.28) 48%, transparent 58%); background-size: 280% 100%; animation: crate-shine 5.5s ease-in-out infinite; animation-delay: var(--d, 0s);
+  -webkit-mask: linear-gradient(#000, #000); clip-path: polygon(4% 0, 96% 0, 100% 45%, 100% 92%, 95% 100%, 5% 100%, 0 92%, 0 45%); }
+@keyframes crate-shine { 0%, 62% { background-position: 150% 0; } 88%, 100% { background-position: -60% 0; } }
+/* lumière qui jaillit à l'ouverture */
+.crate__glow { position: absolute; left: 50%; top: 30%; width: 240%; aspect-ratio: 1; transform: translate(-50%, -50%) scale(.3); opacity: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(circle, rgba(255,255,255,.95) 0 5%, color-mix(in srgb, var(--c) 75%, transparent) 13%, transparent 40%), repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--c) 55%, transparent) 0 5deg, transparent 5deg 20deg);
+  -webkit-mask: radial-gradient(circle, #000 18%, transparent 62%); mask: radial-gradient(circle, #000 18%, transparent 62%); }
+.crate.open .crate__glow { animation: crate-rays 1.6s cubic-bezier(.16,1,.3,1) forwards; }
+@keyframes crate-rays { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0); } 25% { opacity: 1; } 100% { opacity: .55; transform: translate(-50%, -50%) scale(1) rotate(40deg); } }
+.crate__shadow { position: absolute; left: 6%; right: 6%; bottom: -8px; height: 12px; border-radius: 50%; background: rgba(0,0,0,.7); filter: blur(6px); z-index: 0; }
+.crate.open .crate__lid { transform: translate(-16%, -150%) rotate(-38deg); opacity: 0; transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .6s ease .2s; }
+.crate.open .crate__svg { animation: crate-pop .5s var(--ease); }
+.crate.open .crate__shine { display: none; }
+@keyframes crate-pop { 30% { transform: scaleY(.93) scaleX(1.04); } }
+.vault__item:hover .crate__lid, .lv-item:hover .crate__lid { transform: translateY(-10px) rotate(-4deg); }
+.vault__item:hover .crate__glow, .lv-item:hover .crate__glow { opacity: .3; transform: translate(-50%, -50%) scale(.5); transition: opacity .4s, transform .6s var(--ease); }
+.vault__item:hover .crate__floor, .lv-item:hover .crate__floor { opacity: 1; animation: none; }
+@media (prefers-reduced-motion: reduce) { .crate__shine, .crate__leds, .crate__floor { animation: none; } }
 .art-case { display: grid; place-items: center; }
 
 /* page d'une caisse */

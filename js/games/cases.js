@@ -141,11 +141,79 @@
   const itemCard = (box, d, cls = '') => cards.html(cards.byId[`${box.id}:${d[0]}`], { compact: true, cls });
 
   /** Caisse dessinée : couvercle, bandes, rivets, serrure et emblème. */
-  const crateHtml = (box, cls = '') => `<div class="crate ${cls}" style="--c:${box.color}">
-      <div class="crate__lid"><i></i></div>
-      <div class="crate__body"><span class="crate__lock"></span><span class="crate__emblem"><img src="${IMG}${box.cover}" alt=""></span></div>
+  /* ---------- Caisse premium en SVG : coffre en carbone, armatures métal à la couleur de la caisse ---------- */
+  const mixHex = (hex, to, k) => {
+    const a = parseInt(hex.slice(1), 16), b = parseInt(to.slice(1), 16);
+    const ch = (s) => Math.round(((a >> s) & 255) + ((((b >> s) & 255) - ((a >> s) & 255)) * k));
+    return '#' + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+  };
+  let crateSeq = 0;
+  const HEX = (cx, cy, r) => [0, 1, 2, 3, 4, 5].map((i) => { const a = (Math.PI / 3) * i - Math.PI / 2; return `${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`; }).join(' ');
+  const crateHtml = (box, cls = '') => {
+    const id = 'cr' + ++crateSeq, c = box.color;
+    const hi = mixHex(c, '#ffffff', 0.55), mid = c, lo = mixHex(c, '#000000', 0.45), deep = mixHex(c, '#000000', 0.72);
+    // dégradés métal (couleur de la caisse) et carbone
+    const defs = `<defs>
+        <linearGradient id="${id}m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hi}"/><stop offset=".35" stop-color="${mid}"/><stop offset=".7" stop-color="${lo}"/><stop offset="1" stop-color="${mid}"/></linearGradient>
+        <linearGradient id="${id}mh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${lo}"/><stop offset=".25" stop-color="${hi}"/><stop offset=".5" stop-color="${mid}"/><stop offset=".8" stop-color="${hi}"/><stop offset="1" stop-color="${lo}"/></linearGradient>
+        <linearGradient id="${id}k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#262a35"/><stop offset=".5" stop-color="#14161d"/><stop offset="1" stop-color="#08090d"/></linearGradient>
+        <pattern id="${id}cf" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="transparent"/><rect width="3" height="3" fill="rgba(255,255,255,.035)"/><rect x="3" y="3" width="3" height="3" fill="rgba(255,255,255,.035)"/></pattern>
+        <filter id="${id}g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4"/></filter>
+        <clipPath id="${id}h"><polygon points="${HEX(100, 116, 27)}"/></clipPath>
+      </defs>`;
+    // corps : coque carbone chanfreinée + cadre métal + armatures d'angle + bandes LED + fentes lumineuses
+    const body = `
+      <path d="M14 64 H186 L192 72 V150 L182 162 H18 L8 150 V78 Z" fill="url(#${id}k)"/>
+      <path d="M14 64 H186 L192 72 V150 L182 162 H18 L8 150 V78 Z" fill="url(#${id}cf)"/>
+      <path d="M14 64 H186 L192 72 V150 L182 162 H18 L8 150 V78 Z" fill="none" stroke="url(#${id}m)" stroke-width="3"/>
+      <path d="M22 80 H178 V146 L170 154 H30 L22 146 Z" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+      <g fill="url(#${id}m)" stroke="${deep}" stroke-width=".8">
+        <path d="M8 120 V150 L18 162 H52 L46 154 H24 L16 146 V120 Z"/>
+        <path d="M192 120 V150 L182 162 H148 L154 154 H176 L184 146 V120 Z"/>
+        <path d="M8 78 L14 70 H44 L40 76 H18 L14 82 V100 H8 Z"/>
+        <path d="M192 78 L186 70 H156 L160 76 H182 L186 82 V100 H192 Z"/>
+      </g>
+      <g fill="#d9dce4">${[[20, 156], [180, 156], [18, 77], [182, 77]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6"/>`).join('')}</g>
+      <g class="crate__leds">
+        <rect x="3" y="96" width="4" height="34" rx="2" fill="${c}" filter="url(#${id}g)"/><rect x="4" y="98" width="2" height="30" rx="1" fill="${hi}"/>
+        <rect x="193" y="96" width="4" height="34" rx="2" fill="${c}" filter="url(#${id}g)"/><rect x="194" y="98" width="2" height="30" rx="1" fill="${hi}"/>
+        <path d="M30 130 L62 120" stroke="${c}" stroke-width="3" filter="url(#${id}g)"/><path d="M30 130 L62 120" stroke="${hi}" stroke-width="1.2"/>
+        <path d="M170 130 L138 120" stroke="${c}" stroke-width="3" filter="url(#${id}g)"/><path d="M170 130 L138 120" stroke="${hi}" stroke-width="1.2"/>
+      </g>
+      <path d="M26 100 L66 92 L70 140 L34 146 Z" fill="rgba(0,0,0,.25)" stroke="rgba(255,255,255,.05)"/>
+      <path d="M174 100 L134 92 L130 140 L166 146 Z" fill="rgba(0,0,0,.25)" stroke="rgba(255,255,255,.05)"/>
+      <polygon points="${HEX(100, 116, 36)}" fill="${c}" opacity=".45" filter="url(#${id}g)"/>
+      <polygon points="${HEX(100, 116, 34)}" fill="url(#${id}m)" stroke="${deep}" stroke-width="1"/>
+      <polygon points="${HEX(100, 116, 29)}" fill="#07080c"/>
+      <image href="${IMG}${box.cover}" x="73" y="89" width="54" height="54" preserveAspectRatio="xMidYMin slice" clip-path="url(#${id}h)"/>
+      <polygon points="${HEX(100, 116, 27)}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/>
+      <g class="crate__latch">
+        <path d="M84 60 H116 L118 66 V80 L108 88 H92 L82 80 V66 Z" fill="url(#${id}m)" stroke="${deep}" stroke-width="1"/>
+        <path d="M90 66 H110 V78 L104 83 H96 L90 78 Z" fill="${deep}"/>
+        <path d="M93 78 L92 69 L96 73 L100 67 L104 73 L108 69 L107 78 Z" fill="${hi}"/>
+      </g>`;
+    // couvercle : dessus biseauté rainuré + face avant carbone + coiffes d'angle métal
+    const lid = `<svg class="crate__lidsvg" viewBox="0 0 200 66" aria-hidden="true">${defs.replace(/id="(cr\d+)/g, 'id="$1L').replace(/url\(#(cr\d+)/g, 'url(#$1L')}
+        <path d="M22 6 H178 L194 30 H6 Z" fill="url(#${id}Lmh)"/>
+        <path d="M22 6 H178 L194 30 H6 Z" fill="url(#${id}Lm)" opacity=".55"/>
+        <g stroke="${deep}" stroke-opacity=".55" stroke-width="1.4"><path d="M40 13 H160"/><path d="M34 19 H166"/><path d="M28 25 H172"/></g>
+        <path d="M6 30 H194 V60 L188 66 H12 L6 60 Z" fill="url(#${id}Lk)"/>
+        <path d="M6 30 H194 V60 L188 66 H12 L6 60 Z" fill="url(#${id}Lcf)"/>
+        <path d="M6 30 H194 V60 L188 66 H12 L6 60 Z" fill="none" stroke="url(#${id}Lm)" stroke-width="2.5"/>
+        <g fill="url(#${id}Lm)" stroke="${deep}" stroke-width=".8">
+          <path d="M6 30 H40 L36 38 H14 V60 L6 60 Z"/><path d="M194 30 H160 L164 38 H186 V60 L194 60 Z"/>
+        </g>
+        <path d="M60 46 H140" stroke="${c}" stroke-width="3" filter="url(#${id}Lg)"/><path d="M60 46 H140" stroke="${hi}" stroke-width="1"/>
+      </svg>`;
+    return `<div class="crate ${cls}" style="--c:${c};--d:${(CASES.indexOf(box) * 0.7).toFixed(1)}s">
+      <div class="crate__glow"></div>
+      <div class="crate__floor"></div>
+      <svg class="crate__svg" viewBox="0 0 200 166" aria-hidden="true">${defs}${body}</svg>
+      <div class="crate__lid">${lid}</div>
+      <div class="crate__shine"></div>
       <div class="crate__shadow"></div>
     </div>`;
+  };
 
   /** Bande d'objets qui défile et s'arrête sur `win`. */
   function spinStrip(row, box, win, dur, onTick) {
