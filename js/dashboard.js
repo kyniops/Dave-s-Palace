@@ -5,8 +5,20 @@
   const { auth, wallet, bonus, promo, jackpot, stats, store, ui, games, cards, inventory, fmt, fmtMult, esc, round2, dayKey, PROMO_CODES, on } = DP;
   const I = ui.icon;
   const M = window.DP_MOTION;
-  // L'accès admin est un simple verrou d'interface : tout le site tourne dans le navigateur.
-  const ADMIN_CODE = 'palace-admin';
+  /* Accès admin : réservé au compte « dave » (vérifié par la connexion), puis code d'accès.
+   * Le code n'est pas écrit dans le site : on compare seulement son empreinte SHA-256. */
+  const ADMIN_USER = 'dave';
+  const ADMIN_HASH = '4a4d7abd77fa45064f844eed0925b248bb1aa18f9aa312a8787956d307f7fee9';
+  const isAdmin = () => {
+    const u = auth.current();
+    if (!u || u.toLowerCase() !== ADMIN_USER) return false;
+    // en ligne, il faut une vraie session Supabase sur ce compte
+    return !(DP.cloud && DP.cloud.online) || !!DP.cloud.uid();
+  };
+  const sha256 = async (txt) => {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  };
   const INCOME = { daily: 'Roue quotidienne', rescue: 'Dépannage', promo: 'Codes promo', album: 'Albums complétés', sale: 'Ventes de cartes', level: 'Niveaux', mission: 'Missions', achievement: 'Succès' };
 
   const signed = (v) => (v > 0 ? '+' : '') + fmt(round2(v));
@@ -280,7 +292,7 @@
   }
 
   /* ================= Dashboard admin ================= */
-  const adminOpen = () => { try { return sessionStorage.getItem('dp_admin') === '1'; } catch { return false; } };
+  const adminOpen = () => { try { return isAdmin() && sessionStorage.getItem('dp_admin') === auth.current(); } catch { return false; } };
 
   function lockScreen(view, done) {
     view.innerHTML = `
@@ -291,16 +303,18 @@
         <p class="code-box__msg" role="status"></p>
       </form>`;
     const form = view.querySelector('form');
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (form.code.value.trim() !== ADMIN_CODE) {
+      let good = false;
+      try { good = isAdmin() && (await sha256(form.code.value.trim())) === ADMIN_HASH; } catch { good = false; }
+      if (!good) {
         form.querySelector('.code-box__msg').textContent = 'Code incorrect.';
         form.querySelector('.code-box__msg').className = 'code-box__msg neg';
         DP.sound.play('error');
         form.animate([{ transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], { duration: 260 });
         return;
       }
-      try { sessionStorage.setItem('dp_admin', '1'); } catch { /* ignore */ }
+      try { sessionStorage.setItem('dp_admin', auth.current()); } catch { /* ignore */ }
       DP.sound.play('win');
       done();
     });
@@ -334,6 +348,7 @@
   }
 
   function admin(view, ctx) {
+    if (!isAdmin()) { location.replace('#/lobby'); return () => {}; }
     if (!adminOpen()) return lockScreen(view, () => ctx.rerender());
     const online = DP.cloud && DP.cloud.online;
     if (online && !ctx.players) {
@@ -461,5 +476,5 @@
     return () => { offDays(); offJp(); };
   }
 
-  window.DP_DASH = { player, admin, ADMIN_CODE };
+  window.DP_DASH = { player, admin, isAdmin };
 })();

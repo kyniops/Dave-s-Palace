@@ -139,6 +139,7 @@
     const beforeTs = store.get(syncKey(prof.username));
     await pull(prof.username);
     startSync();
+    emit('session');
     // nouvelles données venues d'un autre appareil : on rafraîchit l'affichage
     if (before !== prof.username || beforeTs !== store.get(syncKey(prof.username))) emit('cloudload');
   })().catch(() => {});

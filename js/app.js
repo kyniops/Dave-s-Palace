@@ -30,6 +30,7 @@
     else if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
     else if (page === 'dashboard') renderProfile(view);
     else if (page === 'profil') unmountView = DP.profile.render(view);
+    else if (page === 'admin' && !DP_DASH.isAdmin()) { location.replace('#/lobby'); return; }
     else if (page === 'admin') unmountView = DP_DASH.admin(view, { rerender: route });
     else if (page === 'progression') unmountView = DP.progress.render(view);
     else if (page === 'classement') unmountView = renderLeaderboard(view);
@@ -169,7 +170,7 @@
           <a class="nav-item" data-nav="progression" href="#/progression">${I('trophy')}Progression<span class="nav-tag js-mistag" hidden></span></a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
           <a class="nav-item" data-nav="codes" href="#/codes">${I('ticket')}Codes</a>
-          <a class="nav-item" data-nav="admin" href="#/admin">${I('shield')}Admin</a>
+          ${DP_DASH.isAdmin() ? `<a class="nav-item" data-nav="admin" href="#/admin">${I('shield')}Admin</a>` : ''}
           <button class="nav-item logout" type="button">${I('log-out')}Déconnexion</button>
           <div class="sidebar__foot"><p>Jeu fictif, aucun argent réel. Les DaveCoins n’ont aucune valeur.</p></div>
         </nav>
@@ -810,6 +811,8 @@
   // photos des autres joueurs arrivées : on rafraîchit le bandeau du lobby
   on('profiles', () => { const tr = document.querySelector('.ticker__track'); if (tr && DP.cloud.feed().length >= 3) tr.innerHTML = tickerHtml() + tickerHtml(); });
   on('livefeed', () => { const tr = document.querySelector('.ticker__track'); if (tr && DP.cloud.feed().length >= 3) tr.innerHTML = tickerHtml() + tickerHtml(); });
+  // session en ligne restaurée après le premier affichage : le menu admin apparaît pour le compte autorisé
+  on('session', () => { if (document.querySelector('.shell') && DP_DASH.isAdmin() && !document.querySelector('.nav-item[data-nav="admin"]')) { document.querySelector('.shell').remove(); route(); } });
   on('cloudload', () => { document.querySelector('.shell') && document.querySelector('.shell').remove(); route(); });
 
   /* ---------- Classement (version en ligne) ---------- */
