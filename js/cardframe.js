@@ -22,27 +22,47 @@
     const rnd = seeded(rainbow ? 97 : 31);
     const paint = rainbow ? 'url(#rb)' : color;
     const x0 = OX + 10, y0 = OY + 10, x1 = OX + CW - 10, y1 = OY + CH - 10;
-    let shards = '', dust = '', streaks = '';
+    let shards = '', sil = '', dust = '', streaks = '';
     if (!compact) {
       // éclats de cristal qui jaillissent à gauche et à droite : tailles, angles et facettes variés, en grappes
       for (let side = 0; side < 2; side++) {
         const base = side ? x1 : x0, dir = side ? 1 : -1;
         let y = OY + 30 + rnd() * 20;
         while (y < OY + CH - 40) {
-          const big = rnd() < 0.3;
-          const len = big ? 30 + rnd() * 22 : 8 + rnd() * 20;
-          const w = big ? 7 + rnd() * 6 : 3 + rnd() * 5;
+          const big = rnd() < 0.4;
           const ang = (12 + rnd() * 30) * Math.PI / 180;           // pointe vers le haut et l'extérieur
+          // longueur limitée pour que la pointe reste dans l'image du cadre
+          const len = Math.min(big ? 38 + rnd() * 26 : 12 + rnd() * 22, 46 / Math.cos(ang));
+          const w = big ? 9 + rnd() * 7 : 4 + rnd() * 5;
           const tx = base + dir * Math.cos(ang) * len, ty = y - Math.sin(ang) * len;
           const nx = Math.sin(ang) * w * dir, ny = Math.cos(ang) * w;  // épaisseur du cristal
           const mid = 0.35 + rnd() * 0.25;
           const mx = base + (tx - base) * mid, my = y + (ty - y) * mid;
-          const pts = `${base},${y - w * 0.6} ${(mx - nx).toFixed(1)},${(my - ny).toFixed(1)} ${tx.toFixed(1)},${ty.toFixed(1)} ${(mx + nx).toFixed(1)},${(my + ny).toFixed(1)} ${base},${y + w * 0.6}`;
-          shards += `<polygon points="${pts}" fill="${paint}" opacity="${(0.5 + rnd() * 0.45).toFixed(2)}"/>`;
-          shards += `<polyline points="${base},${y} ${mx.toFixed(1)},${my.toFixed(1)} ${tx.toFixed(1)},${ty.toFixed(1)}" fill="none" stroke="#fff" stroke-width=".7" opacity=".75"/>`;
-          if (big && rnd() < 0.6) { // petit éclat secondaire collé au grand
+          // cristal taillé : face haute éclairée, face basse dans l'ombre, séparées par l'arête centrale
+          const f = (v) => v.toFixed(1);
+          const side_ = side ? 'R' : 'L';
+          const b1 = `${base},${f(y - w * 0.6)}`, b2 = `${base},${f(y + w * 0.6)}`, c0 = `${base},${f(y)}`;
+          const s1 = `${f(mx - nx)},${f(my - ny)}`, s2 = `${f(mx + nx)},${f(my + ny)}`, t = `${f(tx)},${f(ty)}`;
+          const op = (0.75 + rnd() * 0.25).toFixed(2);
+          sil += `<polygon points="${b1} ${s1} ${t} ${s2} ${b2}" fill="${paint}"/>`;
+          shards += `<g opacity="${op}">
+            <polygon points="${b1} ${s1} ${t} ${c0}" fill="${paint}"/><polygon points="${b1} ${s1} ${t} ${c0}" fill="url(#hl${side_})"/>
+            <polygon points="${c0} ${t} ${s2} ${b2}" fill="${paint}"/><polygon points="${c0} ${t} ${s2} ${b2}" fill="url(#dk${side_})"/>
+            <polygon points="${b1} ${s1} ${t} ${s2} ${b2}" fill="none" stroke="#000" stroke-opacity=".35" stroke-width=".5"/>
+            <polygon points="${c0} ${f((mx - nx + mx) / 2)},${f((my - ny + my) / 2)} ${t}" fill="#fff" opacity=".28"/>
+            <polyline points="${c0} ${t}" fill="none" stroke="#fff" stroke-width=".8" opacity=".85"/>
+            <polyline points="${b1} ${s1} ${t}" fill="none" stroke="#fff" stroke-width=".55" opacity=".6"/>
+          </g>`;
+          if (big) { // éclat de lumière à la pointe
+            shards += `<path d="M${f(tx)},${f(ty - 4)} L${f(tx + 1)},${f(ty - 1)} L${f(tx + 4)},${f(ty)} L${f(tx + 1)},${f(ty + 1)} L${f(tx)},${f(ty + 4)} L${f(tx - 1)},${f(ty + 1)} L${f(tx - 4)},${f(ty)} L${f(tx - 1)},${f(ty - 1)} Z" fill="#fff" opacity=".9"/>`;
+          }
+          if (big && rnd() < 0.6) { // petit éclat secondaire collé au grand, en deux facettes
             const l2 = len * (0.35 + rnd() * 0.2);
-            shards += `<polygon points="${base},${y + 5} ${(base + dir * l2).toFixed(1)},${(y + 1 - l2 * 0.3).toFixed(1)} ${(base + dir * l2 * 0.4).toFixed(1)},${(y + 11).toFixed(1)}" fill="${paint}" opacity=".6"/>`;
+            const p1 = `${base},${f(y + 5)}`, p2 = `${f(base + dir * l2)},${f(y + 1 - l2 * 0.3)}`, p3 = `${f(base + dir * l2 * 0.4)},${f(y + 11)}`, pm = `${base},${f(y + 8)}`;
+            sil += `<polygon points="${p1} ${p2} ${p3}" fill="${paint}"/>`;
+            shards += `<g opacity=".85"><polygon points="${p1} ${p2} ${pm}" fill="${paint}"/><polygon points="${p1} ${p2} ${pm}" fill="url(#hl${side_})"/>
+              <polygon points="${pm} ${p2} ${p3}" fill="${paint}"/><polygon points="${pm} ${p2} ${p3}" fill="url(#dk${side_})"/>
+              <polyline points="${pm} ${p2}" fill="none" stroke="#fff" stroke-width=".6" opacity=".75"/></g>`;
           }
           y += big ? 26 + rnd() * 26 : 9 + rnd() * 22;
         }
@@ -86,13 +106,20 @@
         <linearGradient id="rb" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stop-color="#4cc9ff"/><stop offset=".25" stop-color="#b06bff"/><stop offset=".5" stop-color="#ff5ad1"/><stop offset=".75" stop-color="#ffc145"/><stop offset="1" stop-color="#5dff8f"/>
         </linearGradient>
+        <linearGradient id="hlL" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".3"/><stop offset=".45" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity=".8"/></linearGradient>
+        <linearGradient id="hlR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".3"/><stop offset=".45" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity=".8"/></linearGradient>
+        <linearGradient id="dkL" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".65"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+        <linearGradient id="dkR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".65"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+        <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
         <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="3.2" result="b1"/><feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b2"/>
           <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
       </defs>
       <g opacity=".9">${streaks}</g>
-      <g filter="url(#glow)">${shards}${dust}${frame}</g>
+      <g filter="url(#soft)" opacity=".8">${sil}</g>
+      ${shards}
+      <g filter="url(#glow)">${dust}${frame}</g>
     </svg>`;
     return 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.replace(/\s+/g, ' ')) + '")';
   }
