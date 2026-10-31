@@ -7,7 +7,7 @@
   const M = window.DP_MOTION;
   // L'accès admin est un simple verrou d'interface : tout le site tourne dans le navigateur.
   const ADMIN_CODE = 'palace-admin';
-  const INCOME = { daily: 'Roue quotidienne', rescue: 'Dépannage', promo: 'Codes promo', album: 'Albums complétés', sale: 'Ventes de cartes' };
+  const INCOME = { daily: 'Roue quotidienne', rescue: 'Dépannage', promo: 'Codes promo', album: 'Albums complétés', sale: 'Ventes de cartes', level: 'Niveaux', mission: 'Missions', achievement: 'Succès' };
 
   const signed = (v) => (v > 0 ? '+' : '') + fmt(round2(v));
   const tone = (v) => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
@@ -181,6 +181,7 @@
       <div class="page-head dhead">
         <span class="avatar avatar--lg" data-reveal>${esc(name.charAt(0).toUpperCase())}</span>
         <div><h1>${esc(name)}</h1><p>Ton dashboard · ${s.since ? 'suivi depuis le ' + new Date(s.since).toLocaleDateString('fr-FR') : 'toutes tes infos en un coup d’œil'}</p></div>
+        ${(() => { const sm = DP.progress && DP.progress.summary(); return sm ? `<a class="drank" href="#/progression" style="--rc:${sm.rank.c}">${DP.progress.badge(sm.level, 46)}<span><b>Rang ${sm.rank.name} · niveau ${sm.level}</b><i><em style="width:${(sm.pct * 100).toFixed(1)}%"></em></i><small>Missions ${sm.missionsDone}/3 · Succès ${sm.achDone}/${sm.achTotal}${sm.claimable ? ` · <b class="pos">${sm.claimable} à récupérer</b>` : ''}</small></span></a>` : ''; })()}
         <div class="dhead__act"><a class="btn btn--ghost" href="#/inventaire">${I('layers-2', 'i--sm')}Inventaire</a><a class="btn btn--primary" href="#/caisses">${I('package-open', 'i--sm')}Caisses</a></div>
       </div>
 

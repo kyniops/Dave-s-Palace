@@ -1,7 +1,7 @@
 /* Dave's Palace — coquille de l'application : routeur, barre du haut, pages. */
 (function () {
   'use strict';
-  const { IMG, auth, wallet, bonus, promo, stats, sound, ui, games, fmt, fmtMult, esc, on, rng, cards, inventory } = DP;
+  const { IMG, auth, wallet, bonus, promo, stats, sound, ui, games, fmt, fmtMult, esc, on, rng, cards, inventory, sleep } = DP;
   const I = ui.icon;
   const M = window.DP_MOTION;
 
@@ -30,6 +30,7 @@
     else if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
     else if (page === 'profil' || page === 'dashboard') renderProfile(view);
     else if (page === 'admin') unmountView = DP_DASH.admin(view, { rerender: route });
+    else if (page === 'progression') unmountView = DP.progress.render(view);
     else if (page === 'inventaire') renderInventory(view);
     else if (page === 'codes') renderCodes(view);
     else renderLobby(view);
@@ -134,6 +135,7 @@
           </div>
           <div class="topbar__right">
             <button class="icon-btn sound-btn" type="button" aria-label="Son"></button>
+            <a class="lvl-chip js-lvl" href="#/progression" title="Ta progression"></a>
             <a class="user-chip" href="#/profil"><span class="avatar">${esc(user.charAt(0).toUpperCase())}</span><span class="user-chip__name">${esc(user)}</span></a>
           </div>
         </header>
@@ -148,6 +150,7 @@
           }).join('')}
           <div class="nav-title">Compte</div>
           <a class="nav-item" data-nav="profil" href="#/profil">${I('layout-dashboard')}Dashboard</a>
+          <a class="nav-item" data-nav="progression" href="#/progression">${I('trophy')}Progression<span class="nav-tag js-mistag" hidden></span></a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
           <a class="nav-item" data-nav="codes" href="#/codes">${I('ticket')}Codes</a>
           <a class="nav-item" data-nav="admin" href="#/admin">${I('shield')}Admin</a>
@@ -169,7 +172,19 @@
     paintSound();
     refreshTopbar();
     paintInvCount();
+    paintLevel();
   }
+  /** Niveau, barre d'XP et missions à récupérer (barre du haut + menu). */
+  function paintLevel() {
+    const el = document.querySelector('.js-lvl');
+    const sm = DP.progress && DP.progress.summary();
+    if (!el || !sm) return;
+    el.style.setProperty('--rc', sm.rank.c);
+    el.innerHTML = `${DP.progress.badge(sm.level, 30)}<span class="lvl-chip__txt"><b>Niv. ${sm.level}</b><i><em style="width:${(sm.pct * 100).toFixed(1)}%"></em></i></span>`;
+    const tag = document.querySelector('.js-mistag');
+    if (tag) { tag.hidden = !sm.claimable; tag.textContent = sm.claimable ? String(sm.claimable) : ''; tag.title = 'Missions à récupérer'; }
+  }
+  on('progress', paintLevel);
   function paintInvCount() {
     const el = document.querySelector('.js-invcount');
     if (!el) return;
@@ -474,6 +489,39 @@
       }).join('')}</tbody></table></div>`;
   }
 
+  /** Fusion : 5 cartes convergent, éclair, la carte brillante apparaît. */
+  async function fuseAnim(card) {
+    const ov = ui.el(`<div class="fuse" role="dialog" aria-label="Fusion">
+      <div class="fuse__stage">${Array.from({ length: inventory.FUSE_COST }, (_, i) => `<div class="fuse__c" style="--k:${i - 2}">${cards.html(card, { compact: true })}</div>`).join('')}
+        <div class="fuse__flash"></div><div class="fuse__res">${cards.html(card, { shiny: true })}</div></div>
+      <p class="fuse__txt">Fusion en cours…</p>
+    </div>`);
+    document.body.appendChild(ov);
+    const cs = [...ov.querySelectorAll('.fuse__c')], res = ov.querySelector('.fuse__res'), txt = ov.querySelector('.fuse__txt');
+    ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: 'forwards' });
+    sound.play('whoosh');
+    const ease = 'cubic-bezier(.6,0,.2,1)';
+    cs.forEach((c, i) => c.animate([
+      { transform: `translate(calc(-50% + ${(i - 2) * 150}px), -50%) rotate(${(i - 2) * 8}deg)`, filter: 'brightness(1)' },
+      { transform: `translate(calc(-50% + ${(i - 2) * 160}px), -55%) rotate(${(i - 2) * 10}deg)`, filter: 'brightness(1.2)', offset: 0.3 },
+      { transform: 'translate(-50%, -50%) rotate(720deg) scale(.4)', filter: 'brightness(4)' }
+    ], { duration: 1300, delay: 250 + i * 40, easing: ease, fill: 'forwards' }));
+    for (let i = 0; i < 8; i++) setTimeout(() => sound.play('streak', { i }), 400 + i * 120);
+    await sleep(1550);
+    cs.forEach((c) => (c.style.visibility = 'hidden'));
+    ov.querySelector('.fuse__flash').animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(.2)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1.4)', offset: 0.3 }, { opacity: 0, transform: 'translate(-50%,-50%) scale(2.4)' }], { duration: 900, easing: 'ease-out' });
+    sound.play('slam'); sound.play('jackpot');
+    ui.shake(ov.querySelector('.fuse__stage'), 2);
+    res.style.visibility = 'visible';
+    res.animate([{ transform: 'translate(-50%,-50%) scale(.2) rotateY(180deg)', filter: 'brightness(4)' }, { transform: 'translate(-50%,-50%) scale(1.12) rotateY(0)', filter: 'brightness(1.6)', offset: 0.6 }, { transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)' }], { duration: 900, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' });
+    ui.burst(res, { n: 90, colors: ['#ffffff', '#ffc145', card.rarity.c, '#ff5ec4', '#5ee0ff'], spread: 3 });
+    txt.innerHTML = `<b>${esc(card.name)} brillante !</b><span>Valeur ×${inventory.SHINY_MULT} · <span class="num">${fmt(card.value * inventory.SHINY_MULT)}</span> DaveCoins</span><small>Touche pour continuer</small>`;
+    txt.classList.add('done');
+    await new Promise((r) => { const t = setTimeout(r, 4500); ov.addEventListener('click', () => { clearTimeout(t); r(); }, { once: true }); });
+    await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished;
+    ov.remove();
+  }
+
   /* ---------- Inventaire ---------- */
   function renderInventory(view) {
     let tab = 'cards', rar = 'all', sort = 'rarity', confirmAll = false;
@@ -509,21 +557,26 @@
         body.innerHTML = `<div class="empty">${I('gift', 'i--lg')}<strong>Aucune carte pour l’instant</strong>Ouvre ta première caisse : les cartes gagnées arrivent ici.<a class="btn btn--primary" style="margin-top:10px" href="#/caisses">Voir les caisses</a></div>`;
         return;
       }
-      if (rar !== 'all') list = list.filter((x) => x.card.rarity.label === rar);
-      const order = { rarity: (a, b) => b.card.rarity.lvl - a.card.rarity.lvl || b.card.value - a.card.value, value: (a, b) => b.card.value - a.card.value, set: (a, b) => a.card.set.localeCompare(b.card.set) || a.card.no - b.card.no };
+      if (rar === 'shiny') list = list.filter((x) => x.shiny);
+      else if (rar !== 'all') list = list.filter((x) => x.card.rarity.label === rar);
+      const order = { rarity: (a, b) => b.shiny - a.shiny || b.card.rarity.lvl - a.card.rarity.lvl || b.card.value - a.card.value, value: (a, b) => b.card.value - a.card.value, set: (a, b) => a.card.set.localeCompare(b.card.set) || a.card.no - b.card.no };
       list.sort(order[sort]);
-      const dupValue = inventory.entries().reduce((a, x) => a + x.card.value * (x.n - 1), 0);
+      const dupValue = inventory.entries().filter((x) => !x.shiny).reduce((a, x) => a + x.card.value * (x.n - 1), 0);
+      const FUSE = inventory.FUSE_COST;
       const allValue = inventory.totals().value;
       body.innerHTML = `
         <div class="inv-tools">
-          <div class="seg js-rar">${['all', ...RARS].map((r) => `<button type="button" data-r="${r}" class="${r === rar ? 'on' : ''}">${r === 'all' ? 'Toutes' : r}</button>`).join('')}</div>
+          <div class="seg js-rar">${['all', ...RARS, 'shiny'].map((r) => `<button type="button" data-r="${r}" class="${r === rar ? 'on' : ''}">${r === 'all' ? 'Toutes' : r === 'shiny' ? '★ Brillantes' : r}</button>`).join('')}</div>
           <div class="seg js-sort">${[['rarity', 'Rareté'], ['value', 'Valeur'], ['set', 'Album']].map(([k, l]) => `<button type="button" data-s="${k}" class="${k === sort ? 'on' : ''}">${l}</button>`).join('')}</div>
           <div class="inv-tools__sell">
             <button type="button" class="btn btn--ghost btn--sm js-selldup" ${dupValue ? '' : 'disabled'}>${I('copy', 'i--sm')}Vendre les doublons · <span class="num">${fmt(dupValue)}</span></button>
             <button type="button" class="btn ${confirmAll ? 'btn--primary' : 'btn--ghost'} btn--sm js-sellall">${I('coins', 'i--sm')}${confirmAll ? 'Confirmer la vente de tout' : 'Tout vendre'} · <span class="num">${fmt(allValue)}</span></button>
           </div>
         </div>
-        ${list.length ? `<div class="inv-grid">${list.map((x) => `<div class="inv-slot">${cards.html(x.card, { count: x.n })}<button type="button" class="btn btn--ghost btn--sm js-sell" data-id="${x.card.id}">Vendre · <span class="num">${fmt(x.card.value)}</span></button></div>`).join('')}</div>`
+        ${list.length ? `<div class="inv-grid">${list.map((x) => `<div class="inv-slot">${cards.html(x.card, { count: x.n, shiny: x.shiny })}
+          ${!x.shiny && x.n >= FUSE ? `<button type="button" class="btn btn--primary btn--sm js-fuse" data-id="${x.card.id}">${I('sparkles', 'i--sm')}Fusionner ${FUSE} → 1 brillante</button>` : ''}
+          <button type="button" class="btn btn--ghost btn--sm js-sell" data-id="${x.card.id}" data-shiny="${x.shiny ? 1 : ''}">Vendre · <span class="num">${fmt(x.card.value * (x.shiny ? inventory.SHINY_MULT : 1))}</span></button>
+          ${!x.shiny && x.n > 1 && x.n < FUSE ? `<small class="inv-slot__fuse">${x.n}/${FUSE} pour une brillante</small>` : ''}</div>`).join('')}</div>`
           : `<div class="empty">${I('layers-2', 'i--lg')}<strong>Aucune carte ${rar.toLowerCase()}</strong>Change de filtre pour voir tes autres cartes.</div>`}`;
       DP_MOTION.onView([...body.querySelectorAll('.inv-slot')]);
       DP_MOTION.tilt(body.querySelectorAll('.tcard'), 12);
@@ -541,7 +594,7 @@
             <div><h3>${st.name}</h3><div class="album__bar"><i style="width:${pr.owned / pr.total * 100}%"></i></div><span class="muted num">${pr.owned}/${pr.total} cartes</span></div>
             <div class="album__cta">${btn}</div>
           </div>
-          <div class="album__cards">${st.cards.map((c) => { const n = inventory.count(c.id); return cards.html(c, { owned: n > 0, count: n, compact: true }); }).join('')}</div>
+          <div class="album__cards">${st.cards.map((c) => { const n = inventory.count(c.id), sh = inventory.shinyCount(c.id); return cards.html(c, { owned: n + sh > 0, count: n, compact: true, shiny: sh > 0 && !n }); }).join('')}</div>
         </section>`;
       }).join('')}</div>`;
       DP_MOTION.onView([...body.querySelectorAll('.album')]);
@@ -563,14 +616,14 @@
       if (so) { sort = so.dataset.s; sound.play('click'); paintCards(); return; }
       const one = e.target.closest('.js-sell');
       if (one) {
-        const got = inventory.sell(one.dataset.id, 1);
+        const got = inventory.sell(one.dataset.id, 1, !!one.dataset.shiny);
         if (got) { sound.play('coin'); ui.floatText(one, '+' + fmt(got)); }
         paint();
         return;
       }
       if (e.target.closest('.js-selldup')) {
         let sum = 0;
-        inventory.entries().forEach((x) => { if (x.n > 1) sum += inventory.sell(x.card.id, x.n - 1); });
+        inventory.entries().forEach((x) => { if (x.n > 1 && !x.shiny) sum += inventory.sell(x.card.id, x.n - 1); });
         if (sum) { sound.play('cashout'); ui.toast(`Doublons vendus : +${fmt(sum)} DaveCoins`, 'win'); }
         paint();
         return;
@@ -580,9 +633,15 @@
         if (!confirmAll) { confirmAll = true; sound.play('click'); paintCards(); setTimeout(() => { if (confirmAll) { confirmAll = false; if (view.isConnected && tab === 'cards') paintCards(); } }, 4000); return; }
         confirmAll = false;
         let sum = 0;
-        inventory.entries().forEach((x) => (sum += inventory.sell(x.card.id, x.n)));
+        inventory.entries().forEach((x) => (sum += inventory.sell(x.card.id, x.n, x.shiny)));
         if (sum) { sound.play('jackpot'); ui.coinRain(body, 40); ui.toast(`Inventaire vendu : +${fmt(sum)} DaveCoins`, 'win'); }
         paint();
+        return;
+      }
+      const fz = e.target.closest('.js-fuse');
+      if (fz) {
+        const card = cards.byId[fz.dataset.id];
+        if (card && inventory.fuse(card.id)) fuseAnim(card).then(() => view.isConnected && paint());
         return;
       }
       const claim = e.target.closest('.js-claim');

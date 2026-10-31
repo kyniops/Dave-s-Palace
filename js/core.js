@@ -178,6 +178,7 @@
       store.set('dp_jackpot', String(JACKPOT_SEED));
       store.setJson('dp_jackpot_last', { name, amount: v, t: Date.now() });
       emit('jackpot', JACKPOT_SEED);
+      emit('jackpotwin', { name, amount: v });
       return v;
     },
     last() { return store.json('dp_jackpot_last', null); }
@@ -240,6 +241,7 @@
       stats._point(s);
       store.setJson(stats.key(), s);
       emit('stats', s);
+      emit('income', { kind, amount });
     },
     record(game, bet, payout) {
       const s = stats.get();
@@ -261,6 +263,7 @@
       s.history = s.history.slice(0, 50);
       store.setJson(stats.key(), s);
       emit('stats', s);
+      emit('played', s.history[0]);
     }
   };
 
@@ -933,38 +936,64 @@
    * L'inventaire stocke seulement le nombre d'exemplaires de chaque carte.
    */
   const cards = { byId: {}, sets: [] };
+  const SHINY_MULT = 7, FUSE_COST = 5;
   const inventory = {
+    SHINY_MULT, FUSE_COST,
     key() { return 'dp_inv_' + auth.current(); },
-    _get() { return Object.assign({ cards: {}, claimed: {} }, store.json(inventory.key(), {})); },
+    _get() { return Object.assign({ cards: {}, shiny: {}, claimed: {} }, store.json(inventory.key(), {})); },
     _save(d) { store.setJson(inventory.key(), d); emit('inventory', d); },
     count(id) { return inventory._get().cards[id] || 0; },
+    shinyCount(id) { return inventory._get().shiny[id] || 0; },
     add(ids) {
       const d = inventory._get();
       ids.forEach((id) => (d.cards[id] = (d.cards[id] || 0) + 1));
       inventory._save(d);
+      emit('cards', ids);
     },
-    /** Vend n exemplaires d'une carte : retire de l'inventaire et crédite la valeur. */
-    sell(id, n = 1) {
-      const d = inventory._get();
-      const have = d.cards[id] || 0;
+    /** Vend n exemplaires d'une carte (normale ou brillante) : retire de l'inventaire et crédite la valeur. */
+    sell(id, n = 1, shiny = false) {
+      const d = inventory._get(), bag = shiny ? d.shiny : d.cards;
+      const have = bag[id] || 0;
       n = Math.min(n, have);
       if (n <= 0 || !cards.byId[id]) return 0;
-      d.cards[id] = have - n;
-      if (!d.cards[id]) delete d.cards[id];
+      bag[id] = have - n;
+      if (!bag[id]) delete bag[id];
       inventory._save(d);
-      const value = round2(cards.byId[id].value * n);
+      const value = round2(cards.byId[id].value * (shiny ? SHINY_MULT : 1) * n);
       wallet.credit(value);
       stats.income('sale', value);
+      emit('sold', { id, n, shiny });
       return value;
     },
-    entries() { return Object.entries(inventory._get().cards).filter(([id]) => cards.byId[id]).map(([id, n]) => ({ card: cards.byId[id], n })); },
+    /** Fusion : 5 exemplaires identiques deviennent 1 carte brillante (valeur ×7). */
+    fuse(id) {
+      const d = inventory._get();
+      if ((d.cards[id] || 0) < FUSE_COST || !cards.byId[id]) return false;
+      d.cards[id] -= FUSE_COST;
+      if (!d.cards[id]) delete d.cards[id];
+      d.shiny[id] = (d.shiny[id] || 0) + 1;
+      inventory._save(d);
+      emit('fused', { id });
+      return true;
+    },
+    entries() {
+      const d = inventory._get();
+      const out = Object.entries(d.cards).filter(([id]) => cards.byId[id]).map(([id, n]) => ({ card: cards.byId[id], n, shiny: false }));
+      Object.entries(d.shiny).filter(([id]) => cards.byId[id]).forEach(([id, n]) => out.push({ card: cards.byId[id], n, shiny: true }));
+      return out;
+    },
     totals() {
       const e = inventory.entries();
-      return { copies: e.reduce((a, x) => a + x.n, 0), unique: e.length, value: round2(e.reduce((a, x) => a + x.card.value * x.n, 0)) };
+      return {
+        copies: e.reduce((a, x) => a + x.n, 0),
+        unique: new Set(e.map((x) => x.card.id)).size,
+        shiny: e.filter((x) => x.shiny).reduce((a, x) => a + x.n, 0),
+        value: round2(e.reduce((a, x) => a + x.card.value * x.n * (x.shiny ? SHINY_MULT : 1), 0))
+      };
     },
     setProgress(set) {
       const d = inventory._get();
-      const owned = set.cards.filter((c) => d.cards[c.id] > 0).length;
+      const owned = set.cards.filter((c) => d.cards[c.id] > 0 || d.shiny[c.id] > 0).length;
       return { owned, total: set.cards.length, complete: owned === set.cards.length, claimed: !!d.claimed[set.id] };
     },
     /** Récompense unique quand toutes les cartes d'un album sont possédées. */
@@ -976,6 +1005,7 @@
       inventory._save(d);
       wallet.credit(set.reward);
       stats.income('album', set.reward);
+      emit('album', set.id);
       return set.reward;
     }
   };

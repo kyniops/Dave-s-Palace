@@ -84,16 +84,16 @@
   const cardOf = (box, d) => cards.byId[`${box.id}:${d[0]}`];
 
   /** Carte à collectionner (cadre de rareté, numéro, valeur de revente). */
-  cards.html = (card, { cls = '', owned = true, count = 0, compact = false } = {}) => `<div class="tcard ${compact ? 'compact' : ''} ${owned ? '' : 'missing'} ${cls}" data-r="${card.rarity.i}" style="--r:${card.rarity.c}" data-card="${card.id}">
+  cards.html = (card, { cls = '', owned = true, count = 0, compact = false, shiny = false } = {}) => `<div class="tcard ${compact ? 'compact' : ''} ${owned ? '' : 'missing'} ${shiny ? 'shiny' : ''} ${cls}" data-r="${card.rarity.i}" style="--r:${card.rarity.c}" data-card="${card.id}">
       <div class="tcard__img"><img class="${card.flat ? 'flat' : ''}" src="${IMG}${card.img}" alt="" draggable="false"><div class="tcard__holo"></div></div>
-      <div class="tcard__frame"></div>
+      <div class="tcard__frame"></div>${shiny ? '<span class="tcard__ribbon">Brillante</span>' : ''}
       <span class="tcard__gem tl num">${String(card.no).padStart(2, '0')}</span>
-      <span class="tcard__gem tr">${card.rarity.label.charAt(0)}</span>
+      <span class="tcard__gem tr">${shiny ? '★' : card.rarity.label.charAt(0)}</span>
       ${count > 1 ? `<span class="tcard__gem br num">×${count}</span>` : ''}
       <div class="tcard__plate">
         <span class="tcard__rar">${card.rarity.label}</span>
         <span class="tcard__name">${owned ? card.name : '???'}</span>
-        <span class="tcard__val">${ui.coin('coin--xs')}<b class="num">${fmt(card.value)}</b></span>
+        <span class="tcard__val">${ui.coin('coin--xs')}<b class="num">${fmt(shiny ? card.value * DP.inventory.SHINY_MULT : card.value)}</b></span>
       </div>
     </div>`;
 
@@ -188,6 +188,9 @@
       stage.classList.add('cases-stage');
 
       const cost = () => (box ? box.price * (mode === 'open' ? count : rounds) : 0);
+      // caisses offertes (niveaux, missions) : utilisées si on en a assez pour le nombre choisi
+      const freeN = () => (box && mode === 'open' && DP.progress ? DP.progress.freeCases.get(box.id) : 0);
+      const isFree = () => freeN() >= count;
 
       /* ---------- Vitrine ---------- */
       function showList() {
@@ -254,8 +257,8 @@
         countWrap.hidden = mode !== 'open';
         battleWrap.hidden = mode !== 'battle';
         [countSeg, oppSeg, roundSeg].forEach((s) => s.disable(busy));
-        costOut.set(`${ui.coin('coin--xs')} ${fmt(cost())}`);
-        goBtn.innerHTML = mode === 'open' ? `Ouvrir ${count > 1 ? count + ' caisses' : 'la caisse'}` : 'Lancer la battle';
+        costOut.set(isFree() ? '<span class="pos">Offerte</span>' : `${ui.coin('coin--xs')} ${fmt(cost())}`);
+        goBtn.innerHTML = mode === 'open' ? (isFree() ? `${ui.icon('gift', 'i--sm')}Ouvrir gratuitement · ${freeN()} offerte${freeN() > 1 ? 's' : ''}` : `Ouvrir ${count > 1 ? count + ' caisses' : 'la caisse'}`) : 'Lancer la battle';
         goBtn.disabled = busy || !box;
         const sub = stage.querySelector('.js-sub');
         if (sub && box) sub.innerHTML = mode === 'open' ? `${count} caisse${count > 1 ? 's' : ''} · ${fmt(cost())} DaveCoins` : `Battle · ${opps + 1} joueurs · ${rounds} manche${rounds > 1 ? 's' : ''}`;
@@ -350,8 +353,10 @@
       const tick = (k) => sound.play('tick', { p: 1 - k });
 
       async function openCases() {
-        const c = cost();
-        if (!wallet.place(c)) return;
+        const free = isFree();
+        const c = free ? 0 : cost();
+        if (free) DP.progress.freeCases.use(box.id, count);
+        else if (!wallet.place(c)) return;
         busy = true; paint();
         stage.querySelector('.js-back').disabled = true;
         const wins = Array.from({ length: count }, () => drawItem(box));
