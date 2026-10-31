@@ -932,6 +932,15 @@
     return () => { alive = false; clearInterval(t); };
   }
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal').forEach((m) => m.remove()); });
+  // Grands écrans : le contenu des pages est agrandi pour remplir la place (conçu pour ~1400 px de large)
+  function fitScreen() {
+    const side = innerWidth > 900 ? 252 : 0;
+    const z = Math.max(1, Math.min(1.5, (innerWidth - side - 68) / 1340));
+    document.documentElement.style.setProperty('--vz', z.toFixed(3));
+    document.documentElement.classList.toggle('is-wide', z > 1.01);
+  }
+  fitScreen();
+  window.addEventListener('resize', fitScreen);
   M.splash(I('crown'));
   route();
 })();

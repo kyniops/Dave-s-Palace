@@ -1145,3 +1145,7 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .art-ticket__t img, .art-ticket__t i { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
 .art-ticket__t i { background: repeating-linear-gradient(45deg, #c6ccd8 0 6px, #9aa3b2 6px 12px); }
 .art-ticket__t em { font-style: normal; font-family: var(--display); font-size: 15px; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+
+/* Grands écrans : le contenu des pages est agrandi (facteur --vz calculé dans app.js) */
+.is-wide #view { max-width: none; }
+.is-wide #view > * { zoom: var(--vz, 1); }
