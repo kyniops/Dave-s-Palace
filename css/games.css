@@ -811,3 +811,6 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
 .mines-grid .tile-btn.open.mine.hit::after { inset: auto; left: 70%; top: 19%; width: 16%; height: 16%; border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, #ffd36b 35%, rgba(255,107,44,.6) 60%, transparent 72%); background-size: 100% 100%; animation: spark .18s steps(2) infinite; }
 @keyframes spark { 50% { transform: scale(.6) rotate(45deg); opacity: .7; } }
 .mines-grid .tile-btn.open.mine.ghost { opacity: .62; }
+/* DaveMachine : chaque symbole tient dans le même carré centré, quelles que soient les proportions de la photo */
+.sym > img { position: absolute; left: 50%; top: 50%; width: auto; height: 78%; max-width: 78%; aspect-ratio: 1 / 1; transform: translate(-50%, -50%); }
+.sym.k-low > img, .sym.round > img, .sym.s-wild > img, .sym.s-scat > img { object-fit: cover; object-position: center 22%; }
