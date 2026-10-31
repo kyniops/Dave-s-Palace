@@ -1205,6 +1205,11 @@ drop policy if exists "feed perso" on public.feed;
 -- droits d'exécution : uniquement les actions de jeu (tout le reste est interne au serveur)
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.is_banned(uuid) to anon, authenticated;
+-- contrôle des pseudos à l'inscription (security.sql) : il doit rester utilisable
+do $$ begin
+  alter function public.check_username() security definer set search_path = public;
+  grant execute on function public.username_clean(text), public.username_forbidden(text) to anon, authenticated;
+exception when undefined_function then null; end $$;
 do $$ begin
   grant execute on function public.login_email(text) to anon, authenticated;
 exception when undefined_function then null; end $$;
