@@ -472,6 +472,14 @@
   }
 
   function admin(view, ctx) {
+    const u0 = auth.current();
+    if (!isAdmin() && u0 && u0.toLowerCase() === ADMIN_USER && DP.cloud && DP.cloud.online && !DP.cloud.uid()) {
+      // session en ligne pas encore restaurée (rechargement de la page) : on attend au lieu de renvoyer au lobby
+      view.innerHTML = `<div class="empty">${I('shield', 'i--lg')}<strong>Connexion…</strong></div>`;
+      let alive = true;
+      Promise.resolve(DP.cloud.ready).then(() => { if (alive && view.isConnected && location.hash === '#/admin') ctx.rerender(); });
+      return () => { alive = false; };
+    }
     if (!isAdmin()) { location.replace('#/lobby'); return () => {}; }
     if (!adminOpen()) return lockScreen(view, () => ctx.rerender());
     const online = DP.cloud && DP.cloud.online;
@@ -582,7 +590,7 @@
       const b = e.target.closest('.js-manage');
       if (!b) return;
       const u = users.find((x) => x.name === b.closest('tr').dataset.u);
-      if (u) manage(u, () => admin(view, { ...ctx, players: undefined }));
+      if (u) manage(u, refresh);
     });
     view.querySelector('.js-jpset').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -603,9 +611,22 @@
     const offDays = dayBars(view.querySelector('.js-days'), days, { mode: 'count' });
     const jpEls = view.querySelectorAll('.js-jp');
     const offJp = on('jackpot', (v) => jpEls.forEach((el) => (el.textContent = fmt(v))));
-    M.reveal(view, '[data-reveal]');
-    countUps(view);
-    return () => { offDays(); offJp(); };
+    // pas d'animation d'entrée quand la page se met à jour après une action
+    if (!ctx.quiet) { M.reveal(view, '[data-reveal]'); countUps(view); }
+    let gone = false, inner = null;
+    async function refresh() {
+      if (gone) return;
+      let players;
+      if (online) { try { players = await DP.cloud.players({ withData: true }); } catch { return; } }
+      if (gone || !view.isConnected) return;
+      const y = window.scrollY;
+      cleanup();
+      gone = false;
+      inner = admin(view, { ...ctx, players, quiet: true });
+      window.scrollTo(0, y);
+    }
+    function cleanup() { gone = true; offDays(); offJp(); }
+    return () => { if (inner) inner(); else cleanup(); };
   }
 
   window.DP_DASH = { player, admin, isAdmin };

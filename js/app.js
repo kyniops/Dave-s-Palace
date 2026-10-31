@@ -886,8 +886,15 @@
   on('profiles', () => { const tr = document.querySelector('.ticker__track'); if (tr && DP.cloud.feed().length >= 3) tr.innerHTML = tickerHtml() + tickerHtml(); });
   on('livefeed', () => { const tr = document.querySelector('.ticker__track'); if (tr && DP.cloud.feed().length >= 3) tr.innerHTML = tickerHtml() + tickerHtml(); });
   // session en ligne restaurée après le premier affichage : le menu admin apparaît pour le compte autorisé
-  on('session', () => { if (document.querySelector('.shell') && DP_DASH.isAdmin() && !document.querySelector('.nav-item[data-nav="admin"]')) { document.querySelector('.shell').remove(); route(); } });
-  on('cloudload', () => { document.querySelector('.shell') && document.querySelector('.shell').remove(); route(); });
+  function rebuild() {
+    const y = window.scrollY;
+    const shell = document.querySelector('.shell');
+    if (shell) shell.remove();
+    route();
+    if (shell) requestAnimationFrame(() => window.scrollTo(0, y));
+  }
+  on('session', () => { if (document.querySelector('.shell') && DP_DASH.isAdmin() && !document.querySelector('.nav-item[data-nav="admin"]')) rebuild(); });
+  on('cloudload', rebuild);
 
   /* ---------- Classement (version en ligne) ---------- */
   function renderLeaderboard(view) {
