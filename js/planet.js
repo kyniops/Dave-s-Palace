@@ -63,4 +63,5 @@
     try { sessionStorage.setItem('dp_planet_tex2', url); } catch { /* quota : on régénère la prochaine fois */ }
   }
   document.documentElement.style.setProperty('--planet-tex', `url(${url})`);
+  window.DP_PLANET_TEX = url;
 })();

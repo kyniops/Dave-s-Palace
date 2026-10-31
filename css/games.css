@@ -826,3 +826,4 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
 .slot-stage .reel5 { background: radial-gradient(120% 60% at 50% 50%, rgba(20,26,40,.55), rgba(9,11,18,.72)); }
 .slot-stage { padding: 34px 28px; }
 .slot-stage .slot5 { background: rgba(8,10,16,.3); }
+.slot-stage { background-image: none; }
