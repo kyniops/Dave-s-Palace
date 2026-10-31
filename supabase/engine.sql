@@ -206,7 +206,7 @@ end $$;
 /* ---------- Missions du jour ---------- */
 create or replace function public.eng_missions(a public.accounts) returns public.accounts language plpgsql as $$
 declare p jsonb := coalesce(a.prog, '{}'::jsonb); today text := eng_day(); types text[] := array['play_any','play_game','wager','mult','mult_game','wins','big_win','cards','rare_card','sell','fuse'];
-  gamesl text[] := array['dice','flip','mines','tower','plinko','rocket','wheel','roulette','blackjack','chicken','machine'];
+  gamesl text[] := array['dice','flip','mines','tower','plinko','rocket','scratch','roulette','blackjack','chicken','machine'];
   used text[] := '{}'; list jsonb := '[]'; ti int; k text; m jsonb;
   t_vals jsonb := '{"play_any":[10,25,50],"play_game":[5,15,30],"wager":[500,2500,10000],"wins":[5,12,25],"big_win":[200,1000,5000],"cards":[3,8,20],"sell":[3,10,25],"fuse":[1,1,1]}';
   m_vals jsonb := '{"mult":[3,10,30],"mult_game":[2,5,15]}'; r_vals jsonb := '{"rare_card":[2,3,4]}';
@@ -415,21 +415,29 @@ begin
   return jsonb_build_object('path', to_jsonb(path), 'k', k, 'mult', m, 'payout', r2(bet * m), 'acct', eng_commit(a));
 end $$;
 
--- DaveWheel : p_bets = { "grey": 10, "blue": 5, "green": 0, "jpz": 1 }
-create or replace function public.wheel_spin(p_bets jsonb) returns jsonb language plpgsql security definer set search_path = public as $$
-declare a accounts := eng_load(); segs jsonb := eng_c('wheel_segs'); types jsonb := eng_c('wheel_types'); idx int; id text; k text; v numeric; stake numeric := 0; pay numeric := 0;
+-- DaveTicket : ticket à gratter. 3 photos identiques sur 9 cases = prix × multiplicateur de la photo (RTP 95 %)
+create or replace function public.scratch_buy(p_price numeric) returns jsonb language plpgsql security definer set search_path = public as $$
+declare a accounts := eng_load(); mults numeric[] := array[1, 2, 3, 5, 10, 25, 100, 1000];
+  probs numeric[] := array[0.1, 0.095, 0.06, 0.03, 0.012, 0.004, 0.0006, 0.00005];
+  cost numeric; r numeric := eng_rand(); win int := -1; i int; j int; tmp int; s int; grid int[] := '{}'; cnt int[] := array[0, 0, 0, 0, 0, 0, 0, 0]; pay numeric := 0;
 begin
-  for k, v in select key, value::numeric from jsonb_each_text(p_bets) loop
-    if not (types ? k) or v < 0 then raise exception 'Mise invalide.'; end if;
-    stake := stake + r2(v);
+  if p_price is null or p_price not in (5, 25, 100, 500) then raise exception 'Ticket invalide.'; end if;
+  cost := eng_bet(a, p_price);
+  for i in 1..8 loop
+    if r < probs[i] then win := i - 1; exit; end if;
+    r := r - probs[i];
   end loop;
-  stake := eng_bet(a, stake);
-  idx := eng_int(jsonb_array_length(segs));
-  id := segs ->> idx;
-  pay := r2(jn(p_bets, id) * (types ->> id)::numeric);
-  a.balance := a.balance - stake + pay;
-  a := eng_played(a, 'wheel', stake, pay);
-  return jsonb_build_object('idx', idx, 'id', id, 'payout', pay, 'stake', stake, 'acct', eng_commit(a));
+  if win >= 0 then grid := array[win, win, win]; cnt[win + 1] := 3; end if;
+  -- les autres cases : jamais plus de 2 fois la même photo (un seul trio possible)
+  while coalesce(array_length(grid, 1), 0) < 9 loop
+    s := eng_int(8);
+    if cnt[s + 1] < 2 then grid := grid || s; cnt[s + 1] := cnt[s + 1] + 1; end if;
+  end loop;
+  for i in reverse 9..2 loop j := 1 + eng_int(i); tmp := grid[i]; grid[i] := grid[j]; grid[j] := tmp; end loop;
+  if win >= 0 then pay := r2(cost * mults[win + 1]); end if;
+  a.balance := a.balance - cost + pay;
+  a := eng_played(a, 'scratch', cost, pay);
+  return jsonb_build_object('grid', to_jsonb(grid), 'win', win, 'payout', pay, 'cost', cost, 'acct', eng_commit(a));
 end $$;
 
 /* ---------- DaveMachine ---------- */
@@ -1214,7 +1222,7 @@ do $$ begin
   grant execute on function public.login_email(text) to anon, authenticated;
 exception when undefined_function then null; end $$;
 grant execute on function
-  public.acct_state(), public.dice_roll(jsonb), public.roulette_spin(jsonb), public.plinko_drop(numeric, text, int), public.wheel_spin(jsonb),
+  public.acct_state(), public.dice_roll(jsonb), public.roulette_spin(jsonb), public.plinko_drop(numeric, text, int), public.scratch_buy(numeric),
   public.slot_spin(numeric), public.cases_open(text, int), public.cases_battle(text, int, int), public.upgrade_roll(jsonb, numeric, text),
   public.mines_start(numeric, int), public.mines_pick(int), public.mines_cash(),
   public.tower_start(numeric, text), public.tower_pick(int), public.tower_cash(),
@@ -1241,6 +1249,7 @@ insert into public.eng_cases values ('bande', 10, '[["olman",0.3,4019],["tdam",0
 insert into public.eng_cases values ('gamers', 25, '[["carl",0.25,3541],["petitbonnin",0.5,2600],["tddam",0.9,1900],["linkay",1.4,1300],["linkaypose",3,600],["tdam2",8,150],["casino",30,30]]'::jsonb, 10121, 250);
 insert into public.eng_cases values ('kawai', 50, '[["slyme",0.25,3059],["petitkawai",0.8,2000],["lucascoroi",5,300],["jpzkawai",50,25]]'::jsonb, 5384, 500);
 insert into public.eng_cases values ('aura', 100, '[["axbblesse",0.2,3685],["axbserieux",0.5,2500],["tdammasque",0.9,1800],["tony",1.4,1200],["tonny",3,600],["olmanaura",10,150],["lucasco",35,25]]'::jsonb, 9960, 1000);
+insert into public.eng_cases values ('wanted', 250, '[["teddam",0.2,2525],["lucascoselfie",0.5,2500],["mathis",0.9,1800],["tonyargent",1.6,1100],["presidentmali",5,350],["eltigre",40,25]]'::jsonb, 8300, 2500);
 insert into public.eng_cases values ('royale', 500, '[["jpzcap",0.15,2649],["sauce",0.4,2400],["jpz2",0.8,1700],["jppz",1.5,1100],["charis",6,300],["jpz",40,25],["forton",300,2]]'::jsonb, 8176, 5000);
 insert into public.eng_cards values ('bande:olman', 'bande', 'olman', 3, 0);
 insert into public.eng_cards values ('bande:tdam', 'bande', 'tdam', 5, 0);
@@ -1268,6 +1277,12 @@ insert into public.eng_cards values ('aura:tony', 'aura', 'tony', 140, 1);
 insert into public.eng_cards values ('aura:tonny', 'aura', 'tonny', 300, 2);
 insert into public.eng_cards values ('aura:olmanaura', 'aura', 'olmanaura', 1000, 3);
 insert into public.eng_cards values ('aura:lucasco', 'aura', 'lucasco', 3500, 4);
+insert into public.eng_cards values ('wanted:teddam', 'wanted', 'teddam', 50, 0);
+insert into public.eng_cards values ('wanted:lucascoselfie', 'wanted', 'lucascoselfie', 125, 0);
+insert into public.eng_cards values ('wanted:mathis', 'wanted', 'mathis', 225, 1);
+insert into public.eng_cards values ('wanted:tonyargent', 'wanted', 'tonyargent', 400, 2);
+insert into public.eng_cards values ('wanted:presidentmali', 'wanted', 'presidentmali', 1250, 3);
+insert into public.eng_cards values ('wanted:eltigre', 'wanted', 'eltigre', 10000, 4);
 insert into public.eng_cards values ('royale:jpzcap', 'royale', 'jpzcap', 75, 0);
 insert into public.eng_cards values ('royale:sauce', 'royale', 'sauce', 200, 0);
 insert into public.eng_cards values ('royale:jpz2', 'royale', 'jpz2', 400, 1);
@@ -1281,8 +1296,6 @@ insert into public.eng_const values ('slot_pays', '{"wild":[70,350,1400],"casino
 insert into public.eng_const values ('slot_scatter', '{"3":[15,2],"4":[20,10],"5":[25,50]}'::jsonb);
 insert into public.eng_const values ('slot_fs_mult', '[2]'::jsonb);
 insert into public.eng_const values ('plinko', '{"8":{"low":[5.6,2.1,1.1,1,0.5,1,1.1,2.1,5.6],"medium":[13,3,1.3,0.7,0.4,0.7,1.3,3,13],"high":[29,4,1.5,0.3,0.2,0.3,1.5,4,29]},"12":{"low":[10,3,1.6,1.4,1.1,1,0.5,1,1.1,1.4,1.6,3,10],"medium":[33,11,4,2,1.1,0.6,0.3,0.6,1.1,2,4,11,33],"high":[170,24,8.1,2,0.7,0.2,0.2,0.2,0.7,2,8.1,24,170]},"16":{"low":[16,9,2,1.4,1.4,1.2,1.1,1,0.5,1,1.1,1.2,1.4,1.4,2,9,16],"medium":[110,41,10,5,3,1.5,1,0.5,0.3,0.5,1,1.5,3,5,10,41,110],"high":[1000,130,26,9,4,2,0.2,0.2,0.2,0.2,0.2,2,4,9,26,130,1000]}}'::jsonb);
-insert into public.eng_const values ('wheel_segs', '["jpz","grey","blue","green","grey","blue","grey","grey","green","blue","grey","blue","grey","green","grey","blue","grey","grey","blue","green","grey","blue","grey","green","grey","blue","grey","blue","grey","green","grey","blue","grey","green","grey","blue","grey","blue","grey","green","grey","blue","grey","blue","green","grey","grey","blue","grey","green","blue","grey"]'::jsonb);
-insert into public.eng_const values ('wheel_types', '{"grey":2,"blue":3.1,"green":5,"jpz":50}'::jsonb);
 insert into public.eng_const values ('daily', '[[100,18],[500,8],[150,16],[1000,4],[200,14],[2500,1.5],[100,18],[750,6],[250,12],[5000,0.5]]'::jsonb);
 insert into public.eng_const values ('promo', '{"dave33":3333,"fan2jc":5000}'::jsonb);
 insert into public.eng_achs values ('play1', 1, 'played', 1);
@@ -1332,7 +1345,7 @@ insert into public.eng_achs values ('game_mines', 1, 'game:mines', 50);
 insert into public.eng_achs values ('game_tower', 1, 'game:tower', 50);
 insert into public.eng_achs values ('game_plinko', 1, 'game:plinko', 50);
 insert into public.eng_achs values ('game_rocket', 1, 'game:rocket', 50);
-insert into public.eng_achs values ('game_wheel', 1, 'game:wheel', 50);
+insert into public.eng_achs values ('game_scratch', 1, 'game:scratch', 50);
 insert into public.eng_achs values ('game_roulette', 1, 'game:roulette', 50);
 insert into public.eng_achs values ('game_blackjack', 1, 'game:blackjack', 50);
 insert into public.eng_achs values ('game_chicken', 1, 'game:chicken', 50);
@@ -1343,4 +1356,5 @@ insert into public.eng_achs values ('set_bande', 2, 'set:bande', 1);
 insert into public.eng_achs values ('set_gamers', 2, 'set:gamers', 1);
 insert into public.eng_achs values ('set_kawai', 2, 'set:kawai', 1);
 insert into public.eng_achs values ('set_aura', 2, 'set:aura', 1);
+insert into public.eng_achs values ('set_wanted', 2, 'set:wanted', 1);
 insert into public.eng_achs values ('set_royale', 2, 'set:royale', 1);

@@ -58,8 +58,8 @@
 
   const brand = () => `<span class="brand__mark">${I('crown')}</span><span class="brand__name">Dave’s Palace</span>`;
   // Rayons du lobby (et groupes du menu)
-  const CATS = ['Originaux', 'Table', 'Machines', 'En direct'];
-  const CAT_OF = { machine: 'Machines', wheel: 'En direct', roulette: 'Table', blackjack: 'Table', upgrade: 'Collection' };
+  const CATS = ['Originaux', 'Table', 'Machines', 'Grattage'];
+  const CAT_OF = { machine: 'Machines', scratch: 'Grattage', roulette: 'Table', blackjack: 'Table', upgrade: 'Collection' };
   const catOf = (g) => CAT_OF[g.id] || 'Originaux';
   const casinoGames = () => games.list.filter((g) => g.id !== 'cases');
 
@@ -74,7 +74,7 @@
           <div class="brand">${brand()}</div>
           <div class="landing__code" data-reveal>Station Palace · Accès membres</div>
           <h1 class="js-split">Le casino <span class="o">en orbite</span></h1>
-          <p class="landing__tag" data-reveal>Le palace de Jean&#8209;Pascal Zadi. ${games.list.length} jeux originaux, des machines à sous à la roue en direct, joués en DaveCoins.</p>
+          <p class="landing__tag" data-reveal>Le palace de Jean&#8209;Pascal Zadi. ${games.list.length} jeux originaux, des machines à sous aux tickets à gratter, joués en DaveCoins.</p>
           <ul class="landing__facts" data-reveal>
             <li><strong class="num">${games.list.length}</strong><span>Jeux</span></li>
             <li><strong class="num">1 000</strong><span>Coins offerts</span></li>

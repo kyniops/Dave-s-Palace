@@ -46,7 +46,14 @@
     jppz: { name: 'JPZ et son chien', img: 'jppz.jpg' },
     charis: { name: 'JPZ Charismatique', img: 'jpzcharis.jpg' },
     jpz: { name: 'JPZ Royal', img: 'jpz.png' },
-    forton: { name: 'Absolute Forton', img: 'forton.jpg' }
+    forton: { name: 'Absolute Forton', img: 'forton.jpg' },
+    // wanted
+    teddam: { name: 'Teddam', img: 'teddam.jpg' },
+    lucascoselfie: { name: 'Lucasco Selfie', img: 'lucascoselfie.jpg' },
+    mathis: { name: 'Mathis Buffalo Grill', img: 'mathis.jpg' },
+    tonyargent: { name: 'Tony Billets', img: 'tonyargent.jpg' },
+    presidentmali: { name: 'Président du Mali', img: 'presidentmali.jpg' },
+    eltigre: { name: 'El Tigre', img: 'eltigre.jpg' }
   };
   // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 95 %.
   // La rareté découle du multiplicateur : plus la carte vaut cher dans sa caisse, plus elle est rare.
@@ -59,6 +66,8 @@
       drops: [['slyme', 0.25, null], ['petitkawai', 0.8, 2000], ['lucascoroi', 5, 300], ['jpzkawai', 50, 25]] },
     { id: 'aura', name: 'Caisse Aura', price: 100, color: '#9a6bff', cover: 'lucasco.jpg',
       drops: [['axbblesse', 0.2, null], ['axbserieux', 0.5, 2500], ['tdammasque', 0.9, 1800], ['tony', 1.4, 1200], ['tonny', 3, 600], ['olmanaura', 10, 150], ['lucasco', 35, 25]] },
+    { id: 'wanted', name: 'Caisse Wanted', price: 250, color: '#e5483b', cover: 'eltigre.jpg',
+      drops: [['teddam', 0.2, null], ['lucascoselfie', 0.5, 2500], ['mathis', 0.9, 1800], ['tonyargent', 1.6, 1100], ['presidentmali', 5, 350], ['eltigre', 40, 25]] },
     { id: 'royale', name: 'Caisse Royale JPZ', price: 500, color: '#ffc145', cover: 'jpz.png',
       drops: [['jpzcap', 0.15, null], ['sauce', 0.4, 2400], ['jpz2', 0.8, 1700], ['jppz', 1.5, 1100], ['charis', 6, 300], ['jpz', 40, 25], ['forton', 300, 2]] }
   ];
@@ -285,7 +294,7 @@
     id: 'cases',
     name: 'DaveCases',
     icon: 'gift',
-    tagline: 'Cinq caisses à ouvrir, ou en Battle contre la bande',
+    tagline: 'Six caisses à ouvrir, en Battle contre la bande ou en duel contre tes amis',
     rtp: '95 %',
     isNew: true,
     hue: 30,

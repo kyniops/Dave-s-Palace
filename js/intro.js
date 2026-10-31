@@ -170,7 +170,7 @@
         </section>
 
         <section class="ix-sec" id="ix-casino">
-          <div class="ix-head" data-ix><span class="ix-eyebrow">01 · Le casino</span><h2>${casino.length} jeux pour faire grimper ton solde</h2><p>Machine à sous à jackpot, mines, tour, plinko, fusée, roue en direct, roulette, blackjack… Chaque jeu affiche son taux de retour.</p></div>
+          <div class="ix-head" data-ix><span class="ix-eyebrow">01 · Le casino</span><h2>${casino.length} jeux pour faire grimper ton solde</h2><p>Machine à sous à jackpot, tickets à gratter, mines, tour, plinko, fusée, roulette, blackjack… Chaque jeu affiche son taux de retour.</p></div>
           <div class="ix-stats" data-ix>
             <div><b class="num js-count" data-to="${casino.length}">0</b><span>jeux</span></div>
             <div><b class="num js-count" data-to="99">0</b><span>% de RTP max</span></div>
@@ -181,7 +181,7 @@
         </section>
 
         <section class="ix-sec ix-sec--split" id="ix-cases">
-          <div class="ix-head" data-ix><span class="ix-eyebrow">02 · Caisses & collection</span><h2>Ouvre des caisses, collectionne la bande</h2><p>Cinq caisses, quarante cartes néon de Commun à Mythique. Vends tes doubles pour récupérer des DaveCoins ou complète les albums pour débloquer leurs récompenses.</p>
+          <div class="ix-head" data-ix><span class="ix-eyebrow">02 · Caisses & collection</span><h2>Ouvre des caisses, collectionne la bande</h2><p>${cards.sets.length} caisses, ${Object.keys(cards.byId).length} cartes néon de Commun à Mythique. Vends tes doubles pour récupérer des DaveCoins ou complète les albums pour débloquer leurs récompenses.</p>
             <button type="button" class="btn btn--primary js-signup">${I('package-open', 'i--sm')}Ouvrir ma première caisse</button></div>
           <div class="ix-fan">${showcase.map((c, i) => `<div class="ix-fan__card" style="--k:${i - (showcase.length - 1) / 2}">${cards.html(c)}</div>`).join('')}</div>
         </section>

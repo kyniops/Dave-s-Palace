@@ -1110,3 +1110,38 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 @keyframes dlobby-pulse { 50% { transform: scale(1.08); } }
 @keyframes dlobby-dot { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .dlobby__x, .dlobby__wait i { animation: none; } }
+
+/* DaveTicket : ticket à gratter */
+.tk-wrap { display: flex; justify-content: center; align-items: center; min-height: 100%; padding: 12px 0; }
+.tk { --tk1: #c98a52; --tk2: #6d3f1d; --tkc: #ffd9b0; position: relative; width: min(100%, 440px); padding: 16px 16px 14px; background: linear-gradient(160deg, var(--tk1), var(--tk2)); border: 2px dashed rgba(255, 255, 255, .35); outline: 4px solid var(--tk2); box-shadow: 0 24px 60px rgba(0, 0, 0, .55); color: #fff; user-select: none; -webkit-user-select: none; }
+.tk--silver { --tk1: #c6ccd8; --tk2: #4b5363; --tkc: #f1f4f9; }
+.tk--gold { --tk1: #f2c14e; --tk2: #7a4f0e; --tkc: #fff1c2; }
+.tk--royal { --tk1: #9b6bff; --tk2: #2c1166; --tkc: #ecdcff; }
+.tk__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tk__brand { font-family: var(--display); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--tkc); }
+.tk__title { font-family: var(--display); font-size: clamp(17px, 4.6vw, 22px); text-transform: uppercase; letter-spacing: .04em; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); text-align: center; }
+.tk__price { min-width: 46px; padding: 3px 8px; font-family: var(--display); font-size: 16px; text-align: center; color: var(--tk2); background: var(--tkc); clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%); }
+.tk__rule { margin: 8px 0 10px; font-size: 12.5px; text-align: center; color: var(--tkc); }
+.tk__zone { position: relative; aspect-ratio: 1; touch-action: none; }
+.tk__grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 0; background: #0d0f16; }
+.tk__cell { position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, .08); transition: opacity .3s, filter .3s; }
+.tk__cell img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.tk__cell span { position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%); padding: 1px 7px; font-family: var(--display); font-size: 13px; color: #fff; background: rgba(0, 0, 0, .7); white-space: nowrap; }
+.tk__cell.pair { box-shadow: inset 0 0 0 3px var(--accent); }
+.tk__cell.win { box-shadow: inset 0 0 0 4px #ffd34d, 0 0 24px rgba(255, 211, 77, .7); z-index: 1; animation: tk-win .7s ease-in-out infinite alternate; }
+.tk__cell.dim { filter: grayscale(.8) brightness(.55); }
+.tk__foil { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; transition: opacity .45s ease; touch-action: none; }
+.tk.is-idle .tk__foil { cursor: default; filter: saturate(.7); }
+.tk__hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 8px 14px; font-family: var(--display); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; background: rgba(0, 0, 0, .72); pointer-events: none; white-space: nowrap; }
+.tk__pay { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+.tk__pay span { display: flex; align-items: center; gap: 5px; padding: 3px 5px; font-family: var(--display); font-size: 12px; background: rgba(0, 0, 0, .28); }
+.tk__pay img { width: 22px; height: 22px; object-fit: cover; flex: none; }
+@keyframes tk-win { to { filter: brightness(1.25); } }
+@media (prefers-reduced-motion: reduce) { .tk__cell.win { animation: none; } }
+.art-ticket { position: absolute; inset: 0; display: grid; place-items: center; }
+.art-ticket__t { width: 66%; padding: 8px; transform: rotate(-7deg); background: linear-gradient(160deg, #f2c14e, #7a4f0e); border: 2px dashed rgba(255, 255, 255, .45); box-shadow: 0 14px 30px rgba(0, 0, 0, .5); text-align: center; }
+.art-ticket__t b { display: block; font-family: var(--display); font-size: 12px; letter-spacing: .1em; color: #fff; }
+.art-ticket__t span { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin: 6px 0 4px; }
+.art-ticket__t img, .art-ticket__t i { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.art-ticket__t i { background: repeating-linear-gradient(45deg, #c6ccd8 0 6px, #9aa3b2 6px 12px); }
+.art-ticket__t em { font-style: normal; font-family: var(--display); font-size: 15px; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
