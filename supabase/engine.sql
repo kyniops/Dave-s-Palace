@@ -1356,6 +1356,7 @@ insert into public.eng_achs values ('game_rocket', 1, 'game:rocket', 50);
 insert into public.eng_achs values ('game_scratch', 1, 'game:scratch', 50);
 insert into public.eng_achs values ('game_roulette', 1, 'game:roulette', 50);
 insert into public.eng_achs values ('game_blackjack', 1, 'game:blackjack', 50);
+insert into public.eng_achs values ('game_poker', 1, 'game:poker', 50);
 insert into public.eng_achs values ('game_chicken', 1, 'game:chicken', 50);
 insert into public.eng_achs values ('game_machine', 1, 'game:machine', 50);
 insert into public.eng_achs values ('game_cases', 1, 'game:cases', 25);

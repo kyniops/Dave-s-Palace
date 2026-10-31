@@ -59,7 +59,7 @@
   const brand = () => `<span class="brand__mark">${I('crown')}</span><span class="brand__name">Dave’s Palace</span>`;
   // Rayons du lobby (et groupes du menu)
   const CATS = ['Originaux', 'Table', 'Machines', 'Grattage'];
-  const CAT_OF = { machine: 'Machines', scratch: 'Grattage', roulette: 'Table', blackjack: 'Table', upgrade: 'Collection' };
+  const CAT_OF = { machine: 'Machines', scratch: 'Grattage', roulette: 'Table', blackjack: 'Table', poker: 'Table', upgrade: 'Collection' };
   const catOf = (g) => CAT_OF[g.id] || 'Originaux';
   const casinoGames = () => games.list.filter((g) => g.id !== 'cases');
 
