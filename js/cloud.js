@@ -148,6 +148,7 @@
   const emailErr = (e) => {
     const m = (e && e.message) || '';
     if (/rate limit|too many|security purposes/i.test(m)) return 'Trop d’emails envoyés : réessaie dans quelques minutes.';
+    if (/error sending|sending .*email|smtp/i.test(m)) return 'Le mail de confirmation n’a pas pu être envoyé (problème d’envoi d’emails sur le serveur). Réessaie plus tard ou préviens un admin.';
     if (/invalid.*email|email.*invalid/i.test(m)) return 'Adresse email invalide.';
     if (/already registered|already exists/i.test(m)) return 'Cette adresse email est déjà utilisée par un autre compte.';
     return errFr(e);
