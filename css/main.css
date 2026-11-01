@@ -1334,9 +1334,9 @@ body:has(.modal) { overflow: hidden; }
 .pkx-pot { position: absolute; transform: translate(-50%, -50%) scale(.8); display: flex; align-items: center; gap: 8px; padding: 6px 18px 6px 10px; border-radius: 999px; background: rgba(4, 10, 30, .55); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); opacity: 0; transition: opacity .3s, transform .3s var(--ease); z-index: 3; }
 .pkx-pot.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 .pkx-pot b { font-family: var(--display); font-size: clamp(18px, 2.3vw, 34px); color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
-.pkx-board { position: absolute; left: 50%; top: 48%; transform: translate(-50%, -50%); display: flex; gap: clamp(4px, .6vw, 10px); z-index: 3; }
+.pkx-board { position: absolute; left: 50%; top: 51%; transform: translate(-50%, -50%); display: flex; gap: clamp(4px, .6vw, 10px); z-index: 3; }
 .pkx-board .pkk { --w: clamp(40px, 4.6vw, 72px); }
-.pkx-msg { position: absolute; left: 50%; top: 64%; transform: translate(-50%, -50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; pointer-events: none; font-size: clamp(12px, 1.2vw, 16px); }
+.pkx-msg { position: absolute; left: 50%; top: 66%; transform: translate(-50%, -50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; pointer-events: none; font-size: clamp(12px, 1.2vw, 16px); }
 .pkx-msg span { font-family: var(--display); letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .55); }
 .pkx-msg.win { padding: 6px 18px; border-radius: 14px; background: rgba(0, 0, 0, .55); box-shadow: 0 0 0 1px rgba(255, 193, 69, .5), 0 0 30px rgba(255, 193, 69, .3); animation: pkx-pop .5s cubic-bezier(.2, 1.4, .4, 1) .45s both; }
 .pkx-msg.win b { color: var(--coin); font-family: var(--display); }
@@ -1350,9 +1350,11 @@ body:has(.modal) { overflow: hidden; }
 .pkx-ring { --p: 100; --rc: rgba(255, 255, 255, .22); position: relative; width: 76%; aspect-ratio: 1; padding: 6%; border-radius: 50%; background: conic-gradient(var(--rc) calc(var(--p) * 1%), rgba(255, 255, 255, .1) 0); box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
 .pkx-seat.turn .pkx-ring { --rc: hsl(calc(var(--p) * 1.15) 95% 55%); animation: pkx-timer var(--dur, 20000ms) linear var(--del, 0ms) forwards; box-shadow: 0 0 0 2px rgba(255, 255, 255, .15), 0 0 28px hsl(calc(var(--p) * 1.15) 95% 55% / .55), 0 12px 26px rgba(0, 0, 0, .55); }
 @keyframes pkx-timer { from { --p: 100; } to { --p: 0; } }
-.pkx-av { width: 100%; height: 100%; overflow: hidden; border-radius: 50%; background: #151826; box-shadow: 0 0 0 3px #0b0d14; }
-.pkx-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.pkx-av .avatar { width: 100%; height: 100%; border-radius: 50%; font-size: clamp(22px, 2.6vw, 38px); clip-path: none; }
+/* cercle parfait quelle que soit la photo : la photo est posée en absolu, elle ne peut plus étirer le rond */
+.pkx-ring { min-height: 0; flex: none; }
+.pkx-av { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 50%; background: #151826; box-shadow: 0 0 0 3px #0b0d14; }
+.pkx-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.pkx-av .avatar { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; font-size: clamp(22px, 2.6vw, 38px); clip-path: none; display: grid; place-items: center; }
 .pkx-av .avatar img { border-radius: 50%; }
 .pkx-plate { position: relative; z-index: 2; width: 100%; margin-top: -14%; padding: 4px 8px 5px; text-align: center; border-radius: 12px; background: linear-gradient(180deg, #1b1f2c, #0b0d14); border: 2px solid rgba(255, 255, 255, .16); box-shadow: 0 10px 22px rgba(0, 0, 0, .55); }
 .pkx-plate .nm { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: clamp(11px, 1vw, 14px); }
