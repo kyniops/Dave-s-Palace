@@ -7,6 +7,8 @@
   'use strict';
 
   const IMG = 'assets/img/';
+  // mise maximum par partie (même valeur que le serveur, eng_const « limits »)
+  const MAX_BET = 5000;
   const START_BALANCE = 1000;
   const DAILY_COOLDOWN = 12 * 3600 * 1000; // roue quotidienne : une rotation toutes les 12 h
   // Cases de la roue quotidienne : [gain, poids]
@@ -904,8 +906,12 @@
       parent.appendChild(node);
       const input = node.querySelector('input');
       const hint = node.querySelector('.field__hint');
+      // mise trop haute tapée à la main : ramenée à la mise maximum
+      input.addEventListener('change', () => {
+        if ((parseFloat(input.value) || 0) > MAX_BET) { input.value = MAX_BET; input.dispatchEvent(new Event('input')); ui.toast(`Mise maximum : ${fmt(MAX_BET)} DaveCoins par partie.`, 'info'); }
+      });
       const btns = node.querySelectorAll('button');
-      const clamp = (v) => round2(Math.max(0, Math.min(v, wallet.get())));
+      const clamp = (v) => round2(Math.max(0, Math.min(v, wallet.get(), MAX_BET)));
       node.addEventListener('click', (e) => {
         const a = e.target.closest('button')?.dataset.a;
         if (!a) return;
@@ -1139,5 +1145,5 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  window.DP = { IMG, store, rng, fmt, fmtMult, round2, esc, dayKey, PROMO_CODES, auth, wallet, bonus, promo, jackpot, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
+  window.DP = { IMG, MAX_BET, store, rng, fmt, fmtMult, round2, esc, dayKey, PROMO_CODES, auth, wallet, bonus, promo, jackpot, stats, settle, sound, ui, chips, cards, inventory, games, on, off, emit, sleep };
 })();

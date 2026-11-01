@@ -340,10 +340,12 @@ begin
   return a;
 end $$;
 
--- contrôle d'une mise
+-- contrôle d'une mise : au moins 0,01, au plus la mise maximum par partie (eng_const 'limits' → max_bet, 5 000 par défaut)
 create or replace function public.eng_bet(a public.accounts, p_bet numeric) returns numeric language plpgsql as $$
+declare mx numeric := coalesce((public.eng_c('limits') ->> 'max_bet')::numeric, 5000);
 begin
-  if p_bet is null or p_bet < 0.01 or p_bet > 10000000 then raise exception 'Mise invalide.'; end if;
+  if p_bet is null or p_bet < 0.01 then raise exception 'Mise invalide.'; end if;
+  if r2(p_bet) > mx then raise exception 'Mise maximum : % DaveCoins par partie.', mx::bigint; end if;
   if r2(p_bet) > a.balance then raise exception 'Pas assez de DaveCoins !'; end if;
   return r2(p_bet);
 end $$;
@@ -1308,6 +1310,7 @@ insert into public.eng_const values ('slot_scatter', '{"3":[15,2],"4":[20,10],"5
 insert into public.eng_const values ('slot_fs_mult', '[2]'::jsonb);
 insert into public.eng_const values ('plinko', '{"8":{"low":[5.6,2.1,1.1,1,0.5,1,1.1,2.1,5.6],"medium":[13,3,1.3,0.7,0.4,0.7,1.3,3,13],"high":[29,4,1.5,0.3,0.2,0.3,1.5,4,29]},"12":{"low":[10,3,1.6,1.4,1.1,1,0.5,1,1.1,1.4,1.6,3,10],"medium":[33,11,4,2,1.1,0.6,0.3,0.6,1.1,2,4,11,33],"high":[170,24,8.1,2,0.7,0.2,0.2,0.2,0.7,2,8.1,24,170]},"16":{"low":[16,9,2,1.4,1.4,1.2,1.1,1,0.5,1,1.1,1.2,1.4,1.4,2,9,16],"medium":[110,41,10,5,3,1.5,1,0.5,0.3,0.5,1,1.5,3,5,10,41,110],"high":[1000,130,26,9,4,2,0.2,0.2,0.2,0.2,0.2,2,4,9,26,130,1000]}}'::jsonb);
 insert into public.eng_const values ('daily', '[[100,18],[500,8],[150,16],[1000,4],[200,14],[2500,1.5],[100,18],[750,6],[250,12],[5000,0.5]]'::jsonb);
+insert into public.eng_const values ('limits', '{"max_bet":5000}'::jsonb);
 insert into public.eng_const values ('promo', '{"dave33":3333,"fan2jc":5000}'::jsonb);
 insert into public.eng_achs values ('play1', 1, 'played', 1);
 insert into public.eng_achs values ('play50', 1, 'played', 50);
