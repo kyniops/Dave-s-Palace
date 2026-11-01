@@ -46,6 +46,21 @@
     }
     return best;
   }
+  // émotes qu'on lance sur un joueur (son au départ et à l'impact, éclaboussure pour les projectiles salissants)
+  const EMOTES = [
+    { id: 'poop', e: '💩', name: 'Crotte', snd: 'fart', stain: true, c: ['#8b5a2b', '#5c3a1a', '#c08850'] },
+    { id: 'tomato', e: '🍅', name: 'Tomate', snd: 'splat', stain: true, c: ['#ef4444', '#b91c1c', '#fca5a5'] },
+    { id: 'egg', e: '🥚', name: 'Œuf', snd: 'splat', stain: true, c: ['#fde68a', '#ffffff', '#fbbf24'] },
+    { id: 'clown', e: '🤡', name: 'Clown', snd: 'boing', c: ['#ef4444', '#60a5fa', '#fde047'] },
+    { id: 'laugh', e: '😂', name: 'Mort de rire', snd: 'boing', c: ['#fde047', '#ffffff'] },
+    { id: 'cry', e: '😭', name: 'Pleure', snd: 'lose', c: ['#60a5fa', '#ffffff'] },
+    { id: 'fire', e: '🔥', name: 'En feu', snd: 'slam', c: ['#ff6b2c', '#ffc145', '#ef4444'] },
+    { id: 'money', e: '💸', name: 'Billets', snd: 'coin', c: ['#4ade80', '#ffffff', '#ffc145'] },
+    { id: 'beer', e: '🍺', name: 'Santé', snd: 'chip', c: ['#fbbf24', '#ffffff'] },
+    { id: 'rose', e: '🌹', name: 'Rose', snd: 'kiss', c: ['#f43f5e', '#ffffff', '#22c55e'] },
+    { id: 'kiss', e: '💋', name: 'Bisou', snd: 'kiss', c: ['#f43f5e', '#fda4af'] },
+    { id: 'crown', e: '👑', name: 'Le boss', snd: 'win', c: ['#ffc145', '#ffffff'] }
+  ];
   const CAT_POP = ['', 'Paire !', 'Double paire !', 'Brelan !', 'Quinte !', 'Couleur !', 'Full !', 'Carré !', 'Quinte flush !'];
   const online = () => !!(DP.engine && DP.engine.on && DP.cloud && DP.cloud.sb);
   const rpc = (fn, p, o) => DP.engine.call(fn, p, o);
@@ -73,6 +88,7 @@
       const box = root.firstElementChild;
       let alive = true, timer = 0, soon = 0, channel = null, tableId = null, st = null, prev = null, lastVer = -1, offset = 0, busy = false, again = false;
       let raiseOpen = false, raiseTo = 0, leaveArmed = 0, myTurnKey = '', turnKey = '', T = null; // T = éléments de la table
+      let fxCh = null, lastEmote = 0, emoMenu = null;
       let myCat = { hand: -1, cat: -1 }, streak = 0, hurryT = 0, hurryI = 0, title0 = document.title; // effets « dopamine »
 
       const seated = (on) => document.body.classList.toggle('pk-seated', on);
@@ -297,6 +313,8 @@
       function stopTable() {
         clearInterval(timer); timer = 0; clearTimeout(soon);
         if (channel) { try { DP.cloud.sb.removeChannel(channel); } catch { /* ignore */ } channel = null; }
+        if (fxCh) { try { DP.cloud.sb.removeChannel(fxCh); } catch { /* ignore */ } fxCh = null; }
+        closeEmoMenu();
       }
       function openTable(id, first) {
         stopTable(); seated(true);
@@ -304,6 +322,9 @@
         build();
         channel = DP.cloud.sb.channel('pk-' + id + '-' + Date.now())
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_tables', filter: `id=eq.${id}` }, () => tick())
+          .subscribe();
+        fxCh = DP.cloud.sb.channel('pkfx-' + id, { config: { broadcast: { self: true } } })
+          .on('broadcast', { event: 'emote' }, (m) => showEmote(m.payload))
           .subscribe();
         timer = setInterval(tick, 1000);
         if (first) apply(first);
@@ -390,6 +411,7 @@
           if (document.fullscreenElement) document.exitFullscreen();
           else if (T.root.requestFullscreen) T.root.requestFullscreen().catch(() => {});
         });
+        T.seats.forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); openEmoMenu(el); }));
         T.rr.addEventListener('input', () => setRaise(+T.rr.value));
         T.presets.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { sound.play('click'); setRaise(+b.dataset.v); } });
         T.acts.addEventListener('click', (e) => { const b = e.target.closest('button[data-a]'); if (b && !b.disabled) action(b.dataset.a); });
@@ -472,6 +494,7 @@
             if (el.dataset.name) { el.dataset.name = ''; el.className = 'pkx-seat empty'; const c = el.querySelector('.pkx-cards'); c.innerHTML = ''; c.dataset.key = ''; el.querySelector('.pkx-badge').className = 'pkx-badge'; el.querySelector('.pkx-badge').textContent = ''; el.querySelector('.pkx-hand').textContent = ''; }
             return;
           }
+          el.dataset.seat = x.seat;
           const turn = st.toAct === x.seat && BETTING.includes(st.stage);
           el.className = `pkx-seat ${x.status} ${x.me ? 'me' : ''} ${turn ? 'turn' : ''} ${winSeats.has(x.seat) ? 'won' : ''} ${x.leaving ? 'leaving' : ''}`;
           if (el.dataset.name !== x.name + (x.bot || '')) {
@@ -594,6 +617,78 @@
         paintActions();
         paintTimer();
       }
+
+      /* ---------- Émotes ---------- */
+      function closeEmoMenu() { if (emoMenu) { emoMenu.remove(); emoMenu = null; } }
+      function openEmoMenu(el) {
+        if (!st || el.classList.contains('empty')) return;
+        const target = +el.dataset.seat, x = st.seats.find((y) => y.seat === target);
+        if (!x) return;
+        if (st.mySeat == null) { ui.toast('Assieds-toi à la table pour envoyer des émotes.', 'info'); return; }
+        const same = emoMenu && emoMenu.dataset.to === String(target);
+        closeEmoMenu();
+        if (same) return;
+        const k = kOf(target), at = L().seat[k];
+        const self = target === st.mySeat;
+        emoMenu = ui.el(`<div class="pkx-emo" data-to="${target}" style="left:${at[0]}%;top:${at[1]}%">
+            <span class="pkx-emo__t">${self ? 'Réagir' : `Envoyer à <b>${esc(x.name)}</b>`}</span>
+            <div class="pkx-emo__g">${EMOTES.map((m) => `<button type="button" data-e="${m.id}" title="${m.name}">${m.e}</button>`).join('')}</div>
+          </div>`);
+        emoMenu.classList.add(at[0] > 60 ? 'to-l' : at[0] < 40 ? 'to-r' : 'to-c', at[1] > 55 ? 'up' : 'down');
+        T.stage.appendChild(emoMenu);
+        sound.play('click');
+        emoMenu.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const b = e.target.closest('[data-e]');
+          if (!b) return;
+          sendEmote(target, b.dataset.e);
+          closeEmoMenu();
+        });
+      }
+      function sendEmote(to, id) {
+        const now = Date.now();
+        if (now - lastEmote < 1500) { ui.toast('Doucement sur les émotes !', 'info', 1500); return; }
+        lastEmote = now;
+        const payload = { from: st.mySeat, to, id, hand: st.hand };
+        if (fxCh) fxCh.send({ type: 'broadcast', event: 'emote', payload }).then((r) => { if (r !== 'ok') showEmote(payload); }, () => showEmote(payload));
+        else showEmote(payload);
+      }
+      function showEmote(p) {
+        if (!alive || !T || !st || !p) return;
+        const m = EMOTES.find((x) => x.id === p.id);
+        const from = st.seats.find((x) => x.seat === p.from), to = st.seats.find((x) => x.seat === p.to);
+        if (!m || !from || !to || kOf(p.from) == null || kOf(p.to) == null) return;
+        const lay = L(), a = lay.seat[kOf(p.from)], b = lay.seat[kOf(p.to)];
+        const target = T.seats[kOf(p.to)];
+        const impact = () => {
+          if (!alive || !T) return;
+          sound.play(m.snd, { x: 4 });
+          const hit = ui.el(`<div class="pkx-hit" style="left:${b[0]}%;top:${b[1] - 4}%">${m.e}</div>`);
+          T.fx.appendChild(hit); setTimeout(() => hit.remove(), 1300);
+          ui.burst(target, { n: 26, colors: m.c, spread: 1.4 });
+          target.classList.remove('hit'); void target.offsetWidth; target.classList.add('hit');
+          if (m.stain) {
+            const ring = target.querySelector('.pkx-ring');
+            const stain = ui.el(`<i class="pkx-stain">${m.e}</i>`);
+            ring.appendChild(stain); setTimeout(() => stain.remove(), 2800);
+          }
+        };
+        if (p.from === p.to) { impact(); return; }
+        // lancer en arc, avec rotation
+        const W = T.stage.clientWidth, H = T.stage.clientHeight;
+        const dx = ((b[0] - a[0]) / 100) * W, dy = ((b[1] - a[1]) / 100) * H, lift = -Math.max(60, Math.abs(dx) * 0.25);
+        const el = ui.el(`<div class="pkx-throw" style="left:${a[0]}%;top:${a[1] - 4}%">${m.e}</div>`);
+        T.fx.appendChild(el);
+        sound.play('whoosh');
+        const anim = el.animate([
+          { transform: 'translate(-50%, -50%) scale(.6) rotate(0deg)', opacity: 0 },
+          { transform: `translate(calc(-50% + ${dx * 0.5}px), calc(-50% + ${dy * 0.5 + lift}px)) scale(1.35) rotate(270deg)`, opacity: 1, offset: 0.5 },
+          { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(540deg)`, opacity: 1 }
+        ], { duration: 650, easing: 'cubic-bezier(.35,.1,.55,1)', fill: 'forwards' });
+        anim.onfinish = () => { el.remove(); impact(); };
+      }
+      const onDocClick = (e) => { if (emoMenu && !emoMenu.contains(e.target)) closeEmoMenu(); };
+      document.addEventListener('click', onDocClick);
 
       /* ---------- Effets « dopamine » ---------- */
       function winFx(w, pot) {
@@ -755,6 +850,7 @@
       }
 
       const onKey = (e) => {
+        if (e.key === 'Escape') closeEmoMenu();
         if (!myTurn() || /input|textarea|select/i.test(document.activeElement.tagName) || document.querySelector('.modal')) return;
         const k = e.key.toLowerCase();
         if (k === 'f') action('fold');
@@ -767,7 +863,7 @@
       document.addEventListener('fullscreenchange', onResize);
       lobby();
       return () => {
-        alive = false; stopTable(); seated(false); clearInterval(lobbyTimer); clearTimeout(hurryT); clearInterval(hurryI); document.title = title0; document.removeEventListener('visibilitychange', onVis);
+        alive = false; stopTable(); seated(false); clearInterval(lobbyTimer); document.removeEventListener('click', onDocClick); clearTimeout(hurryT); clearInterval(hurryI); document.title = title0; document.removeEventListener('visibilitychange', onVis);
         window.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); document.removeEventListener('fullscreenchange', onResize);
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       };

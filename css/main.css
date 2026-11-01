@@ -1607,3 +1607,27 @@ body:has(.modal) { overflow: hidden; }
 .pkx.hurry::before { content: ""; position: absolute; inset: 0; z-index: 20; pointer-events: none; box-shadow: inset 0 0 120px rgba(255, 40, 60, .55); animation: pkx-hurry .5s ease-in-out infinite alternate; }
 @keyframes pkx-hurry { from { opacity: .35; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .pkx-win, .pkx-pop, .pkx-slam, .pkx-float, .pkx-dock.myturn .pka, .pkx.hurry::before, .pkx-stage.drama .pkx-felt { animation: none; } }
+
+/* DavePoker : émotes */
+.pkx-seat:not(.empty) { cursor: pointer; }
+.pkx-seat:not(.empty):hover .pkx-ring { filter: brightness(1.12); }
+.pkx-emo { position: absolute; z-index: 30; display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 12px; width: 236px;
+  background: rgba(8, 10, 16, .96); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16), 0 18px 40px rgba(0, 0, 0, .6);
+  --cut: 10px; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  animation: pkx-emo-in .22s cubic-bezier(.2, 1.4, .4, 1) both; }
+.pkx-emo.to-r { transform: translate(14%, -50%); } .pkx-emo.to-l { transform: translate(-114%, -50%); } .pkx-emo.to-c { transform: translate(-50%, 0); }
+.pkx-emo.to-c.up { transform: translate(-50%, calc(-100% - 70px)); } .pkx-emo.to-c.down { transform: translate(-50%, 70px); }
+@keyframes pkx-emo-in { from { opacity: 0; filter: blur(4px); } }
+.pkx-emo__t { font-family: var(--display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.pkx-emo__t b { color: var(--text); }
+.pkx-emo__g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pkx-emo__g button { display: grid; place-items: center; height: 46px; font-size: 26px; line-height: 1; cursor: pointer; border: 0; background: rgba(255, 255, 255, .05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); transition: transform .15s, background .15s; }
+.pkx-emo__g button:hover { transform: scale(1.18) rotate(-6deg); background: rgba(255, 138, 61, .18); box-shadow: inset 0 0 0 1px var(--accent); }
+.pkx-throw { position: absolute; z-index: 28; font-size: clamp(34px, 3.6vw, 54px); line-height: 1; pointer-events: none; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .55)); }
+.pkx-hit { position: absolute; z-index: 28; transform: translate(-50%, -50%); font-size: clamp(54px, 6vw, 92px); line-height: 1; pointer-events: none; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .5)); animation: pkx-hit 1.3s cubic-bezier(.2, 1.5, .4, 1) both; }
+@keyframes pkx-hit { 0% { transform: translate(-50%, -50%) scale(.2); opacity: 0; } 18% { transform: translate(-50%, -50%) scale(1.35, .8); opacity: 1; } 32% { transform: translate(-50%, -50%) scale(.92, 1.12); } 45% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { transform: translate(-50%, -80%) scale(.9); opacity: 0; } }
+.pkx-seat.hit .pkx-ring { animation: pkx-shake .5s cubic-bezier(.36, .07, .19, .97) both; }
+@keyframes pkx-shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(5px) rotate(4deg); } 30%, 50%, 70% { transform: translateX(-8px) rotate(-6deg); } 40%, 60% { transform: translateX(8px) rotate(6deg); } }
+.pkx-stain { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; font-style: normal; font-size: clamp(40px, 4.6vw, 70px); line-height: 1; pointer-events: none; opacity: .92; animation: pkx-stain 2.8s ease-in both; }
+@keyframes pkx-stain { 0% { transform: scale(1.6) rotate(-12deg); } 12% { transform: scale(1) rotate(0); } 70% { opacity: .92; } 100% { opacity: 0; transform: translateY(18px) scale(.95); } }
+@media (prefers-reduced-motion: reduce) { .pkx-hit, .pkx-stain, .pkx-seat.hit .pkx-ring, .pkx-emo { animation: none; } }

@@ -461,6 +461,11 @@
             tone({ f: 90, f2: 28, d: 0.7, v: 0.6, rev: 0.1 });
             noise({ t: 0.05, d: 0.4, v: 0.25, type: 'bandpass', f: 600, f2: 150, q: 0.7 });
             break;
+          // émotes du poker
+          case 'fart': tone({ f: 120, f2: 62, d: 0.5, v: 0.2, type: 'sawtooth', a: 0.02, detune: 25, rev: 0.05 }); tone({ f: 96, f2: 55, d: 0.45, v: 0.14, type: 'square', t: 0.04, detune: -30, rev: 0.05 }); noise({ d: 0.45, v: 0.12, type: 'lowpass', f: 380, q: 3 }); break;
+          case 'splat': noise({ d: 0.22, v: 0.5, type: 'lowpass', f: 1400, f2: 180, q: 1.2 }); tone({ f: 240, f2: 55, d: 0.22, v: 0.22, rev: 0.06 }); break;
+          case 'kiss': tone({ f: 700, f2: 1700, d: 0.07, v: 0.1, rev: 0.05 }); noise({ t: 0.06, d: 0.03, v: 0.16, f: 3200, q: 4 }); break;
+          case 'boing': tone({ f: 180, f2: 620, d: 0.22, v: 0.16, type: 'triangle', rev: 0.1 }); tone({ f: 620, f2: 260, d: 0.25, v: 0.1, type: 'triangle', t: 0.18 }); break;
           case 'lose': tone({ f: 392, f2: 370, d: 0.18, v: 0.07, type: 'triangle' }); tone({ f: 311, f2: 294, d: 0.35, v: 0.07, type: 'triangle', t: 0.14 }); break;
           case 'error': tone({ f: 200, d: 0.09, v: 0.07, type: 'square', rev: 0 }); tone({ f: 150, d: 0.12, v: 0.07, type: 'square', t: 0.1, rev: 0 }); break;
           case 'coin': bell(hz(11), 0, 0.1, 0.12, 0.1); bell(hz(16), 0.07, 0.12, 0.35, 0.25); break;
