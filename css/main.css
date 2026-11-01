@@ -1039,7 +1039,7 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 
 /* ---------- Notifications ---------- */
 .bell { position: relative; }
-.bell__n { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center; background: #ff3d5a; color: #fff; font-family: var(--display); font-size: 10px; font-weight: 700; border-radius: 9px; box-shadow: 0 0 0 2px var(--bg); }
+.bell__n { position: absolute; top: 3px; right: 3px; min-width: 16px; height: 16px; padding: 0 4px; display: grid; place-items: center; background: #ff3d5a; color: #fff; font-family: var(--display); font-size: 10px; font-weight: 700; border-radius: 9px; box-shadow: 0 0 0 2px #0b0d14; line-height: 1; }
 .bell.has-new { color: var(--text); }
 .bell.has-new .i { animation: bell-ring 2.4s ease-in-out infinite; transform-origin: 50% 10%; }
 @keyframes bell-ring { 0%, 70%, 100% { transform: rotate(0); } 75% { transform: rotate(14deg); } 80% { transform: rotate(-12deg); } 85% { transform: rotate(8deg); } 90% { transform: rotate(-4deg); } }
