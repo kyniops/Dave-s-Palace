@@ -39,15 +39,16 @@
     id: 'poker',
     name: 'DavePoker',
     icon: 'spade',
-    tagline: 'Texas Hold’em entre joueurs, 4 tables à niveaux',
+    tagline: 'Texas Hold’em entre joueurs : crée ta table ou rejoins tes potes',
     rtp: '100 %',
     hue: 145,
     art: `<div class="art-poker"><span class="pkk red" style="--k:-1"><b>A</b><i>♥</i><em>♥</em></span><span class="pkk" style="--k:1"><b>A</b><i>♠</i><em>♠</em></span></div>`,
     rules: `<p><strong>Texas Hold’em No Limit</strong>, de 2 à 6 joueurs par table. Tu reçois 2 cartes, 5 cartes communes arrivent au centre (flop, turn, river) : la meilleure main de 5 cartes gagne le pot.</p>
-      <ul><li><strong>4 tables à niveaux</strong> : Petite (1/2), Moyenne (5/10), Grosse (25/50), High roller (100/200). Tu t’assois avec une <strong>cave</strong> entre 40 et 100 grosses blindes : un gros solde ne donne aucun avantage à la table.</li>
+      <ul><li><strong>Crée ta table</strong> (nom, niveau, de 2 à 6 places, publique ou privée) ou <strong>rejoins</strong> une table du salon. Une table privée se rejoint avec son <strong>code à 4 lettres</strong> : donne-le à tes potes.</li>
+      <li><strong>4 niveaux</strong> : Petite (1/2), Moyenne (5/10), Grosse (25/50), High roller (100/200). Tu t’assois avec une <strong>cave</strong> entre 40 et 100 grosses blindes : un gros solde ne donne aucun avantage à la table.</li>
+      <li>La partie commence dès que <strong>2 joueurs</strong> sont assis. Une table vide disparaît au bout de 2 minutes.</li>
       <li>Tu peux te <strong>recaver</strong> entre deux mains, jusqu’au maximum de la table.</li>
-      <li>Si tu pars et reviens <strong>dans l’heure</strong> à la même table, tu dois revenir avec au moins le tapis avec lequel tu es parti.</li>
-      <li>Seul à une table, tu joues contre des <strong>bots</strong> de la bande. Dès qu’un 2e joueur s’assoit, ils quittent la table à la fin de la main.</li>
+      <li>Si tu pars et reviens <strong>dans l’heure</strong> à une table du même niveau, tu dois revenir avec au moins le tapis avec lequel tu es parti.</li>
       <li><strong>20 secondes</strong> pour jouer : sinon parole (ou couché). Deux fois de suite et tu quittes la table à la fin de la main. Si tu fermes la page plus d’une minute, tu quittes aussi la table (tes jetons reviennent sur ton solde).</li>
       <li>Raccourcis : <strong>F</strong> se coucher, <strong>C</strong> suivre / parole, <strong>R</strong> relancer.</li>
       <li>Aucune commission : tout ce qui est misé revient aux joueurs.</li></ul>
@@ -64,35 +65,150 @@
         return () => {};
       }
 
-      /* ================= Salon : les 4 tables ================= */
+      /* ================= Salon : tables ouvertes + création ================= */
+      let lobbyTimer = 0, lobbyData = null;
+      const LV_ORDER = ['petite', 'moyenne', 'grosse', 'highroller'];
+      const lvClass = (id) => 'lv' + Math.max(0, LV_ORDER.indexOf(id));
       async function lobby() {
         stopTable(); seated(false);
+        clearInterval(lobbyTimer);
         box.innerHTML = `<div class="empty">${I('spade', 'i--lg')}<strong>Chargement des tables…</strong></div>`;
+        const ok = await loadLobby(true);
+        if (!ok || !alive || tableId) return;
+        // la liste se met à jour toute seule tant qu'on est dans le salon
+        lobbyTimer = setInterval(() => { if (!tableId && alive && !document.querySelector('.modal')) loadLobby(false); }, 6000);
+      }
+      async function loadLobby(first) {
         const L = await rpc('poker_lobby', {}, { silent: true });
-        if (!alive) return;
-        if (!L) { box.innerHTML = `<div class="empty">${I('spade', 'i--lg')}<strong>Le poker n’est pas encore installé</strong>Le script supabase/poker.sql doit être lancé sur le serveur.</div>`; return; }
-        if (L.mine) return openTable(L.mine);
-        const bal = DP.wallet.get();
+        if (!alive || tableId) return false;
+        if (!L) { if (first) box.innerHTML = `<div class="empty">${I('spade', 'i--lg')}<strong>Le poker n’est pas encore installé</strong>Le script supabase/poker.sql doit être lancé sur le serveur.</div>`; return false; }
+        if (L.mine) { clearInterval(lobbyTimer); openTable(L.mine); return false; }
+        lobbyData = L;
+        paintLobby(first);
+        return true;
+      }
+      function paintLobby(first) {
+        const L = lobbyData, bal = DP.wallet.get();
+        const tables = L.tables || [];
+        const card = (t) => {
+          const back = L.leaves && L.leaves[t.level] > t.min ? L.leaves[t.level] : 0;
+          const full = t.players.length >= t.seats;
+          const can = !full && bal >= Math.max(t.min, back);
+          return `<article class="pkl__t ${lvClass(t.level)}" data-t="${t.id}">
+            <div class="pkl__felt"><span class="pkl__bl num">${fmt(t.sb)}<small>/</small>${fmt(t.bb)}</span><span class="pkl__name">${esc((L.levels[t.level] || {}).name || '')}</span>
+              ${t.private ? `<span class="pkl__lock" title="Table privée">${I('lock', 'i--sm')}</span>` : ''}
+              <div class="pkl__seats" data-n="${t.seats}">${Array.from({ length: t.seats }, (_, k) => (t.players[k] ? `<i class="on" title="${esc(t.players[k].name)}"></i>` : '<i></i>')).join('')}</div></div>
+            <div class="pkl__title"><b>${esc(t.name)}</b><small>par ${esc(t.owner || '?')}${t.playing ? ' · <span class="pkl__live">en jeu</span>' : ''}</small></div>
+            <ul class="pkl__info"><li><span>Cave</span><b class="num">${fmt(t.min)} – ${fmt(t.max)}</b></li>
+              <li><span>Joueurs</span><b class="num">${t.players.length} / ${t.seats}</b></li></ul>
+            <div class="pkl__who">${t.players.map((p) => DP.profile.avatarHtml(p.name)).join('')}</div>
+            ${back ? `<p class="pkl__warn">${I('triangle-alert', 'i--sm')}Parti il y a moins d’une heure : cave minimum ${fmt(back)}</p>` : ''}
+            <button type="button" class="pkb ${can ? 'pkb--go' : 'pkb--off'} js-sit" data-t="${t.id}" ${can ? '' : 'disabled'}>${full ? 'Table pleine' : can ? (t.private ? 'Rejoindre avec le code' : 'Rejoindre') : 'Solde insuffisant'}</button>
+          </article>`;
+        };
         box.innerHTML = `<div class="pkl">
           <div class="pkx-bg" aria-hidden="true">${bokeh(14)}</div>
-          <header class="pkl__head"><div><span class="pkl__eyebrow">${I('spade', 'i--sm')}Salle de poker</span><h2>Choisis ta table</h2></div>
-            <p>Ton solde <b class="num">${fmt(bal)}</b> · tu t’assois avec une somme plafonnée : tout le monde joue à armes égales.</p></header>
-          <div class="pkl__grid">${L.tables.map((t, i) => {
-            const humans = t.players.filter((p) => !p.bot), bots = t.players.length - humans.length;
-            const back = L.leaves && L.leaves[t.id] > t.min ? L.leaves[t.id] : 0;
-            const can = bal >= Math.max(t.min, back);
-            return `<article class="pkl__t lv${i}" data-lvl="${t.id}">
-              <div class="pkl__felt"><span class="pkl__bl num">${fmt(t.sb)}<small>/</small>${fmt(t.bb)}</span><span class="pkl__name">${esc(t.name)}</span>
-                <div class="pkl__seats">${Array.from({ length: t.seats }, (_, k) => { const p = t.players[k]; return p ? (p.bot ? '<i class="bot" title="Bot"></i>' : `<i class="on" title="${esc(p.name)}"></i>`) : '<i></i>'; }).join('')}</div></div>
-              <ul class="pkl__info"><li><span>Cave</span><b class="num">${fmt(t.min)} – ${fmt(t.max)}</b></li>
-                <li><span>Joueurs</span><b class="num">${humans.length} / ${t.seats}${bots ? `<small> + ${bots} bot${bots > 1 ? 's' : ''}</small>` : ''}</b></li></ul>
-              <div class="pkl__who">${humans.length ? humans.map((p) => DP.profile.avatarHtml(p.name)).join('') : '<span>Personne : tu joueras contre les bots</span>'}</div>
-              ${back ? `<p class="pkl__warn">${I('triangle-alert', 'i--sm')}Parti il y a moins d’une heure : cave minimum ${fmt(back)}</p>` : ''}
-              <button type="button" class="pkb ${can ? 'pkb--go' : 'pkb--off'} js-sit" data-t="${t.id}" ${can ? '' : 'disabled'}>${can ? 'S’asseoir' : 'Solde insuffisant'}</button>
-            </article>`;
-          }).join('')}</div></div>`;
-        box.querySelectorAll('.js-sit').forEach((b) => b.addEventListener('click', () => sitDialog(L.tables.find((t) => t.id === b.dataset.t), L.leaves && L.leaves[b.dataset.t])));
-        DP_MOTION.reveal(box, '.pkl__head, .pkl__t');
+          <header class="pkl__head"><div><span class="pkl__eyebrow">${I('spade', 'i--sm')}Salle de poker</span><h2>Tables ouvertes</h2></div>
+            <div class="pkl__acts"><p>Ton solde <b class="num">${fmt(bal)}</b></p>
+              <button type="button" class="pkb pkb--sm pkb--off js-code">${I('lock', 'i--sm')}J’ai un code</button>
+              <button type="button" class="pkb pkb--go js-create">${I('plus', 'i--sm')}Créer une table</button></div></header>
+          ${tables.length ? `<div class="pkl__grid">${tables.map(card).join('')}</div>`
+            : `<div class="pkl__empty">${I('spade', 'i--lg')}<strong>Aucune table ouverte</strong><span>Crée la première et invite tes potes : la partie commence dès que vous êtes deux.</span>
+                <button type="button" class="pkb pkb--go js-create">${I('plus', 'i--sm')}Créer une table</button></div>`}
+        </div>`;
+        box.querySelectorAll('.js-sit').forEach((b) => b.addEventListener('click', () => { const t = tables.find((x) => x.id === b.dataset.t); sitDialog(t, L.leaves && L.leaves[t.level]); }));
+        box.querySelectorAll('.js-create').forEach((b) => b.addEventListener('click', createDialog));
+        box.querySelector('.js-code').addEventListener('click', codeDialog);
+        if (first) DP_MOTION.reveal(box, '.pkl__head, .pkl__t, .pkl__empty');
+      }
+
+      /** Créer une table : nom, niveau, places, privée, cave. */
+      function createDialog() {
+        const L = lobbyData; if (!L) return;
+        const bal = Math.floor(DP.wallet.get());
+        const lvls = LV_ORDER.filter((k) => L.levels[k]).map((k) => ({ id: k, ...L.levels[k] }));
+        let lv = (lvls.filter((x) => bal >= Math.max(x.min, (L.leaves || {})[x.id] || 0)).pop() || lvls[0]);
+        lv = lvls.find((x) => x.id === 'petite' && bal >= x.min) || lv;
+        let seats = 6, priv = false, buy = 0;
+        const me = DP.auth.current() || 'moi';
+        const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true"><div class="modal__card pk-new">
+          <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
+          <h3>${I('plus')}Créer une table</h3>
+          <label class="pk-new__f"><span>Nom de la table</span><input class="js-name" maxlength="24" value="${esc(('Table de ' + me).slice(0, 24))}"></label>
+          <div class="pk-new__f"><span>Niveau</span><div class="pk-new__lv">${lvls.map((x) => {
+            const need = Math.max(x.min, (L.leaves || {})[x.id] || 0);
+            return `<button type="button" class="${lvClass(x.id)}" data-lv="${x.id}" ${bal >= need ? '' : 'disabled'}><b class="num">${fmt(x.sb)}/${fmt(x.bb)}</b><span>${esc(x.name)}</span><small class="num">${fmt(x.min)} – ${fmt(x.max)}</small></button>`;
+          }).join('')}</div></div>
+          <div class="pk-new__row">
+            <div class="pk-new__f"><span>Places</span><div class="seg js-seats">${[2, 3, 4, 5, 6].map((n) => `<button type="button" data-n="${n}">${n}</button>`).join('')}</div></div>
+            <div class="pk-new__f"><span>Accès</span><div class="seg js-priv"><button type="button" data-p="0">Publique</button><button type="button" data-p="1">${I('lock', 'i--sm')}Privée</button></div></div>
+          </div>
+          <p class="pk-new__hint js-hint"></p>
+          <div class="pk-new__f"><span>Ta cave</span><div class="pk-sit__amt num js-v"></div><input type="range" class="pk-range js-r" step="1"><div class="pk-sit__lim"><span class="js-mn"></span><span class="js-mx"></span></div></div>
+          <button type="button" class="pkb pkb--go js-go">Créer et s’asseoir</button></div></div>`);
+        document.body.appendChild(modal);
+        const r = modal.querySelector('.js-r');
+        const paint = () => {
+          modal.querySelectorAll('[data-lv]').forEach((b) => b.classList.toggle('on', b.dataset.lv === lv.id));
+          modal.querySelectorAll('.js-seats button').forEach((b) => b.classList.toggle('on', +b.dataset.n === seats));
+          modal.querySelectorAll('.js-priv button').forEach((b) => b.classList.toggle('on', (b.dataset.p === '1') === priv));
+          const back = (L.leaves || {})[lv.id] > lv.min ? L.leaves[lv.id] : 0;
+          const mn = Math.max(lv.min, back), mx = Math.min(Math.max(lv.max, back), bal);
+          r.min = mn; r.max = Math.max(mn, mx);
+          buy = Math.min(Math.max(buy || mx, mn), mx);
+          r.value = buy;
+          modal.querySelector('.js-v').textContent = fmt(buy);
+          modal.querySelector('.js-mn').textContent = fmt(mn); modal.querySelector('.js-mx').textContent = fmt(mx);
+          modal.querySelector('.js-hint').innerHTML = priv ? `${I('lock', 'i--sm')}Un code à 4 lettres sera créé : donne-le à tes potes pour qu’ils te rejoignent.` : `${I('users', 'i--sm')}Tout le monde voit la table dans le salon et peut s’asseoir.`;
+          modal.querySelector('.js-go').disabled = mx < mn;
+        };
+        paint();
+        r.addEventListener('input', () => { buy = +r.value; modal.querySelector('.js-v').textContent = fmt(buy); });
+        modal.addEventListener('click', async (e) => {
+          if (e.target === modal || e.target.closest('.modal__close')) { modal.remove(); return; }
+          const b = e.target.closest('button');
+          if (!b || b.disabled) return;
+          if (b.dataset.lv) { lv = lvls.find((x) => x.id === b.dataset.lv); buy = 0; sound.play('click'); paint(); return; }
+          if (b.dataset.n) { seats = +b.dataset.n; sound.play('click'); paint(); return; }
+          if (b.dataset.p) { priv = b.dataset.p === '1'; sound.play('click'); paint(); return; }
+          if (b.classList.contains('js-go')) {
+            b.disabled = true;
+            const res = await rpc('poker_create', { p_name: modal.querySelector('.js-name').value, p_level: lv.id, p_seats: seats, p_private: priv, p_buyin: buy });
+            b.disabled = false;
+            if (!res) return;
+            modal.remove(); sound.play('chip');
+            if (res.state && res.state.code) ui.toast(`Table privée créée · code ${res.state.code}`, 'win', 6000);
+            clearInterval(lobbyTimer);
+            openTable(res.state.id, res.state);
+          }
+        });
+      }
+
+      /** Rejoindre une table privée avec son code (sans la chercher dans la liste). */
+      function codeDialog() {
+        const L = lobbyData; if (!L) return;
+        const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true"><div class="modal__card pk-sit">
+          <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
+          <h3>${I('lock')}Table privée</h3><p>Entre le code à 4 lettres que ton pote t’a donné.</p>
+          <input class="pk-code js-c" maxlength="4" autocomplete="off" spellcheck="false" placeholder="ABCD">
+          <button type="button" class="pkb pkb--go js-go">Trouver la table</button></div></div>`);
+        document.body.appendChild(modal);
+        const inp = modal.querySelector('.js-c'); inp.focus();
+        inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z]/g, ''); });
+        const go = () => {
+          const code = inp.value.trim();
+          if (code.length !== 4) { ui.toast('Le code fait 4 lettres.', 'error'); return; }
+          const privs = (L.tables || []).filter((t) => t.private && t.players.length < t.seats);
+          if (!privs.length) { ui.toast('Aucune table privée ouverte pour l’instant.', 'error'); return; }
+          modal.remove();
+          // le serveur vérifie le code ; on essaie les tables privées ouvertes, de la plus récente à la plus ancienne
+          sitDialog(null, 0, code, privs);
+        };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal || e.target.closest('.modal__close')) { modal.remove(); return; }
+          if (e.target.closest('.js-go')) go();
+        });
       }
 
       function amountDialog({ title, text, min, max, value, cta, onGo }) {
@@ -117,13 +233,44 @@
           if (ok) modal.remove();
         });
       }
-      function sitDialog(t, back) {
-        const mn = Math.max(t.min, back > t.min ? back : 0), mx = Math.min(Math.max(t.max, back || 0), Math.floor(DP.wallet.get()));
+      function sitDialog(t, back, code, candidates) {
+        // via « J'ai un code » : on ne sait pas encore quelle table, la cave suit le niveau le plus bas des tables privées
+        const ref = t || candidates.reduce((a, x) => (x.min < a.min ? x : a), candidates[0]);
+        const mn = Math.max(ref.min, back > ref.min ? back : 0), mx = Math.min(Math.max(ref.max, back || 0), Math.floor(DP.wallet.get()));
         if (mx < mn) { ui.toast('Pas assez de DaveCoins pour cette table.', 'error'); return; }
-        amountDialog({
-          title: `${I('spade')}Table ${esc(t.name)} · <span class="num">${fmt(t.sb)} / ${fmt(t.bb)}</span>`, text: 'Combien de DaveCoins poses-tu sur la table ? Tu les récupères en partant.',
-          min: mn, max: mx, value: Math.min(mx, Math.max(mn, t.max)), cta: 'S’asseoir',
-          onGo: async (v) => { const res = await rpc('poker_join', { p_table: t.id, p_buyin: v }); if (!res) return false; sound.play('chip'); openTable(t.id, res.state); return true; }
+        const askCode = t && t.private && !code;
+        let v = Math.min(mx, Math.max(mn, ref.max));
+        const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true"><div class="modal__card pk-sit">
+          <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
+          <h3>${I('spade')}${t ? esc(t.name) : 'Table privée'} · <span class="num">${fmt(ref.sb)} / ${fmt(ref.bb)}</span></h3>
+          <p>Combien de DaveCoins poses-tu sur la table ? Tu les récupères en partant.</p>
+          ${askCode ? '<input class="pk-code js-c" maxlength="4" autocomplete="off" spellcheck="false" placeholder="CODE">' : ''}
+          <div class="pk-sit__amt num js-v">${fmt(v)}</div>
+          <input type="range" min="${mn}" max="${mx}" step="1" value="${v}" class="pk-range js-r">
+          <div class="pk-sit__lim"><span>${fmt(mn)}</span><span>${fmt(mx)}</span></div>
+          <button type="button" class="pkb pkb--go js-go">S’asseoir</button></div></div>`);
+        document.body.appendChild(modal);
+        const r = modal.querySelector('.js-r'), ci = modal.querySelector('.js-c');
+        if (ci) { ci.focus(); ci.addEventListener('input', () => { ci.value = ci.value.toUpperCase().replace(/[^A-Z]/g, ''); }); }
+        r.addEventListener('input', () => { v = +r.value; modal.querySelector('.js-v').textContent = fmt(v); });
+        modal.addEventListener('click', async (e) => {
+          if (e.target === modal || e.target.closest('.modal__close')) { modal.remove(); return; }
+          const go = e.target.closest('.js-go');
+          if (!go) return;
+          const c = code || (ci ? ci.value.trim() : null);
+          if (askCode && (!c || c.length !== 4)) { ui.toast('Entre le code à 4 lettres de la table.', 'error'); return; }
+          go.disabled = true;
+          let res = null, joined = null;
+          for (const x of (t ? [t] : candidates)) {
+            res = await rpc('poker_join', { p_table: x.id, p_buyin: Math.min(Math.max(v, x.min), x.max), p_code: c || null }, { silent: !t });
+            if (res) { joined = x; break; }
+            if (!/Code/i.test(DP.engine.lastError || '')) break;
+          }
+          go.disabled = false;
+          if (!res) { if (!t) ui.toast(DP.engine.lastError || 'Code incorrect.', 'error'); return; }
+          modal.remove(); sound.play('chip');
+          clearInterval(lobbyTimer);
+          openTable(joined.id, res.state);
         });
       }
 
@@ -173,7 +320,7 @@
           <div class="pkx-bg" aria-hidden="true">${bokeh(22)}</div>
           <header class="pkx-hud">
             <button type="button" class="pkx-hb js-leave">${I('log-out', 'i--sm')}<span>Quitter</span></button>
-            <div class="pkx-title"><b class="js-tname"></b><span class="js-tinfo num"></span></div>
+            <div class="pkx-title"><b class="js-tname"></b><span class="js-tinfo num"></span><button type="button" class="pkx-code js-tcode" hidden title="Copier le code"></button></div>
             <div class="pkx-hud__r">
               <button type="button" class="pkx-hb js-rebuy" title="Recave">${I('plus', 'i--sm')}<span>Recave</span></button>
               <button type="button" class="pkx-hb pkx-hb--sq js-fs" title="Plein écran" aria-label="Plein écran">${I('layout-dashboard', 'i--sm')}</button>
@@ -211,9 +358,13 @@
           root: q('.pkx'), stage: q('.pkx-stage'), pot: q('.pkx-pot'), potV: q('.js-pot'), board: [...box.querySelectorAll('.pkx-board .pkk')], msg: q('.js-msg'),
           seats: [...box.querySelectorAll('.pkx-seat')], bets: [...box.querySelectorAll('.pkx-bet')], dbtn: q('.pkx-dbtn'), dealer: q('.pkx-dealer'),
           raise: q('.pkx-raise'), presets: q('.pkx-presets'), rr: q('.js-rr'), acts: q('.pkx-acts'), log: q('.pkx-log ol'),
-          tname: q('.js-tname'), tinfo: q('.js-tinfo'), leave: q('.js-leave'), rebuy: q('.js-rebuy')
+          tname: q('.js-tname'), tinfo: q('.js-tinfo'), tcode: q('.js-tcode'), leave: q('.js-leave'), rebuy: q('.js-rebuy')
         };
         T.leave.addEventListener('click', leave);
+        T.tcode.addEventListener('click', () => {
+          const c = st && st.code; if (!c) return;
+          (navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => ui.toast(`Code ${c} copié : envoie-le à tes potes !`, 'win'), () => ui.toast(`Code de la table : ${c}`, 'info'));
+        });
         T.rebuy.addEventListener('click', rebuy);
         q('.js-fs').addEventListener('click', () => {
           if (document.fullscreenElement) document.exitFullscreen();
@@ -238,7 +389,7 @@
       /* ---------- Animations ---------- */
       // un objet qui vole d'un point à un autre de la scène (en % de la scène)
       function fly(from, to, html, { dur = 480, delay = 0, cls = '' } = {}) {
-        if (!T || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (!T || !from || !to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         const W = T.stage.clientWidth, H = T.stage.clientHeight;
         const el = ui.el(`<div class="pkx-fly ${cls}" style="left:${from[0]}%;top:${from[1]}%">${html}</div>`);
         T.stage.appendChild(el);
@@ -250,8 +401,9 @@
         ], { duration: dur, delay, easing: 'cubic-bezier(.25,.8,.3,1)', fill: 'both' });
         a.onfinish = () => el.remove();
       }
-      const seatPos = (k) => L().seat[k];
-      const kOf = (seat) => (seat - (st.mySeat != null ? st.mySeat : 0) + st.nseats) % st.nseats;
+      // emplacement à l'écran (0 = toi en bas, 3 = en face) selon le nombre de places de la table
+      const SLOTS = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 5], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] };
+      const kOf = (seat) => (SLOTS[st.nseats] || SLOTS[6])[(seat - (st.mySeat != null ? st.mySeat : 0) + st.nseats) % st.nseats];
       // montant qui défile
       function countTo(el, to) {
         const from = +(el.dataset.v || 0);
@@ -272,7 +424,9 @@
         const newHand = prev && prev.hand !== st.hand && st.stage !== 'idle';
         const m = me();
 
-        T.tname.textContent = 'Table ' + st.name;
+        T.tname.textContent = st.name;
+        T.tcode.hidden = !st.code;
+        if (st.code) T.tcode.innerHTML = `${I('lock', 'i--sm')}Code <b>${esc(st.code)}</b>`;
         T.tinfo.textContent = `${fmt(st.sb)} / ${fmt(st.bb)}${st.hand ? ` · main n° ${st.hand}` : ''}`;
         T.leave.querySelector('span').textContent = leaveArmed ? 'Confirmer : tu te couches' : 'Quitter';
         T.leave.classList.toggle('armed', !!leaveArmed);
@@ -345,7 +499,7 @@
           if (v > 0) countTo(el.querySelector('b'), v);
         });
         // 4) bouton du donneur
-        if (st.dealer >= 0 && st.stage !== 'idle' && st.seats.some((x) => x.seat === st.dealer)) {
+        if (st.dealer >= 0 && st.stage !== 'idle' && st.seats.some((x) => x.seat === st.dealer) && kOf(st.dealer) != null) {
           const k = kOf(st.dealer), p = lay.seat[k], q = lay.bet[k];
           T.dbtn.style.left = (p[0] * 0.55 + q[0] * 0.45 + (k === 0 ? 7 : k === 3 ? -7 : 0)) + '%';
           T.dbtn.style.top = (p[1] * 0.55 + q[1] * 0.45) + '%';
@@ -374,7 +528,7 @@
         T.pot.classList.toggle('on', potShown > 0);
         // 7) message central
         T.msg.innerHTML = winners.length ? winners.map((w) => `<div><b>${esc(w.name)}</b> gagne <b class="num">${fmt(w.amount)}</b>${w.hand ? `<small>${esc(w.hand)}</small>` : ''}</div>`).join('')
-          : st.stage === 'idle' ? `<span>${st.seats.length < 2 ? 'Les bots arrivent…' : 'La main commence…'}</span>` : '';
+          : st.stage === 'idle' ? `<span>${st.seats.length < 2 ? (st.code ? `En attente d’un 2e joueur · code ${esc(st.code)}` : 'En attente d’un 2e joueur…') : 'La main commence…'}</span>` : '';
         T.msg.classList.toggle('win', winners.length > 0);
         // 8) gains : les jetons partent du pot vers le gagnant
         if (prev && prev.stage !== 'done' && st.stage === 'done' && winners.length) {
@@ -397,7 +551,7 @@
         if (key === turnKey) return;
         turnKey = key;
         T.seats.forEach((el) => el.style.removeProperty('--dur'));
-        if (!st.deadline || st.toAct == null || !BETTING.includes(st.stage)) return;
+        if (!st.deadline || st.toAct == null || !BETTING.includes(st.stage) || kOf(st.toAct) == null) return;
         const el = T.seats[kOf(st.toAct)];
         const who = st.seats.find((x) => x.seat === st.toAct);
         const left = Math.max(0, st.deadline - (Date.now() + offset));
@@ -508,7 +662,7 @@
       document.addEventListener('fullscreenchange', onResize);
       lobby();
       return () => {
-        alive = false; stopTable(); seated(false);
+        alive = false; stopTable(); seated(false); clearInterval(lobbyTimer);
         window.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); document.removeEventListener('fullscreenchange', onResize);
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       };

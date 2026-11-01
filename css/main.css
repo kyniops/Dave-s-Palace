@@ -1489,3 +1489,43 @@ body:has(.modal) { overflow: hidden; }
 .pkx.is-tall .pka__txt small { font-size: 12px; }
 .pkx.is-tall .pka kbd { display: none; }
 @media (prefers-reduced-motion: reduce) { .pka, .pka::after { transition: none; } }
+
+/* DavePoker : salon des tables créées par les joueurs */
+.pkl__acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pkl__acts p { margin: 0 6px 0 0; color: #c9cdd8; }
+.pkl__acts p b { color: var(--coin); }
+.pkl__acts .pkb { min-width: 0; display: inline-flex; align-items: center; gap: 8px; }
+.pkl__lock { position: absolute; top: 10px; right: 18%; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: #1a0700; background: var(--coin); box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+.pkl__title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pkl__title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--display); font-size: 17px; }
+.pkl__title small { font-size: 12px; color: var(--muted); }
+.pkl__live { color: #4ade80; }
+.pkl__empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 20px; text-align: center; color: var(--muted); background: rgba(10, 12, 20, .6); border: 1px dashed rgba(255, 255, 255, .16); border-radius: 18px; }
+.pkl__empty strong { font-family: var(--display); font-size: 22px; text-transform: uppercase; color: var(--text); }
+.pkl__empty .pkb { margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; }
+.pkl__t .pkb { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+
+.pk-new { width: min(560px, 100%); }
+.pk-new h3 { display: flex; align-items: center; gap: 8px; margin-top: 0; }
+.pk-new__f { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; }
+.pk-new__f > span { font-family: var(--display); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.pk-new__f input:not([type]) { height: 42px; padding: 0 12px; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 10px; }
+.pk-new__f input:not([type]):focus { outline: none; border-color: var(--accent); }
+.pk-new__lv { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pk-new__lv button { --c: #1d5fd0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; cursor: pointer; color: #fff; border: 2px solid transparent; border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--c) 100%, #fff 15%), color-mix(in srgb, var(--c) 60%, #000)); transition: border-color .2s, transform .2s; }
+.pk-new__lv button.lv1 { --c: #6d28d9; } .pk-new__lv button.lv2 { --c: #b91c1c; } .pk-new__lv button.lv3 { --c: #b45309; }
+.pk-new__lv button b { font-family: var(--display); font-size: 18px; }
+.pk-new__lv button span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; opacity: .85; }
+.pk-new__lv button small { font-size: 10px; opacity: .75; }
+.pk-new__lv button.on { border-color: #fff; transform: translateY(-2px); box-shadow: 0 0 0 3px rgba(255, 255, 255, .15), 0 8px 18px rgba(0, 0, 0, .45); }
+.pk-new__lv button:disabled { opacity: .35; cursor: not-allowed; }
+.pk-new__row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
+.pk-new__row .seg button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.pk-new__hint { display: flex; align-items: center; gap: 6px; margin: -4px 0 14px; font-size: 13px; color: var(--muted); }
+.pk-new .pkb { width: 100%; }
+.pk-code { display: block; width: 100%; height: 58px; margin: 6px 0 14px; text-align: center; font-family: var(--display); font-size: 30px; letter-spacing: .5em; text-transform: uppercase; color: var(--coin); background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 12px; }
+.pk-code:focus { outline: none; border-color: var(--accent); }
+.pkx-code { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 3px 10px; font-family: var(--display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #1a0700; background: var(--coin); border: 0; border-radius: 999px; cursor: pointer; }
+.pkx-code b { letter-spacing: .25em; }
+@media (max-width: 600px) { .pk-new__lv { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pk-new__row { grid-template-columns: 1fr; } }

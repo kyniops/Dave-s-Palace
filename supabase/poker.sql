@@ -1,10 +1,10 @@
--- Dave's Palace : DavePoker — Texas Hold'em No Limit entre joueurs, tables à niveaux (cave plafonnée).
--- Un joueur seul à une table joue contre des bots ; dès qu'un 2e joueur s'assoit, les bots partent à la fin de la main.
+-- Dave's Palace : DavePoker — Texas Hold'em No Limit entre joueurs. Les joueurs créent leurs tables (publiques ou privées
+-- avec un code) ou rejoignent celles des autres. 4 niveaux de blindes avec cave plafonnée. Pas de bots.
 -- À coller dans SQL Editor > New query, puis « Run ». Nécessite engine.sql. Peut être relancé sans risque.
 --
 -- Tout est décidé par le serveur : paquet mélangé ici, cartes privées jamais envoyées aux autres joueurs,
 -- enchères vérifiées, pots annexes, évaluation des mains. Les pages appellent poker_tick ~1×/s pour faire
--- avancer la table (chrono, bots, main suivante) : le temps est toujours celui du serveur.
+-- avancer la table (chrono, main suivante) : le temps est toujours celui du serveur.
 -- Cartes : entier 0..51, rang = c / 4 (0 = 2 … 12 = As), couleur = c % 4.
 
 /* ---------- Tables ---------- */
@@ -27,6 +27,13 @@ create unique index if not exists poker_seats_user on public.poker_seats (user_i
 create table if not exists public.poker_cards (table_id text not null, seat int not null, hand int not null, cards int[] not null, primary key (table_id, seat));
 create table if not exists public.poker_deck (table_id text primary key, deck int[] not null, pos int not null default 0);
 create table if not exists public.poker_presence (user_id uuid primary key, table_id text, seen bigint);
+-- tables créées par les joueurs
+alter table public.poker_tables add column if not exists level text;
+alter table public.poker_tables add column if not exists owner uuid references auth.users (id) on delete set null;
+alter table public.poker_tables add column if not exists private boolean not null default false;
+alter table public.poker_tables add column if not exists code text;
+alter table public.poker_tables add column if not exists created_at timestamptz not null default now();
+-- départs récents (règle « tu reviens avec au moins ton tapis ») : table_id contient le niveau de la table
 create table if not exists public.poker_leaves (user_id uuid not null, table_id text not null, stack int not null, left_at timestamptz not null default now(), primary key (user_id, table_id));
 
 -- seules les infos publiques des tables sont lisibles (pour le direct) ; tout le reste passe par les fonctions
@@ -39,12 +46,9 @@ alter table public.poker_leaves enable row level security;
 drop policy if exists "tables visibles" on public.poker_tables;
 create policy "tables visibles" on public.poker_tables for select to authenticated using (true);
 
-insert into public.poker_tables (id, name, sb, bb, min_buy, max_buy, nseats, ord) values
-  ('petite', 'Petite', 1, 2, 80, 200, 6, 1),
-  ('moyenne', 'Moyenne', 5, 10, 400, 1000, 6, 2),
-  ('grosse', 'Grosse', 25, 50, 2000, 5000, 6, 3),
-  ('highroller', 'High roller', 100, 200, 8000, 20000, 6, 4)
-on conflict (id) do update set name = excluded.name, sb = excluded.sb, bb = excluded.bb, min_buy = excluded.min_buy, max_buy = excluded.max_buy, nseats = excluded.nseats, ord = excluded.ord;
+-- niveaux proposés à la création d'une table (blindes et cave entre 40 et 100 grosses blindes)
+insert into public.eng_const values ('poker_levels', '{"petite":{"name":"Petite","sb":1,"bb":2,"min":80,"max":200,"ord":1},"moyenne":{"name":"Moyenne","sb":5,"bb":10,"min":400,"max":1000,"ord":2},"grosse":{"name":"Grosse","sb":25,"bb":50,"min":2000,"max":5000,"ord":3},"highroller":{"name":"High roller","sb":100,"bb":200,"min":8000,"max":20000,"ord":4}}'::jsonb)
+  on conflict (k) do update set v = excluded.v;
 
 insert into public.eng_achs values ('game_poker', 1, 'game:poker', 50) on conflict (id) do nothing;
 
@@ -174,7 +178,7 @@ begin
       if found then a.balance := a.balance + s.stack; perform eng_commit(a); end if;
     end if;
     -- (s'il a déjà rendu son tapis en partant pendant la main, on garde le plus gros des deux)
-    insert into poker_leaves (user_id, table_id, stack, left_at) values (s.user_id, p_t, s.stack, now())
+    insert into poker_leaves (user_id, table_id, stack, left_at) values (s.user_id, coalesce((select level from poker_tables where id = p_t), p_t), s.stack, now())
       on conflict (user_id, table_id) do update set left_at = now(),
         stack = greatest(excluded.stack, case when poker_leaves.left_at > now() - interval '10 minutes' then poker_leaves.stack else 0 end);
     delete from poker_presence where user_id = s.user_id;
@@ -183,25 +187,10 @@ begin
   delete from poker_cards where table_id = p_t and seat = p_seat;
 end $$;
 
--- bots : seulement quand un seul joueur est assis
+-- plus de bots : on retire ceux qui resteraient d'une ancienne version
 create or replace function public.pk_bots(p_t text) returns void language plpgsql as $$
-declare t poker_tables; hum int; tot int; free_ int; nm record; target int := pk_cfg('bots_target', 4)::int;
 begin
-  select * into t from poker_tables where id = p_t;
-  select count(*) into hum from poker_seats where table_id = p_t and user_id is not null;
-  if hum <> 1 then delete from poker_seats where table_id = p_t and user_id is null; return; end if;
-  delete from poker_seats where table_id = p_t and user_id is null and (stack < t.bb or leaving);
-  select count(*) into tot from poker_seats where table_id = p_t;
-  while tot < target loop
-    select x into free_ from generate_series(0, t.nseats - 1) x where x not in (select seat from poker_seats where table_id = p_t) order by eng_rand() limit 1;
-    exit when free_ is null;
-    select * into nm from (values ('Olman', 'olman.jpg'), ('Tdam', 'tdam.png'), ('Yohan', 'yohan.jpg'), ('Billy', 'billy.jpg'), ('Sévaré', 'sevare.png'),
-      ('Carl', 'carl.jpg'), ('Linkay', 'linkay.jpg'), ('Nathan', 'nathan.jpg'), ('Tony', 'tony.jpg'), ('Slymefire', 'slymefire.png')) v (n, img)
-      where n not in (select name from poker_seats where table_id = p_t) order by eng_rand() limit 1;
-    exit when nm.n is null;
-    insert into poker_seats (table_id, seat, bot, name, stack, status) values (p_t, free_, nm.img, nm.n, round(t.max_buy * (0.6 + eng_rand() * 0.4)), 'waiting');
-    tot := tot + 1;
-  end loop;
+  delete from poker_seats where table_id = p_t and user_id is null;
 end $$;
 
 -- mise forcée (blindes)
@@ -472,7 +461,9 @@ end $$;
 
 /* ---------- Ce que voit un joueur (jamais les cartes des autres, sauf à l'abattage) ---------- */
 create or replace function public.pk_state(p_t text, p_uid uuid) returns jsonb language sql stable security definer set search_path = public as $$
-  select jsonb_build_object('id', t.id, 'name', t.name, 'sb', t.sb, 'bb', t.bb, 'min', t.min_buy, 'max', t.max_buy, 'nseats', t.nseats,
+  select jsonb_build_object('id', t.id, 'name', t.name, 'level', t.level, 'private', t.private, 'sb', t.sb, 'bb', t.bb, 'min', t.min_buy, 'max', t.max_buy, 'nseats', t.nseats,
+    'owner', (select username from profiles where id = t.owner),
+    'code', case when exists (select 1 from poker_seats where table_id = t.id and user_id = p_uid) then t.code end,
     'hand', t.hand, 'stage', t.stage, 'dealer', t.dealer, 'board', to_jsonb(t.board), 'pot', t.pot, 'curBet', t.cur_bet, 'minRaise', t.min_raise,
     'toAct', t.to_act, 'deadline', t.deadline, 'nextAt', t.next_at, 'result', t.result, 'log', t.log, 'ver', t.ver, 'now', eng_ms(),
     'seats', coalesce((select jsonb_agg(jsonb_build_object('seat', s.seat, 'name', s.name, 'bot', s.bot, 'isBot', s.user_id is null, 'me', coalesce(s.user_id = p_uid, false),
@@ -504,6 +495,10 @@ begin
       exit when (select stage from poker_tables where id = tid) = 'idle';
     end loop;
   end loop;
+  -- tables restées vides plus de 2 minutes : supprimées
+  delete from poker_tables t where not exists (select 1 from poker_seats s where s.table_id = t.id) and t.created_at < now() - interval '2 minutes';
+  delete from poker_cards c where not exists (select 1 from poker_tables t where t.id = c.table_id);
+  delete from poker_deck d where not exists (select 1 from poker_tables t where t.id = d.table_id);
 end $$;
 
 /* ---------- Fonctions appelées par le site ---------- */
@@ -517,9 +512,13 @@ create or replace function public.poker_lobby() returns jsonb language plpgsql s
 begin
   perform pk_sweep();
   return jsonb_build_object(
-    'tables', (select jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name, 'sb', t.sb, 'bb', t.bb, 'min', t.min_buy, 'max', t.max_buy, 'seats', t.nseats,
-        'players', coalesce((select jsonb_agg(jsonb_build_object('name', s.name, 'bot', s.user_id is null) order by s.seat) from poker_seats s where s.table_id = t.id and not s.leaving), '[]'::jsonb))
-      order by t.ord) from poker_tables t),
+    'tables', coalesce((select jsonb_agg(x.j order by x.n desc, x.created_at desc) from (
+        select t.created_at, (select count(*) from poker_seats s where s.table_id = t.id and not s.leaving) n,
+          jsonb_build_object('id', t.id, 'name', t.name, 'level', t.level, 'sb', t.sb, 'bb', t.bb, 'min', t.min_buy, 'max', t.max_buy, 'seats', t.nseats,
+            'private', t.private, 'owner', (select username from profiles where id = t.owner), 'playing', t.stage not in ('idle', 'done'),
+            'players', coalesce((select jsonb_agg(jsonb_build_object('name', s.name) order by s.seat) from poker_seats s where s.table_id = t.id and not s.leaving), '[]'::jsonb)) j
+        from poker_tables t where t.level is not null) x), '[]'::jsonb),
+    'levels', eng_c('poker_levels'),
     'mine', (select table_id from poker_seats where user_id = auth.uid() and not leaving),
     'leaves', coalesce((select jsonb_object_agg(table_id, stack) from poker_leaves where user_id = auth.uid() and left_at > now() - interval '1 hour'), '{}'::jsonb));
 end $$;
@@ -544,41 +543,52 @@ begin
   return pk_state(p_table, uid);
 end $$;
 
-create or replace function public.poker_join(p_table text, p_buyin int) returns jsonb language plpgsql security definer set search_path = public as $$
+drop function if exists public.poker_join(text, int);
+create or replace function public.poker_join(p_table text, p_buyin int, p_code text default null) returns jsonb language plpgsql security definer set search_path = public as $$
 declare a accounts := eng_load(); t poker_tables; lv poker_leaves; mn int; mxb int; seat_ int; hum int;
 begin
   select * into t from poker_tables where id = p_table for update;
-  if not found then raise exception 'Table inconnue.'; end if;
+  if not found then raise exception 'Cette table n’existe plus.'; end if;
+  if t.private and t.owner is distinct from a.user_id and upper(btrim(coalesce(p_code, ''))) is distinct from t.code then raise exception 'Code de la table incorrect.'; end if;
   if exists (select 1 from poker_seats where user_id = a.user_id and leaving) then raise exception 'Ta place précédente se libère à la fin de la main en cours.'; end if;
   if exists (select 1 from poker_seats where user_id = a.user_id) then raise exception 'Tu es déjà assis à une table.'; end if;
   mn := t.min_buy; mxb := t.max_buy;
   -- revenu dans l'heure : au moins le tapis avec lequel il est parti
-  select * into lv from poker_leaves where user_id = a.user_id and table_id = p_table and left_at > now() - interval '1 hour';
+  select * into lv from poker_leaves where user_id = a.user_id and table_id = coalesce(t.level, p_table) and left_at > now() - interval '1 hour';
   if found and lv.stack > mn then mn := lv.stack; mxb := greatest(mxb, lv.stack); end if;
   if p_buyin is null or p_buyin < mn or p_buyin > mxb then raise exception 'Cave entre % et % DaveCoins.', mn, mxb; end if;
   if p_buyin > a.balance then raise exception 'Pas assez de DaveCoins !'; end if;
   select x into seat_ from generate_series(0, t.nseats - 1) x where x not in (select seat from poker_seats where table_id = p_table) order by eng_rand() limit 1;
-  if seat_ is null then
-    -- table remplie de bots : un bot qui ne joue pas la main laisse sa place
-    select seat into seat_ from poker_seats where table_id = p_table and user_id is null and status not in ('playing', 'allin') limit 1;
-    if seat_ is null then raise exception 'Table pleine.'; end if;
-    delete from poker_seats where table_id = p_table and seat = seat_;
-  end if;
+  if seat_ is null then raise exception 'Table pleine.'; end if;
   a.balance := a.balance - p_buyin;
   insert into poker_seats (table_id, seat, user_id, name, stack, status)
     values (p_table, seat_, a.user_id, coalesce((select username from profiles where id = a.user_id), 'Joueur'), p_buyin, 'waiting');
   insert into poker_presence (user_id, table_id, seen) values (a.user_id, p_table, eng_ms())
     on conflict (user_id) do update set seen = excluded.seen, table_id = excluded.table_id;
-  select count(*) into hum from poker_seats where table_id = p_table and user_id is not null;
-  if hum >= 2 then
-    -- un 2e joueur arrive : les bots partent (tout de suite si aucune main n'est en cours)
-    update poker_seats set leaving = true where table_id = p_table and user_id is null;
-    if t.stage in ('idle', 'done') then delete from poker_seats where table_id = p_table and user_id is null; end if;
-  end if;
   if t.stage = 'idle' then update poker_tables set next_at = eng_ms() + 1200 where id = p_table; end if;
   update poker_tables set ver = ver + 1 where id = p_table;
   perform pk_log(p_table, (select name from poker_seats where table_id = p_table and seat = seat_) || ' s’assoit avec ' || p_buyin);
   return jsonb_build_object('acct', eng_commit(a), 'state', pk_state(p_table, a.user_id));
+end $$;
+
+-- créer une table (le créateur s'y assoit tout de suite)
+create or replace function public.poker_create(p_name text, p_level text, p_seats int, p_private boolean, p_buyin int) returns jsonb language plpgsql security definer set search_path = public as $$
+declare a accounts := eng_load(); lv jsonb := eng_c('poker_levels') -> p_level; nm text := regexp_replace(btrim(coalesce(p_name, '')), '\s+', ' ', 'g'); tid text; cd text;
+begin
+  perform pk_sweep();
+  if lv is null then raise exception 'Niveau de table inconnu.'; end if;
+  if p_seats is null or p_seats not between 2 and 6 then raise exception 'Une table a de 2 à 6 places.'; end if;
+  if char_length(nm) < 3 or char_length(nm) > 24 then raise exception 'Nom de table : de 3 à 24 caractères.'; end if;
+  if nm !~ '^[[:alnum:] À-ÖØ-öø-ÿ''’!?.,_-]+$' then raise exception 'Nom de table : lettres, chiffres, espaces et ponctuation simple uniquement.'; end if;
+  if username_forbidden(nm) then raise exception 'Ce nom de table contient un mot interdit.'; end if;
+  if exists (select 1 from poker_seats where user_id = a.user_id) then raise exception 'Tu es déjà assis à une table.'; end if;
+  if (select count(*) from poker_tables) >= 60 then raise exception 'Trop de tables ouvertes : rejoins-en une !'; end if;
+  tid := 't' || substr(md5(gen_random_uuid()::text), 1, 10);
+  if coalesce(p_private, false) then cd := upper(substr(translate(md5(gen_random_uuid()::text), '0123456789abcdef', 'GHJKLMNPQRSTUVWX'), 1, 4)); end if;
+  insert into poker_tables (id, name, level, sb, bb, min_buy, max_buy, nseats, owner, private, code)
+    values (tid, nm, p_level, (lv ->> 'sb')::int, (lv ->> 'bb')::int, (lv ->> 'min')::int, (lv ->> 'max')::int, p_seats, a.user_id, coalesce(p_private, false), cd);
+  perform pk_log(tid, 'Table créée par ' || coalesce((select username from profiles where id = a.user_id), '?'));
+  return poker_join(tid, p_buyin, cd);
 end $$;
 
 create or replace function public.poker_leave(p_table text) returns jsonb language plpgsql security definer set search_path = public as $$
@@ -601,7 +611,7 @@ begin
       select * into a from accounts where user_id = uid for update;
       a.balance := a.balance + s.stack; perform eng_commit(a);
     end if;
-    insert into poker_leaves (user_id, table_id, stack, left_at) values (uid, p_table, s.stack, now())
+    insert into poker_leaves (user_id, table_id, stack, left_at) values (uid, coalesce(t.level, p_table), s.stack, now())
       on conflict (user_id, table_id) do update set stack = excluded.stack, left_at = now();
     update poker_seats set stack = 0, leaving = true where table_id = p_table and seat = s.seat;
     perform pk_log(p_table, s.name || ' quitte la table');
@@ -653,11 +663,25 @@ revoke execute on function public.pk_cfg(text, numeric), public.pk_score(int, in
   public.pk_cashout(text, int), public.pk_bots(text), public.pk_post(text, int, int, text), public.pk_do(text, int, text, int), public.pk_finish(text),
   public.pk_after(text, int), public.pk_start(text), public.pk_bot(text, int), public.pk_advance(text), public.pk_state(text, uuid), public.pk_sweep()
   from public, anon, authenticated;
-revoke execute on function public.poker_sweep(), public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int), public.poker_leave(text),
-  public.poker_rebuy(text, int), public.poker_act(text, text, int) from public, anon;
-grant execute on function public.poker_sweep(), public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int), public.poker_leave(text),
-  public.poker_rebuy(text, int), public.poker_act(text, text, int) to authenticated;
+revoke execute on function public.poker_sweep(), public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int, text), public.poker_leave(text),
+  public.poker_rebuy(text, int), public.poker_act(text, text, int), public.poker_create(text, text, int, boolean, int) from public, anon;
+grant execute on function public.poker_sweep(), public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int, text), public.poker_leave(text),
+  public.poker_rebuy(text, int), public.poker_act(text, text, int), public.poker_create(text, text, int, boolean, int) to authenticated;
 
 do $$ begin
   alter publication supabase_realtime add table public.poker_tables;
 exception when others then null; end $$;
+
+-- passage aux tables créées par les joueurs : les 4 anciennes tables fixes ferment.
+-- Les joueurs encore assis récupèrent leur tapis et les jetons misés dans la main en cours.
+do $$ declare s record; a accounts; begin
+  for s in select * from poker_seats where table_id in ('petite', 'moyenne', 'grosse', 'highroller') and user_id is not null loop
+    select * into a from accounts where user_id = s.user_id for update;
+    if found then a.balance := a.balance + s.stack + s.total; perform eng_commit(a); end if;
+    delete from poker_presence where user_id = s.user_id;
+  end loop;
+  delete from poker_tables where id in ('petite', 'moyenne', 'grosse', 'highroller');
+  delete from poker_seats where user_id is null;
+  delete from poker_cards c where not exists (select 1 from poker_tables t where t.id = c.table_id);
+  delete from poker_deck d where not exists (select 1 from poker_tables t where t.id = d.table_id);
+end $$;
