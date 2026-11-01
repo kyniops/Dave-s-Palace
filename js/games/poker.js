@@ -28,13 +28,25 @@
   const red = (c) => PE.suit(c) === 1 || PE.suit(c) === 2;
   const cardHtml = (c, cls = '') => c == null
     ? `<span class="pkk back ${cls}"><span class="pkk__crown">${I('crown')}</span></span>`
-    : `<span class="pkk ${red(c) ? 'red' : ''} ${cls}"><b>${PE.RANKS[PE.rank(c)]}</b><i>${PE.SUITS[PE.suit(c)]}</i><em>${PE.SUITS[PE.suit(c)]}</em></span>`;
+    : `<span class="pkk ${red(c) ? 'red' : ''} ${cls}" data-c="${c}"><b>${PE.RANKS[PE.rank(c)]}</b><i>${PE.SUITS[PE.suit(c)]}</i><em>${PE.SUITS[PE.suit(c)]}</em></span>`;
   const chips = (n = 3) => `<span class="pkchips">${Array.from({ length: n }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</span>`;
   // bulles de lumière du fond (positions, tailles et vitesses au hasard)
   const bokeh = (n) => Array.from({ length: n }, () => `<i style="--x:${(Math.random() * 100).toFixed(1)}%;--y:${(Math.random() * 100).toFixed(1)}%;--s:${(14 + Math.random() * 70).toFixed(0)}px;--t:${(7 + Math.random() * 10).toFixed(1)}s;--o:${(0.25 + Math.random() * 0.55).toFixed(2)};--dx:${(Math.random() * 80 - 40).toFixed(0)}px;--dy:${(-30 - Math.random() * 70).toFixed(0)}px"></i>`).join('');
   // actions affichées au-dessus des joueurs, en anglais (le serveur les écrit en français)
   const ACT_EN = [[/^Couché/, 'Fold'], [/^Parole/, 'Check'], [/^Suit/, 'Call'], [/^Relance/, 'Raise'], [/^Mise/, 'Bet'], [/^Tapis/, 'All-in'], [/^Petite blinde/, 'SB'], [/^Grosse blinde/, 'BB'], [/^Quitte/, 'Left']];
   const actEN = (t) => { const f = ACT_EN.find(([re]) => re.test(t)); return f ? f[1] : t; };
+  // les 5 meilleures cartes parmi 7 (pour les illuminer à l'abattage)
+  function best5(cards) {
+    if (cards.length <= 5) return cards;
+    let best = null, sc = -1;
+    for (let a = 0; a < cards.length; a++) for (let b = a + 1; b < cards.length; b++) {
+      const five = cards.filter((_, i) => i !== a && i !== b);
+      const v = PE.evaluate(five);
+      if (v > sc) { sc = v; best = five; }
+    }
+    return best;
+  }
+  const CAT_POP = ['', 'Paire !', 'Double paire !', 'Brelan !', 'Quinte !', 'Couleur !', 'Full !', 'Carré !', 'Quinte flush !'];
   const online = () => !!(DP.engine && DP.engine.on && DP.cloud && DP.cloud.sb);
   const rpc = (fn, p, o) => DP.engine.call(fn, p, o);
 
@@ -61,6 +73,7 @@
       const box = root.firstElementChild;
       let alive = true, timer = 0, soon = 0, channel = null, tableId = null, st = null, prev = null, lastVer = -1, offset = 0, busy = false, again = false;
       let raiseOpen = false, raiseTo = 0, leaveArmed = 0, myTurnKey = '', turnKey = '', T = null; // T = éléments de la table
+      let myCat = { hand: -1, cat: -1 }, streak = 0, hurryT = 0, hurryI = 0, title0 = document.title; // effets « dopamine »
 
       const seated = (on) => document.body.classList.toggle('pk-seated', on);
       if (!online()) {
@@ -343,12 +356,13 @@
             ${Array.from({ length: 6 }, (_, k) => `<div class="pkx-seat empty" data-k="${k}">
                 <div class="pkx-cards"></div>
                 <div class="pkx-ring"><div class="pkx-av"></div></div>
-                <div class="pkx-plate"><b class="nm"></b><span class="num stk"></span></div>
+                <div class="pkx-plate"><b class="nm"></b><span class="num stk"></span><span class="pkx-streak"></span></div>
                 <span class="pkx-badge"></span>
                 <span class="pkx-hand"></span>
               </div>`).join('')}
             ${Array.from({ length: 6 }, (_, k) => `<div class="pkx-bet" data-k="${k}">${chips(2)}<b class="num"></b></div>`).join('')}
             <i class="pkx-dbtn">D</i>
+            <div class="pkx-fx"></div>
           </div>
           <div class="pkx-dock">
             <div class="pkx-raise" hidden>
@@ -361,7 +375,7 @@
         </div>`;
         const q = (s) => box.querySelector(s);
         T = {
-          root: q('.pkx'), stage: q('.pkx-stage'), pot: q('.pkx-pot'), potV: q('.js-pot'), board: [...box.querySelectorAll('.pkx-board .pkk')], msg: q('.js-msg'),
+          root: q('.pkx'), stage: q('.pkx-stage'), fx: q('.pkx-fx'), dock: q('.pkx-dock'), pot: q('.pkx-pot'), potV: q('.js-pot'), board: [...box.querySelectorAll('.pkx-board .pkk')], msg: q('.js-msg'),
           seats: [...box.querySelectorAll('.pkx-seat')], bets: [...box.querySelectorAll('.pkx-bet')], dbtn: q('.pkx-dbtn'), dealer: q('.pkx-dealer'),
           raise: q('.pkx-raise'), presets: q('.pkx-presets'), rr: q('.js-rr'), acts: q('.pkx-acts'), log: q('.pkx-log ol'),
           tname: q('.js-tname'), tinfo: q('.js-tinfo'), tcode: q('.js-tcode'), leave: q('.js-leave'), rebuy: q('.js-rebuy')
@@ -471,6 +485,8 @@
           // badge d'action (pop à chaque nouvelle action)
           const badge = el.querySelector('.pkx-badge');
           const lbl = x.status === 'allin' ? 'All-in' : x.last ? actEN(x.last) : '';
+          const px = prev && prev.hand === st.hand ? prev.seats.find((y) => y.seat === x.seat) : null;
+          if (px && px.status !== 'allin' && x.status === 'allin') slam(k, x.me);
           if (badge.textContent !== lbl) { badge.textContent = lbl; badge.className = 'pkx-badge' + (lbl ? ' on' : '') + (/^(Fold|Left)/.test(lbl) ? ' fold' : /^(Raise|Bet|All-in)/.test(lbl) ? ' raise' : ''); }
           // cartes
           const inHand = ['playing', 'allin', 'folded'].includes(x.status) && st.stage !== 'idle';
@@ -485,6 +501,7 @@
             box2.dataset.key = key;
             box2.innerHTML = cards.map((c, i) => cardHtml(c, `${x.status === 'folded' ? 'dim' : ''} ${newHand ? 'dealt' : wasBack && c != null ? 'flip' : ''}`).replace('class="pkk', `style="--d:${newHand ? (k * 2 + i) * 70 + 260 : 0}ms" class="pkk`)).join('');
           }
+          el.querySelector('.pkx-streak').textContent = x.me && streak >= 2 ? `🔥 ×${streak}` : '';
           // main en cours (sous tes cartes)
           const hand = el.querySelector('.pkx-hand');
           hand.textContent = x.me && st.myCards && ['playing', 'allin'].includes(x.status) ? PE.name(PE.evaluate(st.myCards.concat(st.board))) : winSeats.has(x.seat) ? ((winners.find((w) => w.seat === x.seat) || {}).hand || '') : '';
@@ -515,6 +532,8 @@
         T.dealer.classList.toggle('on', !seatOf(3));
         // 5) tableau (cartes communes) : elles se retournent une à une
         let fresh = 0;
+        const drama = prev && prev.hand === st.hand && st.seats.some((x) => x.status === 'allin');
+        T.stage.classList.toggle('drama', !!drama && st.stage !== 'done');
         T.board.forEach((el, i) => {
           const c = st.board[i];
           const key = c == null ? '' : String(c);
@@ -522,16 +541,36 @@
           el.dataset.c = key;
           const html = c == null ? '<span class="pkk slot"></span>' : cardHtml(c, 'board flip');
           const nel = ui.el(html);
-          if (c != null) { nel.style.setProperty('--d', fresh * 140 + 'ms'); fresh++; }
+          if (c != null) { nel.style.setProperty('--d', fresh * (drama ? 700 : 140) + 'ms'); fresh++; }
           nel.dataset.c = key;
           el.replaceWith(nel); T.board[i] = nel;
         });
-        if (fresh) setTimeout(() => sound.play('cardFlip'), 100);
-        // victoire : surbrillance des cartes gagnantes à l'abattage
+        if (fresh) for (let i = 0; i < (drama ? fresh : 1); i++) setTimeout(() => alive && sound.play(drama ? 'reelStop' : 'cardFlip', { i: i * 3 }), 100 + i * (drama ? 700 : 0));
+        // abattage : les 5 cartes de la main gagnante s'illuminent, les autres s'assombrissent
+        T.stage.querySelectorAll('.pkk.best, .pkk.dimmed').forEach((c) => c.classList.remove('best', 'dimmed'));
+        if (st.stage === 'done' && Object.keys(shown).length && winners.some((w) => w.hand)) {
+          const glow = new Set();
+          winners.forEach((w) => { if (shown[w.seat]) best5(shown[w.seat].concat(st.board)).forEach((c) => glow.add(c)); });
+          const wait = drama ? 700 * 2 : 600;
+          setTimeout(() => {
+            if (!alive || !T || st.stage !== 'done') return;
+            T.board.forEach((el) => { if (el.dataset.c) el.classList.add(glow.has(+el.dataset.c) ? 'best' : 'dimmed'); });
+            winners.forEach((w) => { const e = T.seats[kOf(w.seat)]; if (e) e.querySelectorAll('.pkx-cards .pkk').forEach((c) => c.classList.toggle('best', glow.has(+c.dataset.c))); });
+          }, wait);
+        }
+        // ta main s'améliore : son nom surgit à côté de tes cartes
+        if (m && st.myCards && ['playing', 'allin'].includes(m.status) && BETTING.includes(st.stage)) {
+          const cat = PE.cat(PE.evaluate(st.myCards.concat(st.board)));
+          if (myCat.hand !== st.hand) myCat = { hand: st.hand, cat: st.board.length ? -1 : 0 };
+          if (cat > myCat.cat && cat >= 1) pop(cat, st.board.length === 0);
+          myCat.cat = Math.max(myCat.cat, cat);
+        }
         // 6) pot
         const potShown = st.stage === 'done' && st.result ? st.result.pot : st.pot;
+        if (prev && potShown > (+T.potV.dataset.v || 0)) { T.pot.classList.remove('bump'); void T.pot.offsetWidth; T.pot.classList.add('bump'); }
         countTo(T.potV, potShown);
         T.pot.classList.toggle('on', potShown > 0);
+        T.pot.classList.toggle('big', potShown >= st.bb * 30);
         // 7) message central
         T.msg.innerHTML = winners.length ? winners.map((w) => `<div><b>${esc(w.name)}</b> gagne <b class="num">${fmt(w.amount)}</b>${w.hand ? `<small>${esc(w.hand)}</small>` : ''}</div>`).join('')
           : st.stage === 'idle' ? `<span>${st.seats.length < 2 ? (st.code ? `En attente d’un 2e joueur · code ${esc(st.code)}` : 'En attente d’un 2e joueur…') : 'La main commence…'}</span>` : '';
@@ -540,8 +579,14 @@
         if (prev && prev.stage !== 'done' && st.stage === 'done' && winners.length) {
           winners.forEach((w, i) => fly(lay.pot, lay.seat[kOf(w.seat)], chips(4), { dur: 650, delay: 420 + i * 120, cls: 'chip' }));
           const mine = winners.find((w) => w.seat === st.mySeat);
-          setTimeout(() => { if (alive) sound.play(mine ? 'win' : 'chip', { x: 3 }); }, 500);
-          if (mine && st.result.pot >= st.bb * 20) setTimeout(() => alive && ui.coinRain(T.stage, 24), 600);
+          const wasIn = prev.seats.some((x) => x.me && x.total > 0);
+          if (mine) streak++; else if (wasIn) streak = 0;
+          const delay = Object.keys(shown).length ? (st.seats.some((x) => x.status === 'allin') ? 1700 : 900) : 450;
+          setTimeout(() => {
+            if (!alive || !T) return;
+            if (mine) winFx(mine, st.result.pot);
+            else sound.play('chip');
+          }, delay);
           DP.engine.refresh();
         }
         // 9) journal
@@ -550,6 +595,59 @@
         paintTimer();
       }
 
+      /* ---------- Effets « dopamine » ---------- */
+      function winFx(w, pot) {
+        const big = pot >= st.bb * 30, huge = pot >= st.bb * 80;
+        const k = kOf(w.seat), at = L().seat[k];
+        const el = ui.el(`<div class="pkx-win ${big ? 'big' : ''}"><span>${huge ? 'Huge win' : big ? 'Big win' : 'You win'}</span><b class="num">+0</b>${w.hand ? `<small>${esc(w.hand)}</small>` : ''}${streak >= 2 ? `<em>🔥 ${streak} mains d’affilée</em>` : ''}</div>`);
+        T.fx.appendChild(el);
+        const amt = el.querySelector('b');
+        const t0 = performance.now();
+        const step = (t) => { const p = Math.min(1, (t - t0) / 900); amt.textContent = '+' + fmt(Math.round(w.amount * (1 - Math.pow(1 - p, 3)))); if (p < 1 && amt.isConnected) requestAnimationFrame(step); };
+        requestAnimationFrame(step);
+        sound.play(big ? 'jackpot' : 'win', { x: big ? 20 : 4 });
+        if (big) { sound.play('slam'); ui.shake(T.stage, huge ? 2 : 1); DP.emit('bigwin', { game: 'poker', x: huge ? 50 : 15 }); }
+        ui.burst(T.seats[k], { n: big ? 70 : 34, colors: ['#ffc145', '#ff6b2c', '#ffffff'], spread: big ? 2.4 : 1.6 });
+        ui.coinRain(T.stage, huge ? 70 : big ? 45 : 18);
+        const fl = ui.el(`<div class="pkx-float num" style="left:${at[0]}%;top:${at[1] - 12}%">+${fmt(w.amount)}</div>`);
+        T.fx.appendChild(fl);
+        setTimeout(() => el.classList.add('out'), big ? 3000 : 2200);
+        setTimeout(() => { el.remove(); fl.remove(); }, big ? 3500 : 2700);
+      }
+      function pop(cat, preflop) {
+        const at = L().seat[0];
+        const el = ui.el(`<div class="pkx-pop c${cat}" style="left:${at[0] + 16}%;top:${at[1] - 26}%">${preflop && cat === 1 ? 'Paire servie !' : CAT_POP[cat]}</div>`);
+        T.fx.appendChild(el);
+        sound.play('streak', { i: Math.min(14, cat * 3 + 2) });
+        if (cat >= 3) ui.burst(el, { n: 10 + cat * 4, colors: ['#ffc145', '#ffffff', '#ff6b2c'] });
+        setTimeout(() => el.remove(), 1900);
+      }
+      function slam(k, mine) {
+        const at = L().seat[k];
+        const el = ui.el(`<div class="pkx-slam" style="left:${at[0]}%;top:${at[1] - 18}%">All-in</div>`);
+        T.fx.appendChild(el);
+        sound.play('slam');
+        ui.shake(T.stage, mine ? 2 : 1);
+        setTimeout(() => el.remove(), 1600);
+      }
+      // c'est à toi : boutons qui pulsent, onglet qui clignote ; 5 dernières secondes : tic-tac et bords rouges
+      function turnFx(on, left) {
+        clearTimeout(hurryT); clearInterval(hurryI);
+        T.root.classList.remove('hurry');
+        T.dock.classList.toggle('myturn', on);
+        if (!on) { document.title = title0; return; }
+        if (document.hidden) document.title = '🔔 À toi de jouer ! · DavePoker';
+        hurryT = setTimeout(() => {
+          if (!alive || !myTurn()) return;
+          T.root.classList.add('hurry');
+          let n = 0;
+          const tick = () => { if (!alive || !myTurn() || n++ >= 5) { clearInterval(hurryI); return; } sound.play('tick', { p: 2 + n }); };
+          tick(); hurryI = setInterval(tick, 1000);
+        }, Math.max(0, left - 5200));
+      }
+      const onVis = () => { if (!document.hidden) document.title = title0; };
+      document.addEventListener('visibilitychange', onVis);
+
       /* ---------- Chrono en anneau ---------- */
       function paintTimer() {
         if (!T || !st) return;
@@ -557,6 +655,7 @@
         if (key === turnKey) return;
         turnKey = key;
         T.seats.forEach((el) => el.style.removeProperty('--dur'));
+        if (!myTurn() && T.dock.classList.contains('myturn')) turnFx(false);
         if (!st.deadline || st.toAct == null || !BETTING.includes(st.stage) || kOf(st.toAct) == null) return;
         const el = T.seats[kOf(st.toAct)];
         const who = st.seats.find((x) => x.seat === st.toAct);
@@ -566,7 +665,7 @@
         ring.style.animation = 'none'; void ring.offsetWidth; ring.style.animation = '';
         el.style.setProperty('--dur', total + 'ms');
         el.style.setProperty('--del', -(total - left) + 'ms');
-        if (myTurn() && myTurnKey !== key) { myTurnKey = key; sound.play('bet'); }
+        if (myTurn() && myTurnKey !== key) { myTurnKey = key; sound.play('bet'); turnFx(true, left); }
       }
 
       /* ---------- Boutons d'action ---------- */
@@ -668,7 +767,7 @@
       document.addEventListener('fullscreenchange', onResize);
       lobby();
       return () => {
-        alive = false; stopTable(); seated(false); clearInterval(lobbyTimer);
+        alive = false; stopTable(); seated(false); clearInterval(lobbyTimer); clearTimeout(hurryT); clearInterval(hurryI); document.title = title0; document.removeEventListener('visibilitychange', onVis);
         window.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); document.removeEventListener('fullscreenchange', onResize);
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       };

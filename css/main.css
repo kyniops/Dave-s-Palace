@@ -1550,3 +1550,60 @@ body:has(.modal) { overflow: hidden; }
 .pkx:fullscreen .pkx-stage { width: min(100%, calc((100vh - 170px) * 2.1)); }
 .pkx.is-tall .pkx-stage { width: min(100%, calc(((100dvh - var(--topbar) - 24px) / var(--vz, 1) - 170px) * .66)); margin: 0 auto; }
 .pkx.is-tall .pkx-log { left: 10px; bottom: auto; top: 54px; }
+
+/* DavePoker : effets « dopamine » */
+.pkx-fx { position: absolute; inset: 0; z-index: 25; pointer-events: none; }
+/* main gagnante illuminée à l'abattage */
+.pkk.best { transform: translateY(-8px) scale(1.06) !important; box-shadow: 0 0 0 3px #ffc145, 0 0 26px rgba(255, 193, 69, .85), 0 12px 24px rgba(0, 0, 0, .5); transition: transform .35s cubic-bezier(.2, 1.4, .4, 1), box-shadow .35s, filter .35s; z-index: 2; }
+.pkk.dimmed { filter: brightness(.38) saturate(.4); transition: filter .35s; }
+/* bandeau de victoire */
+.pkx-win { position: absolute; left: 50%; top: 26%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 16px 42px 18px; text-align: center; white-space: nowrap;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 138, 61, .5), transparent 70%), rgba(6, 8, 14, .9); box-shadow: inset 0 0 0 2px var(--accent), 0 0 60px rgba(255, 107, 44, .55), 0 20px 50px rgba(0, 0, 0, .6);
+  --cut: 16px; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  animation: pkx-win-in .55s cubic-bezier(.2, 1.5, .35, 1) both; }
+.pkx-win span { font-family: var(--display); font-size: clamp(14px, 1.4vw, 20px); letter-spacing: .35em; text-transform: uppercase; color: var(--accent); }
+.pkx-win b { font-family: var(--display); font-size: clamp(38px, 5vw, 76px); line-height: 1; color: #fff; text-shadow: 0 0 24px rgba(255, 193, 69, .6), 0 4px 0 rgba(0, 0, 0, .4); }
+.pkx-win small { font-family: var(--display); font-size: clamp(12px, 1.1vw, 15px); letter-spacing: .12em; text-transform: uppercase; color: #fde68a; }
+.pkx-win em { font-style: normal; font-size: 13px; color: #fdba74; }
+.pkx-win.big { box-shadow: inset 0 0 0 2px #ffc145, 0 0 90px rgba(255, 193, 69, .7), 0 20px 50px rgba(0, 0, 0, .6); background: radial-gradient(ellipse at 50% 0%, rgba(255, 193, 69, .55), transparent 70%), rgba(6, 8, 14, .92); }
+.pkx-win.big span { color: #ffc145; animation: pkx-shine 1s ease-in-out infinite alternate; }
+.pkx-win.big b { background: linear-gradient(180deg, #fff6d6, #ffc145 55%, #ff8a3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pkx-win.out { animation: pkx-win-out .45s ease-in both; }
+@keyframes pkx-win-in { from { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } }
+@keyframes pkx-win-out { to { opacity: 0; transform: translate(-50%, -60%) scale(.9); } }
+@keyframes pkx-shine { to { text-shadow: 0 0 18px #ffc145; letter-spacing: .45em; } }
+.pkx-float { position: absolute; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(20px, 2.2vw, 32px); color: #4ade80; text-shadow: 0 3px 0 rgba(0, 0, 0, .45), 0 0 18px rgba(74, 222, 128, .6); animation: pkx-floatup 2s ease-out .3s both; }
+@keyframes pkx-floatup { from { opacity: 0; transform: translate(-50%, 0) scale(.6); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } to { opacity: 0; transform: translate(-50%, -260%) scale(1); } }
+/* main qui s'améliore */
+.pkx-pop { position: absolute; transform: translate(-50%, -50%); padding: 6px 16px; font-family: var(--display); font-size: clamp(16px, 1.8vw, 26px); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; color: #fff;
+  background: linear-gradient(180deg, #34d27f, #138a4a); box-shadow: 0 0 30px rgba(52, 210, 127, .55), 0 10px 22px rgba(0, 0, 0, .5);
+  --cut: 9px; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  animation: pkx-pop 1.9s cubic-bezier(.2, 1.4, .4, 1) both; }
+.pkx-pop.c3, .pkx-pop.c4, .pkx-pop.c5 { background: linear-gradient(180deg, #a78bfa, #6d28d9); box-shadow: 0 0 34px rgba(167, 139, 250, .65), 0 10px 22px rgba(0, 0, 0, .5); }
+.pkx-pop.c6, .pkx-pop.c7, .pkx-pop.c8 { color: #2a1400; background: linear-gradient(180deg, #ffe08a, #f59e0b); box-shadow: 0 0 44px rgba(255, 193, 69, .85), 0 10px 22px rgba(0, 0, 0, .5); }
+@keyframes pkx-pop { 0% { opacity: 0; transform: translate(-50%, -20%) scale(.3) rotate(-10deg); } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(2deg); } 30% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -120%) scale(.95); } }
+/* tapis qui claque */
+.pkx-slam { position: absolute; transform: translate(-50%, -50%); padding: 4px 18px; font-family: var(--display); font-size: clamp(22px, 2.6vw, 38px); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #fff;
+  background: linear-gradient(180deg, #ff5a5f, #c81e3a); box-shadow: 0 0 40px rgba(255, 61, 90, .7);
+  --cut: 10px; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  animation: pkx-slam 1.6s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes pkx-slam { 0% { opacity: 0; transform: translate(-50%, -50%) scale(3); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(.92); } 25% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -70%) scale(1); } }
+/* suspense : quelqu'un est à tapis, les cartes communes tombent une à une */
+.pkx-stage.drama .pkx-board { filter: drop-shadow(0 0 22px rgba(255, 61, 90, .45)); }
+.pkx-stage.drama .pkx-felt { animation: pkx-drama 1.4s ease-in-out infinite alternate; }
+@keyframes pkx-drama { to { filter: brightness(.82) saturate(1.15); } }
+/* pot */
+.pkx-pot.bump { animation: pkx-bump .45s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes pkx-bump { 40% { transform: translate(-50%, -50%) scale(1.18); } }
+.pkx-pot.big { box-shadow: inset 0 0 0 2px rgba(255, 193, 69, .7), 0 0 30px rgba(255, 193, 69, .45); }
+.pkx-pot.big b { color: #ffc145; }
+/* série de victoires */
+.pkx-streak { display: block; font-family: var(--display); font-size: 12px; color: #fdba74; }
+.pkx-streak:empty { display: none; }
+/* c'est à toi */
+.pkx-dock.myturn .pka { animation: pkx-turn 1.1s ease-in-out infinite alternate; }
+.pkx-dock.myturn .pka--raise { animation-delay: .2s; }
+@keyframes pkx-turn { to { filter: brightness(1.18); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25), inset 0 -3px 0 var(--ac), 0 0 22px rgba(255, 138, 61, .35); } }
+.pkx.hurry::before { content: ""; position: absolute; inset: 0; z-index: 20; pointer-events: none; box-shadow: inset 0 0 120px rgba(255, 40, 60, .55); animation: pkx-hurry .5s ease-in-out infinite alternate; }
+@keyframes pkx-hurry { from { opacity: .35; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pkx-win, .pkx-pop, .pkx-slam, .pkx-float, .pkx-dock.myturn .pka, .pkx.hurry::before, .pkx-stage.drama .pkx-felt { animation: none; } }
