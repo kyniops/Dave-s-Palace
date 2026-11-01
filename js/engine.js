@@ -99,6 +99,8 @@
     const { data, error } = await sb.rpc('acct_state');
     engine.on = !error && !!(data && data.engine);
     if (engine.on) engine.hydrate(data.acct, { quiet: true });
+    // poker : rend les jetons restés sur une table quittée (page fermée, départ en pleine main)
+    if (engine.on) Promise.resolve(sb.rpc('poker_sweep')).then(() => engine.refresh(), () => {});
     emit('engine', engine.on);
     return engine.on;
   };

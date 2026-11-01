@@ -483,15 +483,46 @@ create or replace function public.pk_state(p_t text, p_uid uuid) returns jsonb l
   from poker_tables t where t.id = p_t;
 $$;
 
+drop function if exists public.poker_lobby();
+
+/* ---------- Ménage : tables où plus aucun joueur n'est présent ----------
+   (joueur parti en pleine main, page fermée…) : la main se termine tout de suite, les jetons des absents
+   reviennent sur leur compte et les bots s'en vont. Appelé à l'ouverture du salon et au lancement du site. */
+create or replace function public.pk_sweep() returns void language plpgsql security definer set search_path = public as $$
+declare tid text; i int; stale bigint := eng_ms() - pk_cfg('absent_ms', 60000)::bigint;
+begin
+  for tid in select t.id from poker_tables t
+             where exists (select 1 from poker_seats s where s.table_id = t.id)
+               and not exists (select 1 from poker_seats s join poker_presence p on p.user_id = s.user_id
+                               where s.table_id = t.id and not s.leaving and p.seen >= stale) loop
+    perform 1 from poker_tables where id = tid for update;
+    for i in 1..80 loop
+      -- plus personne à attendre : bots et absents jouent tout de suite
+      update poker_tables set deadline = 0 where id = tid and to_act is not null;
+      update poker_tables set next_at = 0 where id = tid and stage in ('done', 'idle');
+      perform pk_advance(tid);
+      exit when (select stage from poker_tables where id = tid) = 'idle';
+    end loop;
+  end loop;
+end $$;
+
 /* ---------- Fonctions appelées par le site ---------- */
-create or replace function public.poker_lobby() returns jsonb language sql stable security definer set search_path = public as $$
-  select jsonb_build_object(
+create or replace function public.poker_sweep() returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  perform pk_sweep();
+end $$;
+
+create or replace function public.poker_lobby() returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  perform pk_sweep();
+  return jsonb_build_object(
     'tables', (select jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name, 'sb', t.sb, 'bb', t.bb, 'min', t.min_buy, 'max', t.max_buy, 'seats', t.nseats,
-        'players', coalesce((select jsonb_agg(jsonb_build_object('name', s.name, 'bot', s.user_id is null) order by s.seat) from poker_seats s where s.table_id = t.id), '[]'::jsonb))
+        'players', coalesce((select jsonb_agg(jsonb_build_object('name', s.name, 'bot', s.user_id is null) order by s.seat) from poker_seats s where s.table_id = t.id and not s.leaving), '[]'::jsonb))
       order by t.ord) from poker_tables t),
     'mine', (select table_id from poker_seats where user_id = auth.uid() and not leaving),
     'leaves', coalesce((select jsonb_object_agg(table_id, stack) from poker_leaves where user_id = auth.uid() and left_at > now() - interval '1 hour'), '{}'::jsonb));
-$$;
+end $$;
 
 create or replace function public.poker_state(p_table text) returns jsonb language plpgsql security definer set search_path = public as $$
 begin
@@ -620,11 +651,11 @@ end $$;
 revoke execute on function public.pk_cfg(text, numeric), public.pk_score(int, int[]), public.pk_straight(int), public.pk_eval(int[]), public.pk_name(bigint),
   public.pk_next(text, int, int, text[]), public.pk_need(text, int, int, int), public.pk_log(text, text), public.pk_turn(text, int), public.pk_deal(text, int),
   public.pk_cashout(text, int), public.pk_bots(text), public.pk_post(text, int, int, text), public.pk_do(text, int, text, int), public.pk_finish(text),
-  public.pk_after(text, int), public.pk_start(text), public.pk_bot(text, int), public.pk_advance(text), public.pk_state(text, uuid)
+  public.pk_after(text, int), public.pk_start(text), public.pk_bot(text, int), public.pk_advance(text), public.pk_state(text, uuid), public.pk_sweep()
   from public, anon, authenticated;
-revoke execute on function public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int), public.poker_leave(text),
+revoke execute on function public.poker_sweep(), public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int), public.poker_leave(text),
   public.poker_rebuy(text, int), public.poker_act(text, text, int) from public, anon;
-grant execute on function public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int), public.poker_leave(text),
+grant execute on function public.poker_sweep(), public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int), public.poker_leave(text),
   public.poker_rebuy(text, int), public.poker_act(text, text, int) to authenticated;
 
 do $$ begin

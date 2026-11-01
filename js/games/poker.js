@@ -42,7 +42,7 @@
     mount(root) {
       root.innerHTML = '<div class="pk"></div>';
       const box = root.firstElementChild;
-      let alive = true, timer = 0, channel = null, tableId = null, st = null, lastVer = -1, lastHand = -1, offset = 0, busy = false, again = false, myTurnSeen = false, raiseTo = 0, leaveArmed = 0;
+      let alive = true, timer = 0, channel = null, tableId = null, st = null, lastVer = -1, lastHand = -1, offset = 0, busy = false, again = false, myTurnSeen = false, raiseTo = 0, leaveArmed = 0, soon = 0;
 
       if (!online()) {
         box.innerHTML = `<div class="empty">${I('spade', 'i--lg')}<strong>Le poker se joue en ligne</strong>Connecte-toi avec ton compte en ligne pour t’asseoir à une table avec les autres joueurs.</div>`;
@@ -108,7 +108,7 @@
 
       /* ---------- À la table ---------- */
       function stopTable() {
-        clearInterval(timer); timer = 0;
+        clearInterval(timer); timer = 0; clearTimeout(soon);
         if (channel) { try { DP.cloud.sb.removeChannel(channel); } catch { /* ignore */ } channel = null; }
       }
       function openTable(id, first) {
@@ -133,6 +133,10 @@
       }
       function apply(s) {
         offset = s.now - Date.now();
+        // prochain événement connu (coup d'un bot, chrono, main suivante) : on redemande l'état pile à ce moment-là
+        clearTimeout(soon);
+        const at = s.deadline || s.nextAt;
+        if (at && tableId) soon = setTimeout(tick, Math.max(40, at - (Date.now() + offset) + 60));
         // plus assis (parti, absent, ou retiré après deux chronos) : retour au salon
         if (st && st.mySeat != null && s.mySeat == null) { ui.toast('Tu as quitté la table. Tes jetons sont revenus sur ton solde.', 'info', 4500); DP.engine.refresh(); st = s; lobby(); return; }
         const changed = s.ver !== lastVer;
