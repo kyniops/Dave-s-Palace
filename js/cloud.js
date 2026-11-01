@@ -137,6 +137,7 @@
     store.set('utilisateurCourant', username);
     const res = await pull(username, { importLocal });
     startSync();
+    startPresence();
     if (DP.engine) await DP.engine.init();
     emit('auth');
     if (res === 'imported') setTimeout(() => ui.toast('Ta partie de ce navigateur a été importée dans ton compte en ligne', 'win', 4200), 1200);
@@ -178,7 +179,7 @@
     return null;
   };
   const localLogout = auth.logout;
-  auth.logout = () => { push(true).finally(() => sb.auth.signOut()); clearInterval(pushTimer); uid = null; localLogout(); };
+  auth.logout = () => { stopPresence(); push(true).finally(() => sb.auth.signOut()); clearInterval(pushTimer); uid = null; localLogout(); };
 
   /* ---------- Bannissement ---------- */
   /** null si le compte n'est pas banni, sinon la raison ('' si aucune). */
@@ -223,6 +224,7 @@
     const beforeTs = store.get(syncKey(prof.username));
     await pull(prof.username);
     startSync();
+    startPresence();
     if (DP.engine) await DP.engine.init();
     emit('session');
     // nouvelles données venues d'un autre appareil : on rafraîchit l'affichage
@@ -300,11 +302,29 @@
       emit('livefeed', r);
       if (r.user_id !== uid && auth.current()) {
         const g = DP.games.find(r.game);
-        ui.toast(r.game === 'jackpot' ? `${esc(r.username)} a remporté le JACKPOT : ${fmt(r.amount)} !` : `${esc(r.username)} gagne +${fmt(r.amount)} sur ${g ? g.name : r.game}`, 'win', 4000);
-        if (r.game === 'jackpot') sound.play('jackpot');
+        // le jackpot a sa propre grande alerte (app.js) ; les autres gros gains, un simple toast
+        if (r.game !== 'jackpot') ui.toast(`${esc(r.username)} gagne +${fmt(r.amount)} sur ${g ? g.name : r.game}`, 'win', 4000);
       }
     })
     .subscribe();
+
+  /* ---------- Joueurs en ligne (présence en direct, rien n'est stocké) ---------- */
+  let presCh = null, presState = null, page = 'lobby';
+  function startPresence() {
+    if (!uid || presCh) return;
+    presCh = sb.channel('presence-palace', { config: { presence: { key: uid } } });
+    presCh.on('presence', { event: 'sync' }, () => {
+      const st = presCh.presenceState();
+      const per = {}; let total = 0;
+      Object.values(st).forEach((metas) => { const m = metas[metas.length - 1] || {}; total++; if (m.page) per[m.page] = (per[m.page] || 0) + 1; });
+      // la page des caisses compte aussi pour le jeu des caisses dans le menu
+      presState = { total, per };
+      emit('presence', presState);
+    }).subscribe((status) => { if (status === 'SUBSCRIBED') presCh.track({ page }); });
+  }
+  function stopPresence() { if (presCh) { try { sb.removeChannel(presCh); } catch { /* ignore */ } presCh = null; presState = null; emit('presence', null); } }
+  cloud.presence = () => presState;
+  cloud.setPage = (k) => { if (!k || k === page) return; page = k; if (presCh) presCh.track({ page }); };
 
   /* ---------- Classement et admin ---------- */
   /* Profils (photo, bannière, titre…) de tous les joueurs, pour les afficher partout */

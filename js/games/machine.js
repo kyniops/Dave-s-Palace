@@ -578,12 +578,16 @@
         if (!busy) play();
       });
       turboBtn.addEventListener('click', () => { turbo = !turbo; turboBtn.classList.toggle('on', turbo); sound.play('click'); });
+      // barre d'espace = lancer (ou passer l'annonce en cours)
       const onKey = (e) => {
-        if (e.code !== 'Space' || e.target.closest('input')) return;
+        if (e.code !== 'Space' || e.repeat || /input|select|textarea/i.test(e.target.tagName) || document.querySelector('.modal')) return;
         e.preventDefault();
-        if (!overlayEl.hidden) overlayEl.click(); else play();
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
+        if (!overlayEl.hidden) overlayEl.click(); else if (!busy) play();
       };
+      const noSpaceClick = (e) => { if (e.code === 'Space' && e.target.tagName === 'BUTTON' && root.contains(e.target)) e.preventDefault(); };
       window.addEventListener('keydown', onKey);
+      window.addEventListener('keyup', noSpaceClick);
       paintPanel();
 
       return () => {
@@ -598,6 +602,7 @@
         clearInterval(cycleTimer);
         window.removeEventListener('resize', onResize);
         window.removeEventListener('keydown', onKey);
+        window.removeEventListener('keyup', noSpaceClick);
         // Partie en cours : les free spins restants sont joués instantanément puis réglés.
         if (session && session.srv) { DP.engine.reveal(session.srv.acct); session = null; } // en ligne : déjà réglé par le serveur
         if (session) {

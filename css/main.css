@@ -1667,3 +1667,35 @@ body:has(.modal) { overflow: hidden; }
 .tdlg__meter { flex: 0 0 160px; height: 8px; background: rgba(255, 255, 255, .08); }
 .tdlg__meter i { display: block; height: 100%; width: 0; transition: width .25s, background .25s; }
 @media (max-width: 640px) { .tdlg__cols { grid-template-columns: 1fr; } .tdlg__grid { max-height: 180px; } .tdlg__meter { flex-basis: 90px; } }
+
+/* Bandeau des gagnants (sous la barre du haut, sur tout le site) */
+:root { --gt: 34px; }
+.gticker { position: fixed; z-index: 24; top: calc(var(--topbar) + env(safe-area-inset-top, 0px)); left: var(--sidebar); right: 0; height: var(--gt); display: flex; align-items: center; background: rgba(6, 7, 12, .92); border-bottom: 1px solid var(--line); backdrop-filter: blur(6px); }
+.gticker__lbl { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 14px; font-family: var(--display); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-ink); background: var(--accent); }
+.gticker__win { flex: 1; min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent); mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent); }
+.gticker:hover .ticker__track { animation-play-state: paused; }
+#view { padding-top: calc(var(--topbar) + env(safe-area-inset-top, 0px) + var(--gt) + 22px); }
+.pk-seated .gticker { display: none; }
+.pk-seated #view { padding-top: calc(var(--topbar) + env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 900px) { .gticker { left: 0; } .gticker__lbl span, .gticker__lbl { padding: 0 10px; } }
+/* Joueurs en ligne */
+.nav-online { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; padding: 8px 12px; font-size: 12px; color: var(--muted); background: rgba(74, 222, 128, .07); box-shadow: inset 0 0 0 1px rgba(74, 222, 128, .2); }
+.nav-online b { color: var(--text); font-family: var(--display); font-size: 14px; }
+.nav-online i, .nav-pl i { width: 7px; height: 7px; flex: none; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; animation: online-pulse 2s ease-in-out infinite; }
+.nav-pl { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding-left: 6px; font-family: var(--display); font-size: 11px; color: #86efac; }
+.nav-item .nav-tag + .nav-pl { margin-left: 6px; }
+@keyframes online-pulse { 50% { opacity: .35; } }
+/* Alerte jackpot */
+.jp-alert { position: fixed; z-index: 120; left: 50%; top: calc(var(--topbar) + 50px); display: flex; align-items: center; gap: 18px; padding: 16px 30px 18px 18px; color: #fff; text-decoration: none;
+  transform: translate(-50%, -30px) scale(.9); opacity: 0; transition: transform .5s cubic-bezier(.2, 1.4, .4, 1), opacity .4s;
+  background: radial-gradient(ellipse at 20% 0%, rgba(255, 193, 69, .45), transparent 70%), rgba(10, 8, 4, .96); box-shadow: inset 0 0 0 2px #ffc145, 0 0 80px rgba(255, 193, 69, .55), 0 24px 60px rgba(0, 0, 0, .7);
+  --cut: 16px; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); }
+.jp-alert.in { transform: translate(-50%, 0) scale(1); opacity: 1; }
+.jp-alert__crown { display: grid; place-items: center; width: 64px; height: 64px; flex: none; color: #2a1400; background: linear-gradient(180deg, #ffe08a, #f59e0b); animation: jp-crown 1s ease-in-out infinite alternate; }
+.jp-alert__crown svg { width: 36px; height: 36px; }
+.jp-alert > div > span { font-family: var(--display); font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: #fde68a; }
+.jp-alert b { display: block; font-family: var(--display); font-size: clamp(30px, 4vw, 48px); line-height: 1; background: linear-gradient(180deg, #fff6d6, #ffc145 55%, #ff8a3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.jp-alert p { margin: 4px 0 0; font-size: 15px; color: #fef3c7; }
+.jp-alert p .num { color: #ffc145; font-family: var(--display); font-size: 18px; }
+@keyframes jp-crown { to { transform: rotate(-8deg) scale(1.08); box-shadow: 0 0 30px rgba(255, 193, 69, .8); } }
+@media (max-width: 600px) { .jp-alert { width: calc(100% - 24px); padding: 12px 14px; gap: 12px; } .jp-alert__crown { width: 48px; height: 48px; } }

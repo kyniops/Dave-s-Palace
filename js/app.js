@@ -165,7 +165,9 @@
             <a class="user-chip js-userchip" href="#/profil">${DP.profile.avatarHtml(user)}<span class="user-chip__name">${esc(user)}</span></a>
           </div>
         </header>
+        <div class="gticker"><span class="gticker__lbl">${I('trophy', 'i--sm')}Gagnants</span><div class="gticker__win"><div class="ticker__track js-gtrack">${tickerHtml()}${tickerHtml()}</div></div></div>
         <nav class="sidebar">
+          <div class="nav-online js-online" hidden><i></i><b class="num">0</b> joueurs en ligne</div>
           <a class="nav-item" data-nav="lobby" href="#/lobby">${I('castle')}Lobby</a>
           <div class="nav-title">Collection</div>
           <a class="nav-item nav-item--hero" data-nav="caisses" href="#/caisses">${I('package-open')}Caisses<span class="nav-tag">Ouvrir</span></a>
@@ -238,6 +240,8 @@
 
   function closeSidebar() { document.body.classList.remove('nav-open'); }
   function setActiveNav(key) {
+    if (DP.cloud && DP.cloud.setPage) DP.cloud.setPage(key);
+    paintOnline();
     document.querySelectorAll('.nav-item[data-nav]').forEach((n) => n.classList.toggle('on', n.dataset.nav === key));
     const nav = document.querySelector('.sidebar');
     if (nav) M.navIndicator(nav);
@@ -446,7 +450,6 @@
         <div class="hero__art"><div class="orbit orbit-spin o1"></div><div class="orbit orbit-spin rev o2"></div><div class="king"><img src="${IMG}jpz.png" alt="Jean-Pascal Zadi"></div></div>
       </section>
 
-      <div class="ticker" data-reveal><div class="ticker__track">${tickerHtml()}${tickerHtml()}</div></div>
 
       <a class="jpbar" href="#/jeu/machine" data-reveal>
         <span class="jpbar__label">${I('crown', 'i--sm')}Jackpot global</span>
@@ -540,8 +543,11 @@
   }
 
   function tickerHtml() {
-    const live = DP.cloud && DP.cloud.online ? DP.cloud.feed() : [];
-    if (live.length >= 3) {
+    const isOnline = !!(DP.cloud && DP.cloud.online && DP.cloud.uid && DP.cloud.uid());
+    const live = isOnline ? DP.cloud.feed() : [];
+    // en ligne : uniquement les vrais gains des joueurs
+    if (isOnline && !live.length) return `<span class="ticker__item"><i class="ticker__dot"></i>Aucun gros gain pour l’instant : à toi de jouer !</span>`.repeat(4);
+    if (live.length) {
       const rows = live.slice(0, 12);
       while (rows.length < 10) rows.push(...rows.slice(0, 10 - rows.length));
       return rows.map((r) => { const g = games.find(r.game); return `<span class="ticker__item"><i class="ticker__dot"></i>${DP.profile.link(r.username, DP.profile.avatarHtml(r.username) + `<b>${esc(r.username)}</b>`)} ${r.game === 'jackpot' ? 'remporte le <b class="pos">JACKPOT</b>' : 'gagne'} <span class="pos num">+${fmt(r.amount)}</span>${r.game === 'jackpot' ? '' : ' sur ' + (g ? g.name : esc(r.game))}</span>`; }).join('');
@@ -901,8 +907,43 @@
   }
   window.addEventListener('hashchange', navigate);
   // photos des autres joueurs arrivées : on rafraîchit le bandeau du lobby
-  on('profiles', () => { const tr = document.querySelector('.ticker__track'); if (tr && DP.cloud.feed().length >= 3) tr.innerHTML = tickerHtml() + tickerHtml(); });
-  on('livefeed', () => { const tr = document.querySelector('.ticker__track'); if (tr && DP.cloud.feed().length >= 3) tr.innerHTML = tickerHtml() + tickerHtml(); });
+  const repaintTicker = () => { const tr = document.querySelector('.js-gtrack'); if (tr) tr.innerHTML = tickerHtml() + tickerHtml(); };
+  on('profiles', repaintTicker);
+  on('livefeed', (r) => { repaintTicker(); if (r && r.game === 'jackpot') jackpotAlert(r); });
+
+  /* ---------- Joueurs en ligne (total + par jeu dans le menu) ---------- */
+  function paintOnline() {
+    const pr = DP.cloud && DP.cloud.presence ? DP.cloud.presence() : null;
+    const box = document.querySelector('.js-online');
+    if (box) { box.hidden = !pr; if (pr) box.querySelector('b').textContent = pr.total; }
+    document.querySelectorAll('.nav-item[data-nav]').forEach((n) => {
+      let tag = n.querySelector('.nav-pl');
+      const k = pr ? pr.per[n.dataset.nav] || 0 : 0;
+      if (!k) { if (tag) tag.remove(); return; }
+      if (!tag) { tag = document.createElement('span'); tag.className = 'nav-pl num'; tag.title = 'Joueurs sur ce jeu'; n.appendChild(tag); }
+      tag.innerHTML = `<i></i>${k}`;
+    });
+  }
+  on('presence', paintOnline);
+
+  /* ---------- Jackpot gagné : alerte pour tout le monde ---------- */
+  function jackpotAlert(r) {
+    if (!auth.current() || !document.querySelector('.shell')) return;
+    document.querySelectorAll('.jp-alert').forEach((x) => x.remove());
+    const mine = DP.cloud && r.user_id === DP.cloud.uid();
+    const el = ui.el(`<a class="jp-alert" href="#/jeu/machine" role="alert">
+        <span class="jp-alert__crown">${I('crown')}</span>
+        <div><span>${mine ? 'Tu as touché le' : 'Jackpot remporté'}</span><b>JACKPOT !</b>
+        <p>${mine ? 'Bravo' : `<strong>${esc(r.username)}</strong> remporte`} <span class="num">${fmt(r.amount)}</span> DaveCoins sur DaveMachine</p></div>
+      </a>`);
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('in'));
+    if (!mine) { sound.play('jackpot'); sound.play('slam'); DP.emit('bigwin', { game: 'jackpot', x: 100 }); }
+    ui.coinRain(document.body, 60);
+    const close = () => { el.classList.remove('in'); setTimeout(() => el.remove(), 500); };
+    el.addEventListener('click', close);
+    setTimeout(close, 8000);
+  }
   // session en ligne restaurée après le premier affichage : le menu admin apparaît pour le compte autorisé
   function rebuild() {
     const y = window.scrollY;
