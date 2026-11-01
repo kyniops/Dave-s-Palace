@@ -9,7 +9,7 @@
 --   trade_ratio   un échange doit être équilibré : le plus petit côté vaut au moins ce % du plus grand
 --   trade_day_n / trade_day_value  au plus N échanges et X DaveCoins de cartes reçues par jour
 
-insert into public.eng_const values ('gates', '{"promo_level":5,"poker_level":5,"rescue_played":5,"rescue_below":10,"rescue_amount":500,"trade_level":10,"trade_age_days":3,"trade_ratio":0.75,"trade_day_n":5,"trade_day_value":10000,"trade_items":8}'::jsonb)
+insert into public.eng_const values ('gates', '{"promo_level":5,"poker_level":5,"rescue_played":5,"rescue_below":10,"rescue_amount":500,"rescue_minutes":15,"trade_level":10,"trade_age_days":3,"trade_ratio":0.75,"trade_day_n":5,"trade_day_value":10000,"trade_items":8}'::jsonb)
   on conflict (k) do nothing;
 
 create or replace function public.eng_gate(p_key text, p_def numeric) returns numeric language sql stable as $$
@@ -34,11 +34,11 @@ end $$;
 
 /* ---------- Dépannage : seulement pour les comptes qui ont vraiment joué ---------- */
 create or replace function public.rescue_claim() returns jsonb language plpgsql security definer set search_path = public as $$
-declare a accounts := eng_load(); need int := eng_gate('rescue_played', 5)::int; below numeric := eng_gate('rescue_below', 10); amt numeric := eng_gate('rescue_amount', 500);
+declare a accounts := eng_load(); need int := eng_gate('rescue_played', 5)::int; below numeric := eng_gate('rescue_below', 10); amt numeric := eng_gate('rescue_amount', 500); cd bigint := (eng_gate('rescue_minutes', 15) * 60000)::bigint;
 begin
   if a.balance >= below then raise exception 'Le dépannage est réservé aux soldes sous % DaveCoins.', below; end if;
   if jn(a.stats, 'played') < need then raise exception 'Le dépannage se débloque après % parties jouées.', need; end if;
-  if a.rescue_at + 3600000 > eng_ms() then raise exception 'Dépannage déjà utilisé : reviens dans % min.', ceil((a.rescue_at + 3600000 - eng_ms()) / 60000.0); end if;
+  if a.rescue_at + cd > eng_ms() then raise exception 'Dépannage déjà utilisé : reviens dans % min.', ceil((a.rescue_at + cd - eng_ms()) / 60000.0); end if;
   a.rescue_at := eng_ms();
   a := eng_income(a, 'rescue', amt);
   return jsonb_build_object('amount', amt, 'acct', eng_commit(a));

@@ -393,7 +393,7 @@
           <button class="btn btn--primary" data-b="rb" type="button">Réclamer</button>
         </div>
         <div class="bonus-row">
-          <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde passe sous ${bonus.RESCUE_BELOW} (1 fois / heure${DP.engine && DP.engine.on ? ', après 5 parties' : ''})</span></div>
+          <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde passe sous ${bonus.RESCUE_BELOW} (toutes les 15 min${DP.engine && DP.engine.on ? ', après 5 parties' : ''})</span></div>
           <button class="btn btn--ghost" data-b="rescue" type="button"></button>
         </div>
       </div>

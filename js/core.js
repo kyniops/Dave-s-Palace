@@ -15,7 +15,7 @@
   const DAILY_WHEEL = [[100, 18], [500, 8], [150, 16], [1000, 4], [200, 14], [2500, 1.5], [100, 18], [750, 6], [250, 12], [5000, 0.5]];
   const RESCUE_AMOUNT = 500;
   const RESCUE_BELOW = 10; // dépannage possible sous ce solde
-  const RESCUE_COOLDOWN = 3600 * 1000;
+  const RESCUE_COOLDOWN = 15 * 60 * 1000; // dépannage toutes les 15 min quand on est à sec
 
   /* ---------- Stockage sûr ---------- */
   const store = {
