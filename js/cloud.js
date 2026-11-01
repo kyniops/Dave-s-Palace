@@ -236,7 +236,10 @@
     email = (email || '').trim().toLowerCase();
     try { const { data: pb } = await sb.rpc('email_check', { p_email: email }); if (pb) return pb; } catch { /* ignore */ }
     const { error } = await sb.auth.updateUser({ email }, { emailRedirectTo: SITE });
-    return error ? emailErr(error) : null;
+    if (error) return emailErr(error);
+    // ancien compte : l'adresse interne ne peut pas confirmer, un seul clic sur le nouveau lien suffira
+    try { await sb.rpc('legacy_email_ready'); } catch { /* ignore */ }
+    return null;
   };
   // lien « mot de passe oublié » ouvert : on demandera le nouveau mot de passe une fois connecté
   cloud.recovery = /type=recovery/.test(location.hash);

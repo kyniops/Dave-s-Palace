@@ -66,6 +66,16 @@ create or replace function public.my_email() returns jsonb language sql stable s
   from auth.users u where u.id = auth.uid();
 $$;
 
+-- anciens comptes (adresse interne qui ne reçoit pas de mails) : Supabase demande normalement de confirmer
+-- l'ancienne ET la nouvelle adresse. On marque l'ancienne comme déjà confirmée : un seul clic sur le lien
+-- reçu à la nouvelle adresse suffit. Ne concerne que les adresses internes.
+create or replace function public.legacy_email_ready() returns boolean language plpgsql security definer set search_path = public, auth as $$
+begin
+  update auth.users set email_change_confirm_status = 1
+    where id = auth.uid() and email like '%@daves-palace.app' and coalesce(email_change, '') <> '';
+  return found;
+end $$;
+
 -- contrôle à la création du profil (= création du compte de jeu)
 create or replace function public.check_profile_email() returns trigger language plpgsql security definer set search_path = public, auth as $$
 declare u record; cutoff timestamptz := coalesce((select (v #>> '{}')::timestamptz from public.eng_const where k = 'email_cutoff'), now());
@@ -87,4 +97,4 @@ create trigger profiles_email before insert on public.profiles for each row exec
 
 revoke execute on function public.email_norm(text), public.email_disposable(text), public.email_problem(text, uuid), public.check_profile_email() from public, anon, authenticated;
 grant execute on function public.email_check(text), public.login_email(text) to anon, authenticated;
-grant execute on function public.my_email() to authenticated;
+grant execute on function public.my_email(), public.legacy_email_ready() to authenticated;
