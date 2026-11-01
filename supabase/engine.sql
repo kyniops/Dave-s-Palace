@@ -243,10 +243,10 @@ begin
         v := case m ->> 'k'
           when 'play_any' then jn(m, 'prog') + 1
           when 'play_game' then case when e ->> 'game' = m ->> 'game' then jn(m, 'prog') + 1 end
-          when 'wager' then jn(m, 'prog') + jn(e, 'bet')
+          when 'wager' then jn(m, 'prog') + coalesce((e ->> 'risk')::numeric, jn(e, 'bet'))
           when 'mult' then case when jn(e, 'mult') >= jn(m, 'm') then 1 end
           when 'mult_game' then case when e ->> 'game' = m ->> 'game' and jn(e, 'mult') >= jn(m, 'm') then 1 end
-          when 'wins' then case when net > 0 then jn(m, 'prog') + 1 end
+          when 'wins' then case when net > 0 and net >= jn(e, 'bet') * 0.1 then jn(m, 'prog') + 1 end
           when 'big_win' then case when net > 0 then greatest(jn(m, 'prog'), net) end
           else null end;
       elsif p_ev = 'cards' then
@@ -313,10 +313,13 @@ end $$;
 /* ---------- Fin d'une partie : stats, XP, missions, jackpot, fil des gains, succès ---------- */
 create or replace function public.eng_played(a public.accounts, p_game text, p_bet numeric, p_pay numeric) returns public.accounts language plpgsql security definer set search_path = public as $$
 declare net numeric := p_pay - p_bet; m numeric := case when p_bet > 0 then p_pay / p_bet else 0 end; uname text;
+  -- risque réellement pris : écart entre mise et gain (+10 % de la mise), au plus la mise.
+  -- Empêche de « farmer » l'XP et les missions avec des paris presque sans risque (1 bombe, toute la roulette…).
+  risk numeric := r2(least(p_bet, abs(p_pay - p_bet) + p_bet * 0.1));
 begin
   a := eng_record(a, p_game, p_bet, p_pay);
-  a := eng_xp(a, p_bet);
-  a := eng_bump(a, 'played', jsonb_build_object('game', p_game, 'bet', p_bet, 'payout', p_pay, 'mult', m));
+  a := eng_xp(a, risk);
+  a := eng_bump(a, 'played', jsonb_build_object('game', p_game, 'bet', p_bet, 'payout', p_pay, 'mult', m, 'risk', risk));
   if p_bet > 0 then update jackpot set amount = r2(amount + p_bet * 0.01) where id = 1; end if;
   if net >= 1000 or (m >= 50 and net >= 100) then
     select username into uname from profiles where id = a.user_id;

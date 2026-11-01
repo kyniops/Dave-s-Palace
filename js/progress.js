@@ -115,10 +115,10 @@
   const TEMPLATES = {
     play_any: { t: [10, 25, 50], text: (m) => `Joue ${m.target} parties` },
     play_game: { t: [5, 15, 30], game: true, text: (m) => `Joue ${m.target} parties sur ${gameName(m.game)}` },
-    wager: { t: [500, 2500, 10000], text: (m) => `Mise ${fmt(m.target)} DaveCoins au total` },
+    wager: { t: [500, 2500, 10000], text: (m) => `Mise ${fmt(m.target)} DaveCoins au total (seul le risque pris compte)` },
     mult: { m: [3, 10, 30], text: (m) => `Fais un gain ×${m.m} ou plus` },
     mult_game: { m: [2, 5, 15], game: true, text: (m) => `Fais un gain ×${m.m} sur ${gameName(m.game)}` },
-    wins: { t: [5, 12, 25], text: (m) => `Gagne ${m.target} parties` },
+    wins: { t: [5, 12, 25], text: (m) => `Gagne ${m.target} parties (gain d’au moins 10 % de la mise)` },
     big_win: { t: [200, 1000, 5000], text: (m) => `Gagne ${fmt(m.target)} DaveCoins nets en une partie` },
     cards: { t: [3, 8, 20], text: (m) => `Obtiens ${m.target} cartes dans les caisses` },
     rare_card: { r: [2, 3, 4], text: (m) => `Obtiens une carte ${RAR_NAMES[m.r]} ou mieux` },
@@ -266,16 +266,18 @@
   }
   on('played', handle((p, h) => {
     if (!h) return;
-    addXp(p, h.bet);
+    // XP = risque réellement pris (même règle que le serveur) : un pari presque sans risque rapporte peu d'XP
+    const risk = round2(Math.min(h.bet, Math.abs(h.payout - h.bet) + h.bet * 0.1));
+    addXp(p, risk);
     const net = h.payout - h.bet;
     bump(p, (m) => {
       switch (m.k) {
         case 'play_any': return m.prog + 1;
         case 'play_game': return h.game === m.game ? m.prog + 1 : null;
-        case 'wager': return m.prog + h.bet;
+        case 'wager': return m.prog + risk;
         case 'mult': return h.mult >= m.m ? 1 : null;
         case 'mult_game': return h.game === m.game && h.mult >= m.m ? 1 : null;
-        case 'wins': return net > 0 ? m.prog + 1 : null;
+        case 'wins': return net > 0 && net >= h.bet * 0.1 ? m.prog + 1 : null;
         case 'big_win': return net > 0 ? Math.max(m.prog, net) : null;
         default: return null;
       }
