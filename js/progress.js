@@ -347,6 +347,7 @@
         <small>${casesText(rw.cases)}${rw.coins ? ' · +' + fmt(rw.coins) + ' DaveCoins' : ''}</small></div>
       </div>`);
       document.body.appendChild(el);
+      sound.play('levelup');
       sound.play(rankUp ? 'jackpot' : 'win', { x: 20 });
       if (rankUp) sound.play('slam');
       requestAnimationFrame(() => el.classList.add('in'));

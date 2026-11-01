@@ -48,18 +48,18 @@
   }
   // émotes qu'on lance sur un joueur (son au départ et à l'impact, éclaboussure pour les projectiles salissants)
   const EMOTES = [
-    { id: 'poop', e: '💩', name: 'Crotte', snd: 'fart', stain: true, c: ['#8b5a2b', '#5c3a1a', '#c08850'] },
+    { id: 'poop', e: '💩', name: 'Crotte', snd: 'fart', snd2: 'splat', stain: true, c: ['#8b5a2b', '#5c3a1a', '#c08850'] },
     { id: 'tomato', e: '🍅', name: 'Tomate', snd: 'splat', stain: true, c: ['#ef4444', '#b91c1c', '#fca5a5'] },
     { id: 'egg', e: '🥚', name: 'Œuf', snd: 'splat', stain: true, c: ['#fde68a', '#ffffff', '#fbbf24'] },
     { id: 'clown', e: '🤡', name: 'Clown', snd: 'boing', c: ['#ef4444', '#60a5fa', '#fde047'] },
     { id: 'laugh', e: '😂', name: 'Mort de rire', snd: 'boing', c: ['#fde047', '#ffffff'] },
-    { id: 'cry', e: '😭', name: 'Pleure', snd: 'lose', c: ['#60a5fa', '#ffffff'] },
-    { id: 'fire', e: '🔥', name: 'En feu', snd: 'slam', c: ['#ff6b2c', '#ffc145', '#ef4444'] },
+    { id: 'cry', e: '😭', name: 'Pleure', snd: 'handLost', c: ['#60a5fa', '#ffffff'] },
+    { id: 'fire', e: '🔥', name: 'En feu', snd: 'slam', snd2: 'boing', c: ['#ff6b2c', '#ffc145', '#ef4444'] },
     { id: 'money', e: '💸', name: 'Billets', snd: 'coin', c: ['#4ade80', '#ffffff', '#ffc145'] },
-    { id: 'beer', e: '🍺', name: 'Santé', snd: 'chip', c: ['#fbbf24', '#ffffff'] },
+    { id: 'beer', e: '🍺', name: 'Santé', snd: 'glass', c: ['#fbbf24', '#ffffff'] },
     { id: 'rose', e: '🌹', name: 'Rose', snd: 'kiss', c: ['#f43f5e', '#ffffff', '#22c55e'] },
     { id: 'kiss', e: '💋', name: 'Bisou', snd: 'kiss', c: ['#f43f5e', '#fda4af'] },
-    { id: 'crown', e: '👑', name: 'Le boss', snd: 'win', c: ['#ffc145', '#ffffff'] }
+    { id: 'crown', e: '👑', name: 'Le boss', snd: 'bell', c: ['#ffc145', '#ffffff'] }
   ];
   const CAT_POP = ['', 'Paire !', 'Double paire !', 'Brelan !', 'Quinte !', 'Couleur !', 'Full !', 'Carré !', 'Quinte flush !'];
   const online = () => !!(DP.engine && DP.engine.on && DP.cloud && DP.cloud.sb);
@@ -538,6 +538,7 @@
           const order = st.seats.filter((x) => ['playing', 'allin'].includes(x.status)).sort((a, b) => kOf(a.seat) - kOf(b.seat));
           const step = 150, total = order.length * 2;
           dealerDeal(total * step + 350);
+          sound.play('shuffle', { v: 0.7 });
           [0, 1].forEach((round) => order.forEach((x, j) => {
             const k = kOf(x.seat), to = [lay.seat[k][0], lay.seat[k][1] - 7], n = round * order.length + j;
             fly(lay.dealer, to, cardHtml(null, 'mini'), { dur: 420, delay: 250 + n * step, cls: 'deal' });
@@ -621,6 +622,25 @@
           winners.forEach((w, i) => fly(lay.pot, lay.seat[kOf(w.seat)], chips(4), { dur: 650, delay: 420 + i * 120, cls: 'chip' }));
           const mine = winners.find((w) => w.seat === st.mySeat);
           const wasIn = prev.seats.some((x) => x.me && x.total > 0);
+          const meNow = st.seats.find((x) => x.me);
+          // le gagnant saute, une couronne s'envole au-dessus de lui (visible par toute la table)
+          setTimeout(() => {
+            if (!alive || !T) return;
+            winners.forEach((w) => {
+              const e = T.seats[kOf(w.seat)]; if (!e) return;
+              e.classList.remove('winpop'); void e.offsetWidth; e.classList.add('winpop');
+              const at = L().seat[kOf(w.seat)];
+              const cr = ui.el(`<div class="pkx-crown" style="left:${at[0]}%;top:${at[1] - 9}%">👑</div>`);
+              T.fx.appendChild(cr); setTimeout(() => cr.remove(), 2600);
+              if (!mine) ui.burst(e, { n: 26, colors: ['#ffd65a', '#ffffff', '#ff6b2c'], spread: 1.4 });
+            });
+          }, Object.keys(shown).length ? 900 : 450);
+          // tu as perdu la main (tu avais misé et tu n'as rien gagné)
+          if (!mine && wasIn && meNow) setTimeout(() => {
+            if (!alive || !T) return;
+            sound.play('handLost');
+            const e = T.seats[kOf(meNow.seat)]; if (e) { e.classList.remove('lostpop'); void e.offsetWidth; e.classList.add('lostpop'); }
+          }, Object.keys(shown).length ? 1000 : 500);
           if (mine) streak++; else if (wasIn) streak = 0;
           const delay = Object.keys(shown).length ? (st.seats.some((x) => x.status === 'allin') ? 1700 : 900) : 450;
           setTimeout(() => {
@@ -681,6 +701,7 @@
         const impact = () => {
           if (!alive || !T) return;
           sound.play(m.snd, { x: 4 });
+          if (m.snd2) sound.play(m.snd2);
           const hit = ui.el(`<div class="pkx-hit" style="left:${b[0]}%;top:${b[1] - 4}%">${m.e}</div>`);
           T.fx.appendChild(hit); setTimeout(() => hit.remove(), 1300);
           ui.burst(target, { n: 26, colors: m.c, spread: 1.4 });
@@ -697,7 +718,7 @@
         const dx = ((b[0] - a[0]) / 100) * W, dy = ((b[1] - a[1]) / 100) * H, lift = -Math.max(60, Math.abs(dx) * 0.25);
         const el = ui.el(`<div class="pkx-throw" style="left:${a[0]}%;top:${a[1] - 4}%">${m.e}</div>`);
         T.fx.appendChild(el);
-        sound.play('whoosh');
+        sound.play('throw');
         const anim = el.animate([
           { transform: 'translate(-50%, -50%) scale(.6) rotate(0deg)', opacity: 0 },
           { transform: `translate(calc(-50% + ${dx * 0.5}px), calc(-50% + ${dy * 0.5 + lift}px)) scale(1.35) rotate(270deg)`, opacity: 1, offset: 0.5 },

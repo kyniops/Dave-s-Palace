@@ -1743,3 +1743,14 @@ body:has(.modal) { overflow: hidden; }
 .pkx-seat.won .nm, .pkx-seat.won .stk { color: #ffe9a8; }
 @keyframes pkx-aura { from { opacity: .65; transform: translate(-50%, -50%) scale(.92); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .pkx-seat.won .pkx-aura { animation: none; } }
+
+/* Fin de main au poker : le gagnant saute, le perdant se tasse */
+.pkx-seat.winpop .pkx-ring { animation: pkx-winpop .9s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes pkx-winpop { 0% { transform: scale(1); } 30% { transform: scale(1.22) translateY(-10px); } 55% { transform: scale(.96); } 75% { transform: scale(1.06); } 100% { transform: scale(1); } }
+.pkx-crown { position: absolute; z-index: 26; transform: translate(-50%, -50%); font-size: clamp(30px, 3vw, 46px); pointer-events: none; filter: drop-shadow(0 4px 10px rgba(255, 193, 69, .8)); animation: pkx-crown 2.6s cubic-bezier(.2, 1.3, .4, 1) both; }
+@keyframes pkx-crown { 0% { opacity: 0; transform: translate(-50%, 10%) scale(.3) rotate(-25deg); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.25) rotate(8deg); } 35% { transform: translate(-50%, -50%) scale(1) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -140%) scale(.9); } }
+.pkx-seat.lostpop .pkx-ring { animation: pkx-lost .8s ease-out; }
+.pkx-seat.lostpop .pkx-av { animation: pkx-lostgrey 1.6s ease-out; }
+@keyframes pkx-lost { 0% { transform: none; } 20% { transform: translateY(6px) scale(.92); } 40% { transform: translateX(-5px) rotate(-4deg) scale(.95); } 60% { transform: translateX(5px) rotate(4deg) scale(.95); } 100% { transform: none; } }
+@keyframes pkx-lostgrey { 0%, 60% { filter: grayscale(1) brightness(.6); } 100% { filter: none; } }
+@media (prefers-reduced-motion: reduce) { .pkx-seat.winpop .pkx-ring, .pkx-seat.lostpop .pkx-ring, .pkx-seat.lostpop .pkx-av, .pkx-crown { animation: none; } }

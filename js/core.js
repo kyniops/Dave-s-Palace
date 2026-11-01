@@ -338,10 +338,47 @@
       verbIn = ctx.createGain();
       verbIn.gain.value = 1;
       verbIn.connect(verb).connect(master);
+      loadSamples();
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const nd = noiseBuf.getChannelData(0);
       for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
       return ctx;
+    }
+    /* Bruitages enregistrés (packs CC0 de Kenney.nl et « 100 CC0 SFX », domaine public), dans assets/sfx.
+       Un son enregistré remplace le son synthétisé du même nom ; s'il ne charge pas, le son synthétisé reste. */
+    const SFX = {
+      card: ['card1', 'card2', 'card3', 'card4', 'card5'], cardFlip: ['place1', 'place2', 'place3', 'place4'],
+      chip: ['chip1', 'chip2', 'chip3', 'chip4'], bet: ['stack1', 'stack2', 'stack3'], coin: ['coin1', 'coin2'],
+      dice: ['die1', 'die2', 'die3'], shake: ['shake'], shuffle: ['shuffle'], click: ['click1', 'click2', 'click3'],
+      error: ['error'], confirm: ['confirm'], drop: ['drop'], splat: ['splat1', 'splat2'], plop: ['plop'],
+      boing: ['boing1', 'boing2'], throw: ['throw1', 'throw2'], gong: ['gong'], bell: ['bell'], glass: ['glass'],
+      handLost: ['lose'], levelup: ['levelup'], kiss: ['kiss']
+    };
+    // volume de chaque bruitage (les enregistrements n'ont pas tous le même niveau)
+    const SFX_VOL = { click: 0.35, card: 0.8, cardFlip: 0.8, chip: 0.7, bet: 0.75, coin: 0.8, dice: 0.8, error: 0.45, confirm: 0.5, drop: 0.6, splat: 0.9, plop: 0.8,
+      boing: 0.6, throw: 0.7, gong: 0.55, bell: 0.6, glass: 0.6, handLost: 0.5, levelup: 0.45, kiss: 0.7, shuffle: 0.6, shake: 0.6 };
+    const buffers = {};
+    let samplesAsked = false;
+    function loadSamples() {
+      if (samplesAsked || !ctx) return;
+      samplesAsked = true;
+      const files = [...new Set(Object.values(SFX).flat())];
+      files.forEach((f) => {
+        fetch('assets/sfx/' + f + '.mp3').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject())).then((b) => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
+          .then((buf) => { buffers[f] = buf; }, () => {});
+      });
+    }
+    /** Joue un bruitage enregistré ; renvoie false s'il n'est pas (encore) disponible. */
+    function sample(name, o = {}) {
+      const list = (SFX[name] || []).filter((f) => buffers[f]);
+      if (!list.length) return false;
+      const src = ctx.createBufferSource(), g = ctx.createGain();
+      src.buffer = buffers[list[Math.floor(Math.random() * list.length)]];
+      src.playbackRate.value = (o.rate || 1) * (0.94 + Math.random() * 0.12);
+      g.gain.value = (SFX_VOL[name] || 0.7) * (o.v || 1);
+      src.connect(g); out(g, o.rev || 0.04);
+      src.start(ctx.currentTime + (o.t || 0));
+      return true;
     }
     function ready() {
       if (api.muted) return null;
@@ -400,6 +437,12 @@
       tone(f, d = 0.1, type = 'sine', v = 0.15, t = 0) { tone({ f, d, type, v, t }); },
       play(name, o = {}) {
         if (!ready()) return;
+        // bruitage enregistré s'il existe pour ce nom
+        if (SFX[name] && sample(name, o)) {
+          // quelques sons gardent une couche synthétisée par-dessus (plus de punch)
+          if (name === 'coin') sparkle(0.02, 3);
+          return;
+        }
         const i = o.i || 0;
         switch (name) {
           case 'click': noise({ d: 0.02, v: 0.12, type: 'highpass', f: 3500 }); tone({ f: 1500, d: 0.025, v: 0.03, rev: 0 }); break;

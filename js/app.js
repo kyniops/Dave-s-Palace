@@ -1005,7 +1005,7 @@
       </a>`);
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add('in'));
-    if (!mine) { sound.play('jackpot'); sound.play('slam'); DP.emit('bigwin', { game: 'jackpot', x: 100 }); }
+    if (!mine) { sound.play('gong'); sound.play('jackpot'); DP.emit('bigwin', { game: 'jackpot', x: 100 }); }
     ui.coinRain(document.body, 60);
     const close = () => { el.classList.remove('in'); setTimeout(() => el.remove(), 500); };
     el.addEventListener('click', close);
