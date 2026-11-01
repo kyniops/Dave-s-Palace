@@ -32,6 +32,9 @@
   const chips = (n = 3) => `<span class="pkchips">${Array.from({ length: n }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</span>`;
   // bulles de lumière du fond (positions, tailles et vitesses au hasard)
   const bokeh = (n) => Array.from({ length: n }, () => `<i style="--x:${(Math.random() * 100).toFixed(1)}%;--y:${(Math.random() * 100).toFixed(1)}%;--s:${(14 + Math.random() * 70).toFixed(0)}px;--t:${(7 + Math.random() * 10).toFixed(1)}s;--o:${(0.25 + Math.random() * 0.55).toFixed(2)};--dx:${(Math.random() * 80 - 40).toFixed(0)}px;--dy:${(-30 - Math.random() * 70).toFixed(0)}px"></i>`).join('');
+  // actions affichées au-dessus des joueurs, en anglais (le serveur les écrit en français)
+  const ACT_EN = [[/^Couché/, 'Fold'], [/^Parole/, 'Check'], [/^Suit/, 'Call'], [/^Relance/, 'Raise'], [/^Mise/, 'Bet'], [/^Tapis/, 'All-in'], [/^Petite blinde/, 'SB'], [/^Grosse blinde/, 'BB'], [/^Quitte/, 'Left']];
+  const actEN = (t) => { const f = ACT_EN.find(([re]) => re.test(t)); return f ? f[1] : t; };
   const online = () => !!(DP.engine && DP.engine.on && DP.cloud && DP.cloud.sb);
   const rpc = (fn, p, o) => DP.engine.call(fn, p, o);
 
@@ -467,8 +470,8 @@
           if (x.status === 'sitout' && x.stack <= 0) { stk.textContent = 'Recave'; stk.dataset.v = 0; } else countTo(stk, x.stack);
           // badge d'action (pop à chaque nouvelle action)
           const badge = el.querySelector('.pkx-badge');
-          const lbl = x.status === 'allin' ? 'Tapis' : x.last ? x.last.replace(/ \d+$/, '').replace('Petite blinde', 'P. blinde').replace('Grosse blinde', 'G. blinde') : '';
-          if (badge.textContent !== lbl) { badge.textContent = lbl; badge.className = 'pkx-badge' + (lbl ? ' on' : '') + (/Couché|Quitte/.test(lbl) ? ' fold' : /Relance|Mise|Tapis/.test(lbl) ? ' raise' : ''); }
+          const lbl = x.status === 'allin' ? 'All-in' : x.last ? actEN(x.last) : '';
+          if (badge.textContent !== lbl) { badge.textContent = lbl; badge.className = 'pkx-badge' + (lbl ? ' on' : '') + (/^(Fold|Left)/.test(lbl) ? ' fold' : /^(Raise|Bet|All-in)/.test(lbl) ? ' raise' : ''); }
           // cartes
           const inHand = ['playing', 'allin', 'folded'].includes(x.status) && st.stage !== 'idle';
           let cards = [];
@@ -572,7 +575,7 @@
         if (T.rr.value !== String(v)) T.rr.value = v;
         const lab = T.acts.querySelector('.js-rv');
         const m = me();
-        if (lab && m) lab.textContent = v >= m.bet + m.stack ? `${fmt(v)} · tapis` : fmt(v);
+        if (lab && m) lab.textContent = v >= m.bet + m.stack ? `${fmt(v)} · all-in` : fmt(v);
       }
       function paintActions() {
         if (!T) return;
@@ -595,15 +598,15 @@
         T.raise.hidden = !(raiseOpen && canRaise);
         if (raiseOpen && canRaise) {
           T.rr.min = minTo; T.rr.max = maxTo; T.rr.value = raiseTo;
-          T.presets.innerHTML = [['Tapis', maxTo], ['Pot', preset(1)], ['¾ pot', preset(0.75)], ['½ pot', preset(0.5)], ['Min', minTo]].map(([l, v]) => `<button type="button" data-v="${v}">${l}</button>`).join('');
+          T.presets.innerHTML = [['All-in', maxTo], ['Pot', preset(1)], ['¾ Pot', preset(0.75)], ['½ Pot', preset(0.5)], ['Min', minTo]].map(([l, v]) => `<button type="button" data-v="${v}">${l}</button>`).join('');
         }
         // gros boutons d'action : icône, libellé, montant et touche du clavier
         const btn = (cls, a, ico, label, sub, key) => `<button type="button" class="pka pka--${cls}" data-a="${a}">
             <span class="pka__ico">${I(ico)}</span><span class="pka__txt"><b>${label}</b>${sub != null ? `<small class="num ${a === 'raise' ? 'js-rv' : ''}">${sub}</small>` : ''}</span><kbd>${key}</kbd></button>`;
         const allCall = toCall && toCall >= m.stack;
-        T.acts.innerHTML = btn('fold', 'fold', 'x', 'Se coucher', null, 'F')
-          + (toCall ? btn('call', 'call', allCall ? 'zap' : 'check', allCall ? 'Tapis' : 'Suivre', fmt(Math.min(toCall, m.stack)), 'C') : btn('call', 'check', 'check', 'Parole', null, 'C'))
-          + (canRaise ? (raiseOpen ? btn('raise', 'raise', 'trending-up', 'Valider', fmt(raiseTo), 'R') : btn('raise', 'open', 'trending-up', st.curBet ? 'Relancer' : 'Miser', `min ${fmt(minTo)}`, 'R')) : '');
+        T.acts.innerHTML = btn('fold', 'fold', 'x', 'Fold', null, 'F')
+          + (toCall ? btn('call', 'call', allCall ? 'zap' : 'check', allCall ? 'All-in' : 'Call', fmt(Math.min(toCall, m.stack)), 'C') : btn('call', 'check', 'check', 'Check', null, 'C'))
+          + (canRaise ? (raiseOpen ? btn('raise', 'raise', 'trending-up', st.curBet ? 'Raise' : 'Bet', fmt(raiseTo), 'R') : btn('raise', 'open', 'trending-up', st.curBet ? 'Raise' : 'Bet', `min ${fmt(minTo)}`, 'R')) : '');
         setRaise(raiseTo);
       }
       async function action(a) {

@@ -1539,3 +1539,14 @@ body:has(.modal) { overflow: hidden; }
 .pkx-code { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 3px 10px; font-family: var(--display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #1a0700; background: var(--coin); border: 0; border-radius: 999px; cursor: pointer; }
 .pkx-code b { letter-spacing: .25em; }
 @media (max-width: 600px) { .pk-new__lv { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pk-new__row { grid-template-columns: 1fr; } }
+
+/* DavePoker : à table, tout tient dans l'écran (pas de défilement) */
+.pk-seated #view { padding-top: calc(var(--topbar) + env(safe-area-inset-top, 0px) + 12px); padding-bottom: 12px; }
+.pk-seated .pkx { height: calc((100dvh - var(--topbar) - env(safe-area-inset-top, 0px) - 24px) / var(--vz, 1)); min-height: 0; }
+.pk-seated .pkx-stage { width: min(100%, calc(((100dvh - var(--topbar) - 24px) / var(--vz, 1) - 190px) * 2.1)); min-width: 0; }
+.pk-seated .pkx-dock { margin-top: auto; }
+.pkx-log { position: absolute; left: 14px; bottom: 14px; z-index: 7; }
+.pkx-log ol { position: absolute; left: 0; bottom: calc(100% + 8px); width: min(340px, 80vw); max-height: 220px; margin: 0; padding: 10px 12px 10px 28px; overflow: auto; background: rgba(8, 10, 16, .95); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); }
+.pkx:fullscreen .pkx-stage { width: min(100%, calc((100vh - 170px) * 2.1)); }
+.pkx.is-tall .pkx-stage { width: min(100%, calc(((100dvh - var(--topbar) - 24px) / var(--vz, 1) - 170px) * .66)); margin: 0 auto; }
+.pkx.is-tall .pkx-log { left: 10px; bottom: auto; top: 54px; }
