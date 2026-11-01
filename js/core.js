@@ -360,7 +360,7 @@
     const buffers = {};
     let samplesAsked = false;
     function loadSamples() {
-      if (samplesAsked || !ctx) return;
+      if (samplesAsked || !ctx || location.protocol === 'file:') return; // fichier ouvert en local : pas de chargement possible, sons synthétisés
       samplesAsked = true;
       const files = [...new Set(Object.values(SFX).flat())];
       files.forEach((f) => {
