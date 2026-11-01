@@ -340,6 +340,22 @@
     if (b) b.classList.toggle('ready', bonus.dailyLeft() === 0 || bonus.canRescue() || (DP.progress && DP.progress.rakeback().pending >= 1));
   }
   on('balance', refreshTopbar);
+  // à sec : on propose le dépannage tout de suite
+  let brokeShown = false;
+  on('balance', (v) => {
+    if (v >= bonus.RESCUE_BELOW) { brokeShown = false; return; }
+    if (brokeShown || !auth.current() || !document.querySelector('.shell') || !bonus.canRescue()) return;
+    brokeShown = true;
+    setTimeout(() => {
+      if (document.querySelector('.broke')) return;
+      const el = ui.el(`<button type="button" class="broke">${I('hand-coins', 'i--sm')}<span>À sec ? <b>Dave te dépanne : +${fmt(bonus.RESCUE_AMOUNT)}</b></span></button>`);
+      document.body.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('in'));
+      const close = () => { el.classList.remove('in'); setTimeout(() => el.remove(), 400); };
+      el.addEventListener('click', () => { close(); openBonus(); });
+      setTimeout(close, 12000);
+    }, 1500);
+  });
   on('progress', refreshTopbar);
   on('bonus', refreshTopbar);
 
@@ -377,7 +393,7 @@
           <button class="btn btn--primary" data-b="rb" type="button">Réclamer</button>
         </div>
         <div class="bonus-row">
-          <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde est à 0 (1 fois / heure${DP.engine && DP.engine.on ? ', après 20 parties' : ''})</span></div>
+          <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde passe sous ${bonus.RESCUE_BELOW} (1 fois / heure${DP.engine && DP.engine.on ? ', après 5 parties' : ''})</span></div>
           <button class="btn btn--ghost" data-b="rescue" type="button"></button>
         </div>
       </div>
@@ -428,7 +444,7 @@
       rbBtn.disabled = rb.pending < 0.01 || rbBusy;
       const r = bonus.rescueLeft();
       rescue.disabled = !bonus.canRescue();
-      rescue.textContent = wallet.get() >= 1 ? 'Solde > 0' : r > 0 ? countdown(r) : 'Récupérer';
+      rescue.textContent = wallet.get() >= bonus.RESCUE_BELOW ? `Solde ≥ ${bonus.RESCUE_BELOW}` : r > 0 ? countdown(r) : 'Récupérer';
     };
     paint();
     const timer = setInterval(paint, 1000);

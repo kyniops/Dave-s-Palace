@@ -1754,3 +1754,11 @@ body:has(.modal) { overflow: hidden; }
 @keyframes pkx-lost { 0% { transform: none; } 20% { transform: translateY(6px) scale(.92); } 40% { transform: translateX(-5px) rotate(-4deg) scale(.95); } 60% { transform: translateX(5px) rotate(4deg) scale(.95); } 100% { transform: none; } }
 @keyframes pkx-lostgrey { 0%, 60% { filter: grayscale(1) brightness(.6); } 100% { filter: none; } }
 @media (prefers-reduced-motion: reduce) { .pkx-seat.winpop .pkx-ring, .pkx-seat.lostpop .pkx-ring, .pkx-seat.lostpop .pkx-av, .pkx-crown { animation: none; } }
+
+/* À sec : proposition de dépannage */
+.broke { position: fixed; z-index: 110; left: 50%; bottom: 24px; display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; font: inherit; font-size: 15px; color: #1a0700; cursor: pointer; border: 0;
+  background: linear-gradient(180deg, #ffd166, #ff9a3c); box-shadow: 0 14px 34px rgba(0, 0, 0, .55), 0 0 30px rgba(255, 193, 69, .45);
+  --cut: 10px; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  transform: translate(-50%, 140%); transition: transform .45s cubic-bezier(.2, 1.4, .4, 1); }
+.broke.in { transform: translate(-50%, 0); animation: broke-pulse 1.2s ease-in-out .5s infinite alternate; }
+@keyframes broke-pulse { to { filter: brightness(1.12); } }

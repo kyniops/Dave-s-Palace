@@ -14,6 +14,7 @@
   // Cases de la roue quotidienne : [gain, poids]
   const DAILY_WHEEL = [[100, 18], [500, 8], [150, 16], [1000, 4], [200, 14], [2500, 1.5], [100, 18], [750, 6], [250, 12], [5000, 0.5]];
   const RESCUE_AMOUNT = 500;
+  const RESCUE_BELOW = 10; // dépannage possible sous ce solde
   const RESCUE_COOLDOWN = 3600 * 1000;
 
   /* ---------- Stockage sûr ---------- */
@@ -160,7 +161,7 @@
       const last = parseInt(store.get(bonus._key('rescue'), '0'), 10) || 0;
       return Math.max(0, last + RESCUE_COOLDOWN - Date.now());
     },
-    canRescue() { return wallet.get() < 1 && bonus.rescueLeft() === 0; },
+    canRescue() { return wallet.get() < RESCUE_BELOW && bonus.rescueLeft() === 0; },
     claimRescue() {
       if (DP.engine && DP.engine.on) return 0;
       if (!bonus.canRescue()) return 0;
@@ -170,7 +171,7 @@
       emit('bonus');
       return RESCUE_AMOUNT;
     },
-    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT
+    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT, RESCUE_BELOW
   };
 
   /* ---------- Jackpot global progressif ----------
