@@ -143,16 +143,28 @@
     if (res === 'imported') setTimeout(() => ui.toast('Ta partie de ce navigateur a été importée dans ton compte en ligne', 'win', 4200), 1200);
   }
 
-  auth.register = async (name, password) => {
-    name = (name || '').trim();
+  // adresse de retour des liens envoyés par mail (confirmation, mot de passe oublié)
+  const SITE = location.origin + location.pathname;
+  const emailErr = (e) => {
+    const m = (e && e.message) || '';
+    if (/rate limit|too many|security purposes/i.test(m)) return 'Trop d’emails envoyés : réessaie dans quelques minutes.';
+    if (/invalid.*email|email.*invalid/i.test(m)) return 'Adresse email invalide.';
+    if (/already registered|already exists/i.test(m)) return 'Cette adresse email est déjà utilisée par un autre compte.';
+    return errFr(e);
+  };
+  auth.register = async (name, password, email) => {
+    name = (name || '').trim(); email = (email || '').trim().toLowerCase();
     const bad = auth.usernameProblem(name);
     if (bad) return bad;
+    if (!email) return 'Entre ton adresse email : elle sert à confirmer ton compte et à le récupérer.';
     if (!password || password.length < 6) return 'Le mot de passe doit faire au moins 6 caractères.';
+    try { const { data: pb } = await sb.rpc('email_check', { p_email: email }); if (pb) return pb; } catch { /* script email.sql absent */ }
     const { data: taken } = await sb.from('profiles').select('id').ilike('username', name).maybeSingle();
     if (taken) return 'Ce pseudo est déjà pris.';
-    const { data, error } = await sb.auth.signUp({ email: emailOf(name), password });
-    if (error) return errFr(error);
-    if (!data.session) return 'Inscription faite, mais la confirmation par email est activée sur le serveur.';
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { username: name }, emailRedirectTo: SITE } });
+    if (error) return emailErr(error);
+    // confirmation par email activée : le compte sera créé au retour du lien reçu par mail
+    if (!data.session) return { confirm: email };
     uid = data.user.id;
     const { error: e2 } = await sb.from('profiles').insert({ id: uid, username: name });
     if (e2) { await sb.auth.signOut(); uid = null; return /duplicate|unique|déjà pris/i.test(e2.message) ? 'Ce pseudo est déjà pris.' : /interdit|invalide/i.test(e2.message) ? e2.message : errFr(e2); }
@@ -161,23 +173,74 @@
   };
   auth.login = async (name, password) => {
     name = (name || '').trim();
-    // l'adresse interne ne change pas quand l'admin renomme un joueur : on la retrouve par le pseudo
-    let email = emailOf(name);
-    try { const { data: em } = await sb.rpc('login_email', { p_username: name }); if (em) email = em; } catch { /* fonction absente */ }
+    let email = name.toLowerCase();
+    if (!name.includes('@')) {
+      // pseudo : seulement pour les anciens comptes (adresse interne) ; les nouveaux se connectent avec leur email
+      email = null;
+      try { const { data: em } = await sb.rpc('login_email', { p_username: name }); if (em) email = em; } catch { email = emailOf(name); }
+      if (!email) return 'Connecte-toi avec ton adresse email (les nouveaux comptes n’utilisent plus le pseudo pour se connecter).';
+    }
     const { data, error } = await sb.auth.signInWithPassword({ email, password: password || '' });
     if (error) {
       // ancien compte local de ce navigateur pas encore passé en ligne : on le signale
       if (auth.users().some((u) => u.prenom.toLowerCase() === name.toLowerCase())) return 'Ce compte existe seulement sur ce navigateur : clique sur « Inscription » avec le même pseudo (mot de passe de 6 caractères minimum) pour le passer en ligne, ta partie sera importée.';
-      return errFr(error);
+      if (/not confirmed/i.test(error.message || '')) return 'Confirme d’abord ton adresse email : clique sur le lien reçu par mail (pense aux spams).';
+      return name.includes('@') && /invalid login|invalid credentials/i.test(error.message || '') ? 'Email ou mot de passe incorrect.' : errFr(error);
     }
     uid = data.user.id;
     if (await bannedReason() !== null) { const why = await bannedReason(); await sb.auth.signOut(); uid = null; return 'Ce compte a été banni' + (why ? ' : ' + why : '.'); }
     const { data: prof } = await sb.from('profiles').select('username').eq('id', uid).maybeSingle();
-    let username = prof ? prof.username : name;
-    if (!prof) await sb.from('profiles').insert({ id: uid, username });
+    let username = prof ? prof.username : null;
+    if (!prof) {
+      // première connexion après la confirmation de l'email : on crée le compte de jeu
+      const r = await createProfile(data.user);
+      if (r.error) { await sb.auth.signOut(); uid = null; return r.error; }
+      username = r.username;
+    }
     await enter(username, { importLocal: false });
     return null;
   };
+  /** Crée le profil de jeu d'un compte qui vient de confirmer son email (pseudo choisi à l'inscription). */
+  async function createProfile(user) {
+    const want = ((user && user.user_metadata && user.user_metadata.username) || '').trim();
+    if (!want) return { error: 'Compte incomplet : réinscris-toi.' };
+    const { error } = await sb.from('profiles').insert({ id: user.id, username: want });
+    if (!error) return { username: want };
+    if (/duplicate|unique|déjà pris/i.test(error.message)) {
+      // pseudo pris entre-temps : on ajoute des chiffres
+      for (let i = 0; i < 4; i++) {
+        const alt = (want.slice(0, 16) + Math.floor(100 + Math.random() * 900)).slice(0, 20);
+        const r2 = await sb.from('profiles').insert({ id: user.id, username: alt });
+        if (!r2.error) { setTimeout(() => ui.toast(`Le pseudo « ${want} » a été pris entre-temps : tu es « ${alt} ».`, 'info', 7000), 1500); return { username: alt }; }
+      }
+    }
+    return { error: error.message || 'Création du compte impossible.' };
+  }
+  /** Mot de passe oublié : envoie le lien de réinitialisation. */
+  auth.resetPassword = async (email) => {
+    email = (email || '').trim().toLowerCase();
+    if (!email.includes('@')) return { error: 'Entre l’adresse email de ton compte.' };
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: SITE });
+    if (error) return { error: emailErr(error) };
+    return { ok: true };
+  };
+  auth.resendConfirm = async (email) => { const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: SITE } }); return error ? emailErr(error) : null; };
+  auth.setPassword = async (password) => {
+    if (!password || password.length < 6) return 'Le mot de passe doit faire au moins 6 caractères.';
+    const { error } = await sb.auth.updateUser({ password });
+    return error ? errFr(error) : null;
+  };
+  auth.myEmail = async () => { try { const { data } = await sb.rpc('my_email'); return data || null; } catch { return null; } };
+  /** Ajouter / changer l'adresse email du compte (un lien de confirmation part à la nouvelle adresse). */
+  auth.setEmail = async (email) => {
+    email = (email || '').trim().toLowerCase();
+    try { const { data: pb } = await sb.rpc('email_check', { p_email: email }); if (pb) return pb; } catch { /* ignore */ }
+    const { error } = await sb.auth.updateUser({ email }, { emailRedirectTo: SITE });
+    return error ? emailErr(error) : null;
+  };
+  // lien « mot de passe oublié » ouvert : on demandera le nouveau mot de passe une fois connecté
+  cloud.recovery = /type=recovery/.test(location.hash);
+  sb.auth.onAuthStateChange((ev) => { if (ev === 'PASSWORD_RECOVERY') { cloud.recovery = true; emit('recovery'); } });
   const localLogout = auth.logout;
   auth.logout = () => { stopPresence(); push(true).finally(() => sb.auth.signOut()); clearInterval(pushTimer); uid = null; localLogout(); };
 
@@ -216,8 +279,16 @@
     const s = data.session;
     if (!s) { if (auth.current()) { store.remove('utilisateurCourant'); emit('cloudload'); } return; }
     uid = s.user.id;
-    const { data: prof } = await sb.from('profiles').select('username').eq('id', uid).maybeSingle();
-    if (!prof) { await sb.auth.signOut(); uid = null; store.remove('utilisateurCourant'); emit('cloudload'); return; }
+    const fromMail = /access_token=|type=(signup|recovery|email_change)/.test(location.hash);
+    let { data: prof } = await sb.from('profiles').select('username').eq('id', uid).maybeSingle();
+    if (!prof) {
+      // retour du lien de confirmation : création du compte de jeu
+      const r = await createProfile(s.user);
+      if (r.error) { await sb.auth.signOut(); uid = null; store.remove('utilisateurCourant'); emit('cloudload'); ui.toast(r.error, 'error', 6000); return; }
+      prof = { username: r.username };
+      setTimeout(() => ui.toast('Adresse email confirmée : bienvenue au Palace !', 'win', 5000), 1200);
+    }
+    if (fromMail) { history.replaceState(null, '', location.pathname + '#/lobby'); setTimeout(() => emit('cloudload'), 0); }
     if (await kickIfBanned()) return;
     const before = auth.current();
     store.set('utilisateurCourant', prof.username);

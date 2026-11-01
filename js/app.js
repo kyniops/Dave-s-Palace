@@ -24,6 +24,7 @@
       return;
     }
     renderShell();
+    setTimeout(recoveryModal, 300);
     const view = document.getElementById('view');
     setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page === 'joueur' ? 'classement' : page === 'duel' ? 'amis' : page || 'lobby');
     if (page === 'caisses') renderGame(view, games.find('cases'), { caseId: arg });
@@ -97,11 +98,14 @@
           <form class="auth-form" novalidate>
             <h2></h2>
             <p class="auth-form__sub"></p>
-            <label class="field"><span>Pseudo</span><input name="user" autocomplete="username" maxlength="20" required placeholder="Ton pseudo"></label>
+            <label class="field"><span class="js-ulbl">Pseudo</span><input name="user" autocomplete="username" maxlength="80" required placeholder="Ton pseudo"></label>
+            <label class="field js-mailf"><span>Adresse email</span><input name="mail" type="email" autocomplete="email" maxlength="120" placeholder="toi@exemple.fr"></label>
             <label class="field"><span>Mot de passe</span><input name="pass" type="password" required placeholder="••••••"></label>
             <p class="auth-form__error" role="alert"></p>
             <button class="btn btn--primary btn--lg btn--block" type="submit"></button>
+            <button type="button" class="auth-forgot js-forgot">Mot de passe oublié ?</button>
           </form>
+          <div class="auth-done" hidden></div>
         </div>
       </div>`;
     M.splitWords(app.querySelector('.js-split'), 150);
@@ -120,6 +124,13 @@
         : 'Connecte-toi pour retrouver tes DaveCoins.';
       form.querySelector('button[type=submit]').innerHTML = (reg ? 'Créer mon compte' : 'Entrer au Palace') + I('chevron-right', 'i--sm');
       form.pass.autocomplete = reg ? 'new-password' : 'current-password';
+      // en ligne : email obligatoire à l'inscription ; connexion par email (ou pseudo pour les anciens comptes)
+      const mailOn = !!(DP.cloud && DP.cloud.online);
+      form.querySelector('.js-mailf').hidden = !(reg && mailOn);
+      form.querySelector('.js-ulbl').textContent = !reg && mailOn ? 'Email (ou pseudo)' : 'Pseudo';
+      form.user.placeholder = !reg && mailOn ? 'toi@exemple.fr' : 'Ton pseudo';
+      form.user.maxLength = reg ? 20 : 120;
+      form.querySelector('.js-forgot').hidden = reg || !mailOn;
       err.textContent = '';
     };
     tabs.forEach((t) => t.addEventListener('click', () => { mode = t.dataset.m; paint(); sound.play('click'); history.replaceState(null, '', mode === 'register' ? '#/inscription' : '#/connexion'); }));
@@ -133,15 +144,71 @@
       submit.disabled = true;
       submit.innerHTML = 'Connexion…';
       err.textContent = '';
-      const problem = await fn(form.user.value, form.pass.value);
+      const problem = await fn(form.user.value, form.pass.value, form.mail.value);
+      if (problem && problem.confirm) { submit.disabled = false; submit.innerHTML = label; mailSent(problem.confirm); return; }
       if (problem) { submit.disabled = false; submit.innerHTML = label; err.textContent = problem; sound.play('error'); return; }
       sound.play('coin');
       if (window.DP_INTRO) DP_INTRO.transitionTo('#/lobby');
       else { location.hash = '#/lobby'; route(); }
     });
+    // inscription : « vérifie ta boîte mail »
+    const done = app.querySelector('.auth-done');
+    function mailSent(email) {
+      form.hidden = true; done.hidden = false;
+      done.innerHTML = `<div class="auth-done__ico">${I('check')}</div><h2>Vérifie ta boîte mail</h2>
+        <p>On a envoyé un lien de confirmation à <b>${esc(email)}</b>. Clique dessus pour activer ton compte et recevoir tes <strong class="num">1 000</strong> ${ui.coin('coin--xs')}.</p>
+        <p class="muted">Rien reçu ? Regarde dans les spams, ou renvoie le lien.</p>
+        <button type="button" class="btn btn--ghost btn--block js-resend">Renvoyer le lien</button>
+        <button type="button" class="auth-forgot js-back">Retour</button>`;
+      sound.play('coin');
+      done.querySelector('.js-resend').addEventListener('click', async (e) => { e.currentTarget.disabled = true; const er = await auth.resendConfirm(email); ui.toast(er || 'Lien renvoyé !', er ? 'error' : 'win'); });
+      done.querySelector('.js-back').addEventListener('click', () => { done.hidden = true; form.hidden = false; mode = 'login'; paint(); });
+    }
+    // mot de passe oublié
+    form.querySelector('.js-forgot').addEventListener('click', () => {
+      form.hidden = true; done.hidden = false;
+      done.innerHTML = `<h2>Mot de passe oublié</h2><p class="muted">Entre l’adresse email de ton compte : on t’envoie un lien pour choisir un nouveau mot de passe.</p>
+        <label class="field"><span>Adresse email</span><input class="js-rmail" type="email" autocomplete="email" placeholder="toi@exemple.fr" value="${esc(form.user.value.includes('@') ? form.user.value : '')}"></label>
+        <p class="auth-form__error js-rerr" role="alert"></p>
+        <button type="button" class="btn btn--primary btn--lg btn--block js-rsend">Envoyer le lien</button>
+        <p class="muted auth-done__note">Ancien compte créé sans email ? Connecte-toi avec ton pseudo puis ajoute ton email dans « Mon profil ».</p>
+        <button type="button" class="auth-forgot js-back">Retour</button>`;
+      const inp = done.querySelector('.js-rmail'); inp.focus();
+      done.querySelector('.js-back').addEventListener('click', () => { done.hidden = true; form.hidden = false; });
+      done.querySelector('.js-rsend').addEventListener('click', async (e) => {
+        const b = e.currentTarget; b.disabled = true;
+        const r = await auth.resetPassword(inp.value);
+        b.disabled = false;
+        if (r.error) { done.querySelector('.js-rerr').textContent = r.error; sound.play('error'); return; }
+        done.innerHTML = `<div class="auth-done__ico">${I('check')}</div><h2>Email envoyé</h2><p>Si un compte utilise <b>${esc(inp.value.trim())}</b>, tu vas recevoir un lien pour choisir un nouveau mot de passe (pense aux spams).</p>
+          <button type="button" class="auth-forgot js-back">Retour à la connexion</button>`;
+        done.querySelector('.js-back').addEventListener('click', () => { done.hidden = true; form.hidden = false; mode = 'login'; paint(); });
+      });
+    });
     paint();
     form.user.focus();
   }
+
+  /* ---------- Nouveau mot de passe (après le lien « mot de passe oublié ») ---------- */
+  function recoveryModal() {
+    if (!DP.cloud || !DP.cloud.recovery || document.querySelector('.js-recov') || !document.querySelector('.shell')) return;
+    DP.cloud.recovery = false;
+    const modal = ui.el(`<div class="modal js-recov" role="dialog" aria-modal="true"><div class="modal__card">
+      <h3>${I('lock')}Nouveau mot de passe</h3><p>Choisis ton nouveau mot de passe (6 caractères minimum).</p>
+      <label class="field"><span>Nouveau mot de passe</span><input class="js-np" type="password" autocomplete="new-password" placeholder="••••••"></label>
+      <p class="auth-form__error js-ne" role="alert"></p>
+      <button type="button" class="btn btn--primary btn--lg btn--block js-ns">Enregistrer</button></div></div>`);
+    document.body.appendChild(modal);
+    modal.querySelector('.js-np').focus();
+    modal.querySelector('.js-ns').addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      const er = await auth.setPassword(modal.querySelector('.js-np').value);
+      e.currentTarget.disabled = false;
+      if (er) { modal.querySelector('.js-ne').textContent = er; return; }
+      modal.remove(); sound.play('win'); ui.toast('Mot de passe changé !', 'win');
+    });
+  }
+  on('recovery', () => setTimeout(recoveryModal, 300));
 
   /* ---------- Coquille (barre du haut + navigation) ---------- */
   function renderShell() {

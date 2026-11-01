@@ -217,9 +217,40 @@
     }
 
     const paint = () => {
-      view.innerHTML = `<div class="js-pcard">${cardBlock()}</div><div class="js-pedit">${editing ? editorBlock() : ''}</div>`;
+      view.innerHTML = `<div class="js-pcard">${cardBlock()}</div><div class="js-pmail"></div><div class="js-pedit">${editing ? editorBlock() : ''}</div>`;
       DP_MOTION.tilt(view.querySelectorAll('.pshow .tcard'), 12);
+      paintMail();
     };
+    // adresse email du compte (récupération du mot de passe)
+    async function paintMail() {
+      const box = view.querySelector('.js-pmail');
+      if (!box || !(DP.cloud && DP.cloud.online && DP.cloud.uid && DP.cloud.uid())) return;
+      const m = await auth.myEmail();
+      if (!m || !box.isConnected) return;
+      const form = (ph, cta) => `<div class="pmail__form"><input class="js-mail" type="email" autocomplete="email" placeholder="${ph}"><button type="button" class="btn btn--primary btn--sm js-mailgo">${cta}</button></div>`;
+      box.innerHTML = `<section class="pmail ${m.email ? '' : 'warn'}">
+        <div class="pmail__txt"><b>${I(m.email ? 'check' : 'triangle-alert', 'i--sm')}Adresse email</b>
+          ${m.pending ? `<span>Lien de confirmation envoyé à <b>${esc(m.pending)}</b> : clique dessus pour valider.</span>`
+            : m.email ? `<span>${esc(m.email)} · sert à récupérer ton compte si tu oublies ton mot de passe.</span>`
+            : '<span>Aucune adresse email : ajoute-la pour pouvoir récupérer ton compte si tu oublies ton mot de passe.</span>'}</div>
+        ${m.email && !m.pending ? '<button type="button" class="btn btn--ghost btn--sm js-mailchg">Changer</button>' : form('toi@exemple.fr', m.pending ? 'Renvoyer' : 'Ajouter')}
+      </section>`;
+      const chg = box.querySelector('.js-mailchg');
+      if (chg) chg.addEventListener('click', () => { chg.outerHTML = form('nouvelle@adresse.fr', 'Changer'); bindMail(); });
+      bindMail();
+      function bindMail() {
+        const go = box.querySelector('.js-mailgo'); if (!go) return;
+        go.addEventListener('click', async () => {
+          const v = box.querySelector('.js-mail').value;
+          go.disabled = true;
+          const er = await auth.setEmail(v);
+          go.disabled = false;
+          if (er) { ui.toast(er, 'error', 5000); sound.play('error'); return; }
+          ui.toast('Lien de confirmation envoyé : clique dessus dans ta boîte mail.', 'win', 6000); sound.play('coin');
+          paintMail();
+        });
+      }
+    }
     const repaintCard = () => { view.querySelector('.js-pcard').innerHTML = cardBlock(); };
     const repaintEdit = () => { view.querySelector('.js-pedit').innerHTML = editing ? editorBlock() : ''; };
     const changed = () => { sound.play('click'); repaintCard(); repaintEdit(); };

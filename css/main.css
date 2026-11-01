@@ -121,7 +121,7 @@ h1, h2, h3 { margin: 0; line-height: 1.05; font-family: var(--display); font-wei
 .field { display: flex; flex-direction: column; gap: 7px; }
 .field__head { display: flex; justify-content: space-between; align-items: baseline; }
 .field__hint { font-size: var(--t-xs); color: var(--dim); }
-.field input:not([type]), .field input[type=password], .field input[type=number], .field select {
+.field input:not([type]), .field input[type=password], .field input[type=email], .field input[type=number], .field select {
   width: 100%; height: 44px; padding: 0 14px; background: rgba(0,0,0,.45); border: 0; border-radius: 0; box-shadow: inset 0 0 0 1px var(--line-2), inset 0 -2px 0 var(--line-3);
   outline: none; transition: box-shadow .25s;
 }
@@ -1699,3 +1699,25 @@ body:has(.modal) { overflow: hidden; }
 .jp-alert p .num { color: #ffc145; font-family: var(--display); font-size: 18px; }
 @keyframes jp-crown { to { transform: rotate(-8deg) scale(1.08); box-shadow: 0 0 30px rgba(255, 193, 69, .8); } }
 @media (max-width: 600px) { .jp-alert { width: calc(100% - 24px); padding: 12px 14px; gap: 12px; } .jp-alert__crown { width: 48px; height: 48px; } }
+
+/* Connexion : mot de passe oublié, email envoyé */
+.auth-forgot { display: block; margin: 12px auto 0; padding: 4px; font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.auth-forgot:hover { color: var(--accent); }
+.auth-forgot[hidden] { display: none; }
+.auth-done { display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.auth-done h2 { margin: 0; }
+.auth-done p { margin: 0; color: #c9cdd8; }
+.auth-done .field { text-align: left; }
+.auth-done__ico { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 4px; color: #1a0700; background: #4ade80; border-radius: 50%; }
+.auth-done__ico svg { width: 30px; height: 30px; }
+.auth-done__note { font-size: 12px; }
+/* Profil : adresse email */
+.pmail { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin: 14px 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); }
+.pmail.warn { border-color: rgba(255, 193, 69, .5); background: rgba(255, 193, 69, .06); }
+.pmail__txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pmail__txt > b { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); text-transform: uppercase; letter-spacing: .06em; }
+.pmail.warn .pmail__txt > b { color: var(--coin); }
+.pmail__txt span { font-size: 13px; color: var(--muted); }
+.pmail__form { display: flex; gap: 8px; flex-wrap: wrap; }
+.pmail__form input { height: 34px; min-width: 220px; padding: 0 10px; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line-2); }
+.pmail__form input:focus { outline: none; border-color: var(--accent); }
