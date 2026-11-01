@@ -1347,7 +1347,7 @@ insert into public.eng_const values ('daily', '[[100,18],[500,8],[150,16],[1000,
 insert into public.eng_const values ('edges', '{"dice":0.042,"roulette":0.027,"plinko":0.01,"machine":0.035,"mines":0.01,"tower":0.02,"chicken":0.01,"flip":0.01,"rocket":0.01,"blackjack":0.006,"cases":0.05,"upgrade":0.05,"scratch":0.05,"poker":0}'::jsonb);
 insert into public.eng_const values ('gates', '{"promo_level":5,"poker_level":5,"rescue_played":20,"trade_level":10,"trade_age_days":3,"trade_ratio":0.75,"trade_day_n":5,"trade_day_value":10000,"trade_items":8}'::jsonb);
 insert into public.eng_const values ('limits', '{"max_bet":5000}'::jsonb);
-insert into public.eng_const values ('promo', '{"dave33":3333,"fan2jc":5000}'::jsonb);
+insert into public.eng_const values ('promo', '{"dave33":333,"fan2jc":500}'::jsonb);
 insert into public.eng_achs values ('play1', 1, 'played', 1);
 insert into public.eng_achs values ('play50', 1, 'played', 50);
 insert into public.eng_achs values ('play250', 2, 'played', 250);
