@@ -440,10 +440,13 @@
           T.rr.min = minTo; T.rr.max = maxTo; T.rr.value = raiseTo;
           T.presets.innerHTML = [['Tapis', maxTo], ['Pot', preset(1)], ['¾ pot', preset(0.75)], ['½ pot', preset(0.5)], ['Min', minTo]].map(([l, v]) => `<button type="button" data-v="${v}">${l}</button>`).join('');
         }
-        T.acts.innerHTML = `
-          <button type="button" class="pkb pkb--fold" data-a="fold">Se coucher</button>
-          <div class="pkb-wrap">${toCall ? `<span class="pkb-amt num">${fmt(Math.min(toCall, m.stack))}</span>` : ''}<button type="button" class="pkb pkb--call" data-a="${toCall ? 'call' : 'check'}">${toCall ? (toCall >= m.stack ? 'Tapis' : 'Suivre') : 'Parole'}</button></div>
-          ${canRaise ? `<div class="pkb-wrap">${raiseOpen ? `<span class="pkb-amt num js-rv">${fmt(raiseTo)}</span>` : ''}<button type="button" class="pkb pkb--raise" data-a="${raiseOpen ? 'raise' : 'open'}">${raiseOpen ? 'Valider' : st.curBet ? 'Relancer' : 'Miser'}</button></div>` : ''}`;
+        // gros boutons d'action : icône, libellé, montant et touche du clavier
+        const btn = (cls, a, ico, label, sub, key) => `<button type="button" class="pka pka--${cls}" data-a="${a}">
+            <span class="pka__ico">${I(ico)}</span><span class="pka__txt"><b>${label}</b>${sub != null ? `<small class="num ${a === 'raise' ? 'js-rv' : ''}">${sub}</small>` : ''}</span><kbd>${key}</kbd></button>`;
+        const allCall = toCall && toCall >= m.stack;
+        T.acts.innerHTML = btn('fold', 'fold', 'x', 'Se coucher', null, 'F')
+          + (toCall ? btn('call', 'call', allCall ? 'zap' : 'check', allCall ? 'Tapis' : 'Suivre', fmt(Math.min(toCall, m.stack)), 'C') : btn('call', 'check', 'check', 'Parole', null, 'C'))
+          + (canRaise ? (raiseOpen ? btn('raise', 'raise', 'trending-up', 'Valider', fmt(raiseTo), 'R') : btn('raise', 'open', 'trending-up', st.curBet ? 'Relancer' : 'Miser', `min ${fmt(minTo)}`, 'R')) : '');
         setRaise(raiseTo);
       }
       async function action(a) {
