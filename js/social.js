@@ -60,7 +60,8 @@
         }
         if (/^friend_/.test(p.new.kind)) loadFriends();
         // duel réglé / refusé par l'ami : le solde et l'inventaire ont changé côté serveur
-        if ((p.new.kind === 'duel_result' || p.new.kind === 'duel_declined' || p.new.kind === 'admin') && !inLobby && DP.engine && DP.engine.on) DP.engine.refresh();
+        if (/^trade/.test(p.new.kind)) emit('trades');
+        if ((p.new.kind === 'duel_result' || p.new.kind === 'duel_declined' || p.new.kind === 'admin' || p.new.kind === 'trade_done') && !inLobby && DP.engine && DP.engine.on) DP.engine.refresh();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => loadFriends())
       .subscribe();
@@ -92,6 +93,7 @@
     async request(userId) { if (await act(sb().from('friendships').insert({ requester: S.uid, addressee: userId }))) { sound.play('chip'); ui.toast('Demande d’ami envoyée', 'win'); await loadFriends(); } },
     async accept(fid) { if (await act(sb().from('friendships').update({ status: 'accepted' }).eq('id', fid))) { sound.play('win'); await Promise.all([loadFriends(), loadNotifs()]); } },
     async remove(fid) { if (await act(sb().from('friendships').delete().eq('id', fid))) { sound.play('click'); await loadFriends(); } },
+    async trades() { return DP.engine.call('trade_list', {}, { silent: true }); },
     /** Un duel (avec le pseudo de l'adversaire), ou null. */
     async duel(id) {
       const { data } = await sb().from('duels').select('*').eq('id', id).maybeSingle();
@@ -184,10 +186,13 @@
     if (n.kind === 'duel') return `${who(n)} te défie en battle de caisses : ${esc(DP.progress.caseName(p.case))}, ${p.rounds} manche${p.rounds > 1 ? 's' : ''}, mise <b class="num">${fmt(p.cost)}</b>`;
     if (n.kind === 'duel_result') return `Duel contre ${who(n)} : ${p.result === 'win' ? '<b class="pos">gagné</b> !' : p.result === 'tie' ? 'égalité' : '<b class="neg">perdu</b>'}`;
     if (n.kind === 'duel_declined') return `${who(n)} a refusé ton défi (mise rendue)`;
+    if (n.kind === 'trade') return `${who(n)} te propose un échange de cartes (<b class="num">${fmt(p.give)}</b> contre <b class="num">${fmt(p.want)}</b>)`;
+    if (n.kind === 'trade_done') return `${who(n)} a accepté ton échange de cartes !`;
+    if (n.kind === 'trade_declined') return `${who(n)} a refusé ton échange de cartes`;
     if (n.kind === 'renamed') return `Un admin t’a renommé : <b>${esc((n.payload || {}).old || '')}</b> → <b>${esc((n.payload || {}).new || '')}</b>`;
     return esc(n.kind);
   }
-  const iconOf = (k) => ({ friend_request: 'user-plus', friend_accept: 'user-check', friend_win: 'trophy', admin: 'shield', duel: 'swords', duel_result: 'swords', duel_declined: 'swords' }[k] || 'bell');
+  const iconOf = (k) => ({ friend_request: 'user-plus', friend_accept: 'user-check', friend_win: 'trophy', admin: 'shield', duel: 'swords', duel_result: 'swords', duel_declined: 'swords', trade: 'repeat', trade_done: 'repeat', trade_declined: 'repeat' }[k] || 'bell');
   const ago = (t) => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
 
   /* ---------- Cloche ---------- */
@@ -211,6 +216,7 @@
             ${f ? `<div class="nitem__act"><button type="button" class="btn btn--primary btn--sm js-nacc" data-f="${f.id}">Accepter</button><button type="button" class="btn btn--ghost btn--sm js-nref" data-f="${f.id}">Refuser</button></div>` : ''}
             ${n.kind === 'duel' && !n.read ? `<div class="nitem__act"><button type="button" class="btn btn--primary btn--sm js-dacc" data-d="${n.payload.duel}">Accepter le duel</button><button type="button" class="btn btn--ghost btn--sm js-dref" data-d="${n.payload.duel}">Refuser</button></div>` : ''}
             ${n.kind === 'duel_result' ? `<div class="nitem__act"><a class="btn btn--primary btn--sm" href="#/duel/${n.payload.duel}">Revoir le duel</a></div>` : ''}
+            ${n.kind === 'trade' && !n.read ? `<div class="nitem__act"><a class="btn btn--primary btn--sm" href="#/amis">Voir l’échange</a></div>` : ''}
             ${n.from_user && n.kind !== 'admin' ? `<a class="nitem__link" href="#/joueur/${encodeURIComponent(n.from_name || '')}">Voir le profil</a>` : ''}</div></div>`;
         }).join('') : `<div class="npop__empty">${I('bell', 'i--lg')}<span>Aucune notification</span></div>`}</div>
         <footer><a href="#/amis" class="linkbtn">${I('users', 'i--sm')}Mes amis</a></footer>`;
@@ -289,7 +295,8 @@
         </section>
         ${incoming.length ? `<section class="fpanel" data-reveal><header><h2>Demandes reçues <span class="nav-tag">${incoming.length}</span></h2></header><div class="flist">${incoming.map((f) => row(f.other, f.name, `<button type="button" class="btn btn--primary btn--sm js-facc" data-f="${f.id}">Accepter</button><button type="button" class="btn btn--ghost btn--sm js-frem" data-f="${f.id}">Refuser · annuler</button>`)).join('')}</div></section>` : ''}
         <section class="fpanel" data-reveal><header><h2>Mes amis <small class="num">${friends.length}</small></h2></header>
-          <div class="flist">${friends.length ? friends.map((f) => row(f.other, f.name, `${DP.engine && DP.engine.on ? `<button type="button" class="btn btn--primary btn--sm js-defy" data-u="${f.other}">${I('swords', 'i--sm')}Défier</button>` : ''}<a class="btn btn--ghost btn--sm" href="#/joueur/${encodeURIComponent(f.name)}">Profil</a>${friendBtnHtml(f.other)}`)).join('') : '<p class="muted">Pas encore d’amis. Recherche un pseudo pour envoyer une demande.</p>'}</div></section>
+          <div class="flist">${friends.length ? friends.map((f) => row(f.other, f.name, `${DP.engine && DP.engine.on ? `<button type="button" class="btn btn--primary btn--sm js-defy" data-u="${f.other}">${I('swords', 'i--sm')}Défier</button><button type="button" class="btn btn--ghost btn--sm js-trade" data-u="${f.other}" data-n="${esc(f.name)}">${I('repeat', 'i--sm')}Échanger</button>` : ''}<a class="btn btn--ghost btn--sm" href="#/joueur/${encodeURIComponent(f.name)}">Profil</a>${friendBtnHtml(f.other)}`)).join('') : '<p class="muted">Pas encore d’amis. Recherche un pseudo pour envoyer une demande.</p>'}</div></section>
+        ${DP.engine && DP.engine.on ? '<section class="fpanel js-trades" data-reveal><header><h2>Échanges de cartes</h2></header><p class="muted">Chargement…</p></section>' : ''}
         <section class="fpanel js-duels" data-reveal><header><h2>${I('swords', 'i--sm')}Duels de caisses</h2></header><p class="muted">Chargement…</p></section>
         ${outgoing.length ? `<section class="fpanel" data-reveal><header><h2>Demandes envoyées</h2></header><div class="flist">${outgoing.map((f) => row(f.other, f.name, friendBtnHtml(f.other))).join('')}</div></section>` : ''}`;
       const inp = body.querySelector('.js-fq');
@@ -304,6 +311,11 @@
     });
     bindFriendButtons(body, () => {});
     body.addEventListener('click', async (e) => {
+      const tr = e.target.closest('.js-trade');
+      if (tr) { tradeDialog(tr.dataset.u, tr.dataset.n); return; }
+      const ta = e.target.closest('.js-tacc'), td = e.target.closest('.js-tref');
+      if (ta) { ta.disabled = true; const r = await DP.engine.call('trade_accept', { p_id: +ta.dataset.t }); if (r) { sound.play('win'); ui.toast('Échange réalisé : les cartes sont dans ton inventaire !', 'win'); } paintTrades(); return; }
+      if (td) { if (!ui.confirmClick(td, td.dataset.mine ? 'Annuler l’offre' : 'Refuser')) return; td.disabled = true; await DP.engine.call('trade_decline', { p_id: +td.dataset.t }); paintTrades(); return; }
       const df = e.target.closest('.js-defy');
       if (df) { try { sessionStorage.setItem('dp_duel_target', df.dataset.u); } catch { /* ignore */ } location.hash = '#/caisses'; return; }
       const da = e.target.closest('.js-dacc'), dr = e.target.closest('.js-dref');
@@ -327,13 +339,101 @@
           ${d.status === 'pending' && d.mine ? `<a class="btn btn--primary btn--sm" href="#/duel/${d.id}">Lobby</a><button type="button" class="btn btn--ghost btn--sm js-dref" data-mine="1" data-d="${d.id}">Annuler</button>` : ''}
           ${d.status === 'done' ? `<a class="btn btn--ghost btn--sm" href="#/duel/${d.id}">Revoir</a>` : ''}</div></div>`).join('') : '<p class="muted">Aucun duel pour l’instant.</p>'}</div>`;
     }
+
+    /* ---------- Échanges de cartes ---------- */
+    const cardsOf = (list) => list.map((it) => { const c = DP.cards.byId[it.id]; return c ? `<span class="tchip ${it.shiny ? 'shiny' : ''}" style="--r:${c.rarity.c}" title="${esc(c.name)}"><img src="${DP.IMG}${c.img}" alt="">${it.n > 1 ? `<b>×${it.n}</b>` : ''}</span>` : ''; }).join('');
+    let gates = null;
+    async function paintTrades() {
+      const box = body.querySelector('.js-trades');
+      if (!box || !online()) return;
+      const r = await social.trades();
+      if (!box.isConnected) return;
+      if (!r) { box.innerHTML = '<header><h2>Échanges de cartes</h2></header><p class="muted">Le script supabase/trades.sql n’a pas encore été exécuté.</p>'; return; }
+      gates = r.gates || {};
+      const st = { pending: 'En attente', done: '<b class="pos">Fait</b>', declined: 'Refusé', cancelled: 'Annulé', expired: 'Expiré' };
+      box.innerHTML = `<header><h2>${I('repeat', 'i--sm')}Échanges de cartes</h2><span class="muted">Niveau ${gates.trade_level || 10} minimum · échanges équilibrés · ${gates.trade_day_n || 5} par jour</span></header>
+        <div class="flist">${r.trades.length ? r.trades.map((t) => `<div class="frow trow">
+          <div class="trow__who"><b>${t.mine ? 'Toi → ' + esc(t.otherName || '?') : esc(t.otherName || '?') + ' → toi'}</b><small class="muted">${st[t.status] || t.status}</small></div>
+          <div class="trow__deal"><div class="trow__side"><small>${t.mine ? 'Tu donnes' : 'Tu reçois'}</small><div>${cardsOf(t.give)}</div><span class="num">${fmt(t.giveValue)}</span></div>
+            <span class="trow__x">${I('repeat', 'i--sm')}</span>
+            <div class="trow__side"><small>${t.mine ? 'Tu reçois' : 'Tu donnes'}</small><div>${cardsOf(t.want)}</div><span class="num">${fmt(t.wantValue)}</span></div></div>
+          <div class="frow__act">${t.status === 'pending' ? (t.mine ? `<button type="button" class="btn btn--ghost btn--sm js-tref" data-mine="1" data-t="${t.id}">Annuler</button>`
+            : `<button type="button" class="btn btn--primary btn--sm js-tacc" data-t="${t.id}">Accepter</button><button type="button" class="btn btn--ghost btn--sm js-tref" data-t="${t.id}">Refuser</button>`) : ''}</div>
+        </div>`).join('') : '<p class="muted">Aucun échange. Clique sur « Échanger » à côté d’un ami pour lui proposer des cartes.</p>'}</div>`;
+    }
+
+    async function tradeDialog(friend, name) {
+      const theirs = await DP.engine.call('trade_inventory', { p_friend: friend });
+      if (!theirs) return;
+      const g = gates || {};
+      const ratio = g.trade_ratio || 0.75, maxN = g.trade_items || 8;
+      const flat = (inv) => [...Object.entries(inv.cards || {}).map(([id, n]) => ({ id, n, shiny: false })), ...Object.entries(inv.shiny || {}).map(([id, n]) => ({ id, n, shiny: true }))]
+        .filter((x) => x.n > 0 && DP.cards.byId[x.id]).sort((a, b) => DP.cards.byId[b.id].value * (b.shiny ? 5 : 1) - DP.cards.byId[a.id].value * (a.shiny ? 5 : 1));
+      const mine = flat({ cards: Object.fromEntries(DP.inventory.entries().filter((x) => !x.shiny).map((x) => [x.card.id, x.n])), shiny: Object.fromEntries(DP.inventory.entries().filter((x) => x.shiny).map((x) => [x.card.id, x.n])) });
+      const other = flat(theirs);
+      const pick = { give: new Map(), want: new Map() };
+      const key = (x) => x.id + (x.shiny ? '*' : '');
+      const valOf = (side) => [...pick[side].entries()].reduce((a, [k, n]) => a + DP.cards.byId[k.replace('*', '')].value * (k.endsWith('*') ? 5 : 1) * n, 0);
+      const cnt = (side) => [...pick[side].values()].reduce((a, n) => a + n, 0);
+      const grid = (side, list) => list.length ? list.map((x) => { const c = DP.cards.byId[x.id], k = key(x), n = pick[side].get(k) || 0;
+        return `<button type="button" class="tpick ${n ? 'on' : ''} ${x.shiny ? 'shiny' : ''}" data-side="${side}" data-k="${k}" data-max="${x.n}" style="--r:${c.rarity.c}" title="${esc(c.name)}">
+          <img src="${DP.IMG}${c.img}" alt=""><span class="tpick__v num">${fmt(c.value * (x.shiny ? 5 : 1))}</span><span class="tpick__n num">${n ? n + '/' : ''}${x.n}</span></button>`; }).join('')
+        : '<p class="muted">Aucune carte.</p>';
+      const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true"><div class="modal__card tdlg">
+        <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
+        <h3>${I('repeat')}Échange avec ${esc(name)}</h3>
+        <p class="muted">Clique sur une carte pour l’ajouter (re-clique pour en ajouter une de plus, clic droit pour en retirer). Les deux côtés doivent valoir à peu près pareil.</p>
+        <div class="tdlg__cols">
+          <div class="tdlg__col"><h4>Tu donnes <span class="num js-gv"></span></h4><div class="tdlg__grid js-give"></div></div>
+          <div class="tdlg__col"><h4>Tu demandes <span class="num js-wv"></span></h4><div class="tdlg__grid js-want"></div></div>
+        </div>
+        <div class="tdlg__bar"><div class="tdlg__meter"><i class="js-meter"></i></div><span class="js-hint"></span></div>
+        <button type="button" class="btn btn--primary btn--lg btn--block js-go">Proposer l’échange</button></div></div>`);
+      document.body.appendChild(modal);
+      const paint = () => {
+        modal.querySelector('.js-give').innerHTML = grid('give', mine);
+        modal.querySelector('.js-want').innerHTML = grid('want', other);
+        const gv = valOf('give'), wv = valOf('want');
+        modal.querySelector('.js-gv').textContent = fmt(gv); modal.querySelector('.js-wv').textContent = fmt(wv);
+        const bal = gv && wv ? Math.min(gv, wv) / Math.max(gv, wv) : 0;
+        const ok = gv > 0 && wv > 0 && bal >= ratio && cnt('give') <= maxN && cnt('want') <= maxN;
+        const m = modal.querySelector('.js-meter'); m.style.width = Math.round(bal * 100) + '%'; m.style.background = ok ? '#4ade80' : bal >= ratio * 0.8 ? '#fbbf24' : '#ff3d5a';
+        modal.querySelector('.js-hint').innerHTML = !gv || !wv ? 'Choisis au moins une carte de chaque côté.' : cnt('give') > maxN || cnt('want') > maxN ? `Au plus ${maxN} cartes de chaque côté.`
+          : ok ? `<span class="pos">Échange équilibré (${Math.round(bal * 100)} %)</span>` : `Trop déséquilibré (${Math.round(bal * 100)} %) : il faut au moins ${Math.round(ratio * 100)} %.`;
+        modal.querySelector('.js-go').disabled = !ok;
+      };
+      paint();
+      const tap = (b, delta) => {
+        const side = b.dataset.side, k = b.dataset.k, mx = +b.dataset.max;
+        const n = Math.max(0, Math.min(mx, (pick[side].get(k) || 0) + delta));
+        if (n) pick[side].set(k, n); else pick[side].delete(k);
+        sound.play('click'); paint();
+      };
+      modal.addEventListener('contextmenu', (e) => { const b = e.target.closest('.tpick'); if (b) { e.preventDefault(); tap(b, -1); } });
+      modal.addEventListener('click', async (e) => {
+        if (e.target === modal || e.target.closest('.modal__close')) { modal.remove(); return; }
+        const b = e.target.closest('.tpick');
+        if (b) { tap(b, (pick[b.dataset.side].get(b.dataset.k) || 0) >= +b.dataset.max ? -99 : 1); return; }
+        const go = e.target.closest('.js-go');
+        if (!go || go.disabled) return;
+        const list = (side) => [...pick[side].entries()].map(([k, n]) => ({ id: k.replace('*', ''), shiny: k.endsWith('*'), n }));
+        go.disabled = true;
+        const r = await DP.engine.call('trade_offer', { p_friend: friend, p_give: list('give'), p_want: list('want') });
+        go.disabled = false;
+        if (!r) return;
+        modal.remove(); sound.play('chip');
+        ui.toast(`Échange proposé à ${name} !`, 'win');
+        paintTrades();
+      });
+    }
+    const offTrades = on('trades', () => paintTrades());
     const offNotifDuel = on('notifs', () => paintDuels());
-    const off1 = on('friends', () => { const f = document.activeElement; const keep = f && f.classList.contains('js-fq'); paint(); paintDuels(); if (keep) { const i = body.querySelector('.js-fq'); i.focus(); i.setSelectionRange(q.length, q.length); } });
+    const off1 = on('friends', () => { const f = document.activeElement; const keep = f && f.classList.contains('js-fq'); paint(); paintDuels(); paintTrades(); if (keep) { const i = body.querySelector('.js-fq'); i.focus(); i.setSelectionRange(q.length, q.length); } });
     paint();
-    paintDuels();
+    paintDuels(); paintTrades();
     DP_MOTION.reveal(view, '[data-reveal]');
-    if (online()) start().then(() => { paint(); paintDuels(); });
-    return () => { clearTimeout(timer); off1(); offNotifDuel(); };
+    if (online()) start().then(() => { paint(); paintDuels(); paintTrades(); });
+    return () => { clearTimeout(timer); off1(); offNotifDuel(); offTrades(); };
   }
 
   Object.assign(social, { bell, render, friendBtnHtml, bindFriendButtons });

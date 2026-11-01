@@ -501,6 +501,17 @@ begin
   delete from poker_deck d where not exists (select 1 from poker_tables t where t.id = d.table_id);
 end $$;
 
+-- niveau minimum pour jouer (anti multi-comptes)
+create or replace function public.eng_gate(p_key text, p_def numeric) returns numeric language sql stable as $$
+  select coalesce((select (v ->> p_key)::numeric from public.eng_const where k = 'gates'), p_def);
+$$;
+create or replace function public.eng_lvl(a public.accounts) returns int language sql stable as $$ select public.eng_level(public.jn(a.prog, 'xp')); $$;
+create or replace function public.pk_gate(a public.accounts) returns void language plpgsql stable as $$
+declare lv int := eng_gate('poker_level', 5)::int;
+begin
+  if eng_lvl(a) < lv then raise exception 'Le poker se débloque au niveau %. Joue un peu avant !', lv; end if;
+end $$;
+
 /* ---------- Fonctions appelées par le site ---------- */
 create or replace function public.poker_sweep() returns void language plpgsql security definer set search_path = public as $$
 begin
@@ -549,6 +560,7 @@ declare a accounts := eng_load(); t poker_tables; lv poker_leaves; mn int; mxb i
 begin
   select * into t from poker_tables where id = p_table for update;
   if not found then raise exception 'Cette table n’existe plus.'; end if;
+  perform pk_gate(a);
   if t.private and t.owner is distinct from a.user_id and upper(btrim(coalesce(p_code, ''))) is distinct from t.code then raise exception 'Code de la table incorrect.'; end if;
   if exists (select 1 from poker_seats where user_id = a.user_id and leaving) then raise exception 'Ta place précédente se libère à la fin de la main en cours.'; end if;
   if exists (select 1 from poker_seats where user_id = a.user_id) then raise exception 'Tu es déjà assis à une table.'; end if;
@@ -576,6 +588,7 @@ create or replace function public.poker_create(p_name text, p_level text, p_seat
 declare a accounts := eng_load(); lv jsonb := eng_c('poker_levels') -> p_level; nm text := regexp_replace(btrim(coalesce(p_name, '')), '\s+', ' ', 'g'); tid text; cd text;
 begin
   perform pk_sweep();
+  perform pk_gate(a);
   if lv is null then raise exception 'Niveau de table inconnu.'; end if;
   if p_seats is null or p_seats not between 2 and 6 then raise exception 'Une table a de 2 à 6 places.'; end if;
   if char_length(nm) < 3 or char_length(nm) > 24 then raise exception 'Nom de table : de 3 à 24 caractères.'; end if;
@@ -661,7 +674,7 @@ end $$;
 revoke execute on function public.pk_cfg(text, numeric), public.pk_score(int, int[]), public.pk_straight(int), public.pk_eval(int[]), public.pk_name(bigint),
   public.pk_next(text, int, int, text[]), public.pk_need(text, int, int, int), public.pk_log(text, text), public.pk_turn(text, int), public.pk_deal(text, int),
   public.pk_cashout(text, int), public.pk_bots(text), public.pk_post(text, int, int, text), public.pk_do(text, int, text, int), public.pk_finish(text),
-  public.pk_after(text, int), public.pk_start(text), public.pk_bot(text, int), public.pk_advance(text), public.pk_state(text, uuid), public.pk_sweep()
+  public.pk_after(text, int), public.pk_start(text), public.pk_bot(text, int), public.pk_advance(text), public.pk_state(text, uuid), public.pk_sweep(), public.pk_gate(public.accounts)
   from public, anon, authenticated;
 revoke execute on function public.poker_sweep(), public.poker_lobby(), public.poker_state(text), public.poker_tick(text), public.poker_join(text, int, text), public.poker_leave(text),
   public.poker_rebuy(text, int), public.poker_act(text, text, int), public.poker_create(text, text, int, boolean, int) from public, anon;

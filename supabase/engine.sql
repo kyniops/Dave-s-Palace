@@ -1052,20 +1052,26 @@ begin
 end $$;
 
 create or replace function public.rescue_claim() returns jsonb language plpgsql security definer set search_path = public as $$
-declare a accounts := eng_load();
+declare a accounts := eng_load(); need int := eng_gate('rescue_played', 20)::int;
 begin
+  if jn(a.stats, 'played') < need then raise exception 'Le dépannage se débloque après % parties jouées.', need; end if;
   if a.balance >= 1 or a.rescue_at + 3600000 > eng_ms() then raise exception 'Dépannage indisponible.'; end if;
   a.rescue_at := eng_ms();
   a := eng_income(a, 'rescue', 500);
   return jsonb_build_object('amount', 500, 'acct', eng_commit(a));
 end $$;
 
+create or replace function public.eng_gate(p_key text, p_def numeric) returns numeric language sql stable as $$
+  select coalesce((select (v ->> p_key)::numeric from public.eng_const where k = 'gates'), p_def);
+$$;
+create or replace function public.eng_lvl(a public.accounts) returns int language sql stable as $$ select public.eng_level(public.jn(a.prog, 'xp')); $$;
 create or replace function public.promo_redeem(p_code text) returns jsonb language plpgsql security definer set search_path = public as $$
-declare a accounts := eng_load(); code text := lower(trim(coalesce(p_code, ''))); amount numeric;
+declare a accounts := eng_load(); code text := lower(trim(coalesce(p_code, ''))); amount numeric; lv int := eng_gate('promo_level', 5)::int;
 begin
   if code = '' then raise exception 'Entre un code.'; end if;
   amount := (eng_c('promo') ->> code)::numeric;
   if amount is null then raise exception 'Ce code n’existe pas.'; end if;
+  if eng_lvl(a) < lv then raise exception 'Les codes promo se débloquent au niveau %. Joue un peu avant !', lv; end if;
   if exists (select 1 from jsonb_array_elements(a.codes) x where x ->> 'code' = code) then raise exception 'Tu as déjà utilisé ce code sur ce compte.'; end if;
   a.codes := a.codes || jsonb_build_array(jsonb_build_object('code', code, 'amount', amount, 't', eng_ms()));
   a := eng_income(a, 'promo', amount);
@@ -1335,6 +1341,7 @@ insert into public.eng_const values ('slot_fs_mult', '[2]'::jsonb);
 insert into public.eng_const values ('plinko', '{"8":{"low":[5.6,2.1,1.1,1,0.5,1,1.1,2.1,5.6],"medium":[13,3,1.3,0.7,0.4,0.7,1.3,3,13],"high":[29,4,1.5,0.3,0.2,0.3,1.5,4,29]},"12":{"low":[10,3,1.6,1.4,1.1,1,0.5,1,1.1,1.4,1.6,3,10],"medium":[33,11,4,2,1.1,0.6,0.3,0.6,1.1,2,4,11,33],"high":[170,24,8.1,2,0.7,0.2,0.2,0.2,0.7,2,8.1,24,170]},"16":{"low":[16,9,2,1.4,1.4,1.2,1.1,1,0.5,1,1.1,1.2,1.4,1.4,2,9,16],"medium":[110,41,10,5,3,1.5,1,0.5,0.3,0.5,1,1.5,3,5,10,41,110],"high":[1000,130,26,9,4,2,0.2,0.2,0.2,0.2,0.2,2,4,9,26,130,1000]}}'::jsonb);
 insert into public.eng_const values ('daily', '[[100,18],[500,8],[150,16],[1000,4],[200,14],[2500,1.5],[100,18],[750,6],[250,12],[5000,0.5]]'::jsonb);
 insert into public.eng_const values ('edges', '{"dice":0.042,"roulette":0.027,"plinko":0.01,"machine":0.035,"mines":0.01,"tower":0.02,"chicken":0.01,"flip":0.01,"rocket":0.01,"blackjack":0.006,"cases":0.05,"upgrade":0.05,"scratch":0.05,"poker":0}'::jsonb);
+insert into public.eng_const values ('gates', '{"promo_level":5,"poker_level":5,"rescue_played":20,"trade_level":10,"trade_age_days":3,"trade_ratio":0.75,"trade_day_n":5,"trade_day_value":10000,"trade_items":8}'::jsonb);
 insert into public.eng_const values ('limits', '{"max_bet":5000}'::jsonb);
 insert into public.eng_const values ('promo', '{"dave33":3333,"fan2jc":5000}'::jsonb);
 insert into public.eng_achs values ('play1', 1, 'played', 1);

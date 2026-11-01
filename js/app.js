@@ -306,7 +306,7 @@
           <button class="btn btn--primary" data-b="rb" type="button">Réclamer</button>
         </div>
         <div class="bonus-row">
-          <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde est à 0 (1 fois / heure)</span></div>
+          <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde est à 0 (1 fois / heure${DP.engine && DP.engine.on ? ', après 20 parties' : ''})</span></div>
           <button class="btn btn--ghost" data-b="rescue" type="button"></button>
         </div>
       </div>
@@ -785,7 +785,7 @@
     view.innerHTML = `
       <div class="page-head" data-reveal>
         <span class="game-head__ico">${I('ticket', 'i--lg')}</span>
-        <div><h1>Codes</h1><p>Un code te donne des DaveCoins. Chaque code ne fonctionne qu’une fois par compte.</p></div>
+        <div><h1>Codes</h1><p>Un code te donne des DaveCoins. Chaque code ne fonctionne qu’une fois par compte${DP.engine && DP.engine.on ? ', à partir du niveau 5' : ''}.</p></div>
       </div>
       <form class="code-box" data-reveal novalidate>
         <label class="field"><span>Ton code</span><input name="code" autocomplete="off" spellcheck="false" maxlength="32" placeholder="Ex. DAVE33"></label>

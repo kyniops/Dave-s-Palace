@@ -76,6 +76,7 @@
     rules: `<p><strong>Texas Hold’em No Limit</strong>, de 2 à 6 joueurs par table. Tu reçois 2 cartes, 5 cartes communes arrivent au centre (flop, turn, river) : la meilleure main de 5 cartes gagne le pot.</p>
       <ul><li><strong>Crée ta table</strong> (nom, niveau, de 2 à 6 places, publique ou privée) ou <strong>rejoins</strong> une table du salon. Une table privée se rejoint avec son <strong>code à 4 lettres</strong> : donne-le à tes potes.</li>
       <li><strong>4 niveaux</strong> : Petite (1/2), Moyenne (5/10), Grosse (25/50), High roller (100/200). Tu t’assois avec une <strong>cave</strong> entre 40 et 100 grosses blindes : un gros solde ne donne aucun avantage à la table.</li>
+      <li>Le poker se débloque au <strong>niveau 5</strong>.</li>
       <li>La partie commence dès que <strong>2 joueurs</strong> sont assis. Une table vide disparaît au bout de 2 minutes.</li>
       <li>Tu peux te <strong>recaver</strong> entre deux mains, jusqu’au maximum de la table.</li>
       <li>Si tu pars et reviens <strong>dans l’heure</strong> à une table du même niveau, tu dois revenir avec au moins le tapis avec lequel tu es parti.</li>
