@@ -1215,7 +1215,7 @@ body:has(.modal) { overflow: hidden; }
 .pkk b { position: absolute; left: 7%; top: 2%; font-size: calc(var(--w) * .54); font-weight: 700; letter-spacing: -.07em; }
 .pkk i { position: absolute; left: 10%; top: 46%; font-style: normal; font-size: calc(var(--w) * .32); }
 .pkk em { position: absolute; right: -10%; bottom: -16%; font-style: normal; font-size: calc(var(--w) * .95); }
-.pkk.back { background: #0d1b36 url("../assets/img/cardback.jpg?v=3") center / cover no-repeat; box-shadow: 0 8px 18px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(0, 0, 0, .15); }
+.pkk.back { background: #0d1b36 url("../assets/img/cardback_sm.png?v=1") center / 100% 100% no-repeat; box-shadow: 0 8px 18px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(0, 0, 0, .15); }
 .pkk__crown { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; }
 .pkk__crown svg { width: 44%; height: auto; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .35)); }
 .pkk.slot { background: rgba(255, 255, 255, .06); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .16); }
