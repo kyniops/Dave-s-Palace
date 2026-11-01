@@ -66,19 +66,20 @@ create or replace function public.eng_case_up(c text) returns text language sql 
   select (array['bande','gamers','kawai','selfie','aura','wanted','royale','royale'])[array_position(array['bande','gamers','kawai','selfie','aura','wanted','royale'], c) + 1];
 $$;
 
--- 2) anciens identifiants de cartes → nouveaux
-drop table if exists reorg_map;
-create temporary table reorg_map (old text primary key, new text not null);
-insert into reorg_map values ('gamers:petitbonnin', 'kawai:petitbonnin'), ('kawai:lucascoroi', 'wanted:lucascoroi'), ('horsserie:oulman', 'bande:oulman'), ('horsserie:liam', 'bande:liam'), ('horsserie:petitbonninchut', 'kawai:petitbonninchut'), ('horsserie:bonninmousse', 'wanted:bonninmousse'), ('horsserie:axbduo', 'aura:axbduo'), ('horsserie:petitbonninnoel', 'kawai:petitbonninnoel'), ('horsserie:gillemelon', 'wanted:gillemelon'), ('selfie:yohangamer', 'gamers:yohangamer'), ('wanted:teddam', 'selfie:teddam'), ('wanted:lucascoselfie', 'selfie:lucascoselfie');
-
-create or replace function pg_temp.remap(j jsonb) returns jsonb language sql as $$
-  select coalesce(jsonb_object_agg(e.key, e.total), '{}'::jsonb)
-  from (select coalesce(m.new, x.k) as key, sum(x.v::numeric) as total
-        from jsonb_each_text(coalesce(j, '{}'::jsonb)) as x(k, v) left join reorg_map m on m.old = x.k group by 1) e;
-$$;
-do $$ declare a public.accounts; begin
+-- 2) anciens identifiants de cartes → nouveaux (inventaires, brillantes, albums, caisses offertes)
+do $$ declare
+  mp jsonb := '{"gamers:petitbonnin": "kawai:petitbonnin", "kawai:lucascoroi": "wanted:lucascoroi", "horsserie:oulman": "bande:oulman", "horsserie:liam": "bande:liam", "horsserie:petitbonninchut": "kawai:petitbonninchut", "horsserie:bonninmousse": "wanted:bonninmousse", "horsserie:axbduo": "aura:axbduo", "horsserie:petitbonninnoel": "kawai:petitbonninnoel", "horsserie:gillemelon": "wanted:gillemelon", "selfie:yohangamer": "gamers:yohangamer", "wanted:teddam": "selfie:teddam", "wanted:lucascoselfie": "selfie:lucascoselfie"}'::jsonb;
+  a public.accounts; bag text; k text; v numeric; nb jsonb; m record;
+begin
   for a in select * from public.accounts for update loop
-    a.inv := jsonb_set(jsonb_set(a.inv, '{cards}', pg_temp.remap(a.inv -> 'cards')), '{shiny}', pg_temp.remap(a.inv -> 'shiny'));
+    foreach bag in array array['cards', 'shiny'] loop
+      nb := '{}'::jsonb;
+      for k, v in select key, value::numeric from jsonb_each_text(coalesce(a.inv -> bag, '{}'::jsonb)) loop
+        k := coalesce(mp ->> k, k);
+        nb := nb || jsonb_build_object(k, coalesce((nb ->> k)::numeric, 0) + v);
+      end loop;
+      a.inv := jsonb_set(a.inv, array[bag], nb);
+    end loop;
     -- album de l'ancienne caisse Hors-Série : la récompense déjà touchée compte pour la Selfie
     if coalesce((a.inv -> 'claimed' ->> 'horsserie')::boolean, false) then
       a.inv := jsonb_set(a.inv, '{claimed}', ((a.inv -> 'claimed') - 'horsserie') || '{"selfie": true}'::jsonb);
@@ -89,15 +90,11 @@ do $$ declare a public.accounts; begin
     end if;
     perform public.eng_commit(a);
   end loop;
-end $$;
 
--- 3) profils (photo, bannière, vitrine), historique des échanges et des duels
-do $$ declare m record; begin
+  -- 3) profils (photo, bannière, vitrine), historique des échanges et des duels
   perform set_config('dp.server', 'on', true);
-  for m in select * from reorg_map loop
-    update public.saves set data = replace(data::text, '"' || m.old || '"', '"' || m.new || '"')::jsonb, updated_at = now()
-      where data::text like '%' || m.old || '%';
-    update public.saves set data = replace(data::text, '\"' || m.old || '\"', '\"' || m.new || '\"')::jsonb, updated_at = now()
+  for m in select key as old, value as new from jsonb_each_text(mp) loop
+    update public.saves set data = replace(replace(data::text, '"' || m.old || '"', '"' || m.new || '"'), '\"' || m.old || '\"', '\"' || m.new || '\"')::jsonb, updated_at = now()
       where data::text like '%' || m.old || '%';
     begin
       update public.trades set give = replace(give::text, '"' || m.old || '"', '"' || m.new || '"')::jsonb, want = replace(want::text, '"' || m.old || '"', '"' || m.new || '"')::jsonb
@@ -107,5 +104,3 @@ do $$ declare m record; begin
   begin update public.duels set case_id = 'selfie' where case_id = 'horsserie'; exception when undefined_table then null; end;
   perform set_config('dp.server', 'off', true);
 end $$;
-
-drop table if exists reorg_map;
