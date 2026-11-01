@@ -242,7 +242,7 @@
 .card__c.br { bottom: 8px; right: 8px; transform: rotate(180deg); }
 .card__mid { position: absolute; inset: 0; display: grid; place-items: center; font-size: 38px; }
 .card__mid img { width: 60%; border-radius: 50%; object-fit: cover; aspect-ratio: 1; object-position: top; box-shadow: 0 0 0 2px currentColor; }
-.card.back { background: #0d1b36 url("../assets/img/cardback.jpg?v=2") center / cover no-repeat; box-shadow: 0 12px 24px -6px rgba(0,0,0,.7); }
+.card.back { background: #0d1b36 url("../assets/img/cardback.jpg?v=3") center / cover no-repeat; box-shadow: 0 12px 24px -6px rgba(0,0,0,.7); }
 .card.back > * { display: none; }
 .card.back::after { content: none; }
 .card.dealt:not(.flip) { animation: none; }
