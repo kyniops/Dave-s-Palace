@@ -172,5 +172,5 @@
     return btn;
   }
 
-  DP.music = { attach, tracks, hype, current: () => current };
+  DP.music = { attach, tracks, hype, current: () => current, playing: () => !(state.musicMuted || state.musicVol === 0) };
 })();

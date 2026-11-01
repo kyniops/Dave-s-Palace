@@ -242,9 +242,9 @@
 .card__c.br { bottom: 8px; right: 8px; transform: rotate(180deg); }
 .card__mid { position: absolute; inset: 0; display: grid; place-items: center; font-size: 38px; }
 .card__mid img { width: 60%; border-radius: 50%; object-fit: cover; aspect-ratio: 1; object-position: top; box-shadow: 0 0 0 2px currentColor; }
-.card.back { background: radial-gradient(circle at 50% 50%, #1a2033, #0a0c14); box-shadow: 0 12px 24px -6px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.15), inset 0 0 0 6px #0a0c14, inset 0 0 0 7px rgba(255,107,44,.35); }
+.card.back { background: #0d1b36 url("../assets/img/cardback.jpg") center / cover no-repeat; box-shadow: 0 12px 24px -6px rgba(0,0,0,.7); }
 .card.back > * { display: none; }
-.card.back::after { content: ''; position: absolute; inset: 0; background: center / 34px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c8ff3d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z'/%3E%3Cpath d='M5 21h14'/%3E%3C/svg%3E"); }
+.card.back::after { content: none; }
 .card.dealt:not(.flip) { animation: none; }
 .card.flip { animation: card-flip 0.5s cubic-bezier(.3,.7,.4,1.2); }
 @keyframes deal { from { transform: translate(min(34vw, 380px), -240px) rotate(-90deg) scale(.8); opacity: 0; } 60% { opacity: 1; } }

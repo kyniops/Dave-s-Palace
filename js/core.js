@@ -550,7 +550,8 @@
       },
       /** Musique de bonus en boucle (basse + arpège) pendant les free spins. */
       fsMusic() {
-        if (!ready()) return { stop() {} };
+        // la musique du site passe déjà en phonk pendant les free spins : pas de 2e musique par-dessus
+        if (!ready() || (DP.music && DP.music.playing && DP.music.playing())) return { stop() {} };
         let alive = true, step = 0;
         const BPM = 132, beat = 60 / BPM;
         const prog = [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]];

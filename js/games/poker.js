@@ -27,7 +27,7 @@
   };
   const red = (c) => PE.suit(c) === 1 || PE.suit(c) === 2;
   const cardHtml = (c, cls = '') => c == null
-    ? `<span class="pkk back ${cls}"><span class="pkk__crown">${I('crown')}</span></span>`
+    ? `<span class="pkk back ${cls}"></span>`
     : `<span class="pkk ${red(c) ? 'red' : ''} ${cls}" data-c="${c}"><b>${PE.RANKS[PE.rank(c)]}</b><i>${PE.SUITS[PE.suit(c)]}</i><em>${PE.SUITS[PE.suit(c)]}</em></span>`;
   const chips = (n = 3) => `<span class="pkchips">${Array.from({ length: n }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</span>`;
   // bulles de lumière du fond (positions, tailles et vitesses au hasard)
