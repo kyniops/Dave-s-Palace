@@ -262,7 +262,10 @@
           go.disabled = true;
           let res = null, joined = null;
           for (const x of (t ? [t] : candidates)) {
-            res = await rpc('poker_join', { p_table: x.id, p_buyin: Math.min(Math.max(v, x.min), x.max), p_code: c || null }, { silent: !t });
+            // cave choisie, gardée dans les limites de la table (le maximum monte jusqu'au tapis avec lequel tu es parti dans l'heure)
+            const bx = t ? back || 0 : ((lobbyData && lobbyData.leaves) || {})[x.level] || 0;
+            const lo = Math.max(x.min, bx > x.min ? bx : 0), hi = Math.max(x.max, bx);
+            res = await rpc('poker_join', { p_table: x.id, p_buyin: t ? v : Math.min(Math.max(v, lo), hi), p_code: c || null }, { silent: !t });
             if (res) { joined = x; break; }
             if (!/Code/i.test(DP.engine.lastError || '')) break;
           }
