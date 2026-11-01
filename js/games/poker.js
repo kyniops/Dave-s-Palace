@@ -15,13 +15,13 @@
   // places (en % de la scène), la tienne en bas ; ordre = sens des aiguilles d'une montre
   const LAYOUT = {
     wide: {
-      seat: [[50, 85], [12, 70], [12, 24], [50, 16.5], [88, 24], [88, 70]],
-      bet: [[50, 64], [28, 62], [28, 36], [37, 32], [72, 36], [72, 62]],
+      seat: [[50, 87], [7, 71], [7, 25], [50, 14], [93, 25], [93, 71]],
+      bet: [[50, 67], [23, 66], [23, 34], [37, 31], [77, 34], [77, 66]],
       side: ['me', 'l', 'l', 't', 'r', 'r'], pot: [50, 37], dealer: [50, 4]
     },
     tall: {
-      seat: [[50, 88], [15, 68], [15, 30], [50, 11], [85, 30], [85, 68]],
-      bet: [[50, 73], [33, 60], [33, 40], [32, 24], [67, 40], [67, 60]],
+      seat: [[50, 89], [12, 69], [12, 29], [50, 10], [88, 29], [88, 69]],
+      bet: [[50, 75], [31, 61], [31, 39], [31, 22], [69, 39], [69, 61]],
       side: ['me', 'l', 'l', 't', 'r', 'r'], pot: [50, 38], dealer: [50, 2]
     }
   };
@@ -200,7 +200,7 @@
           <div class="pkx-dock">
             <div class="pkx-raise" hidden>
               <div class="pkx-presets"></div>
-              <input type="range" class="pk-range js-rr" step="1">
+              <input type="range" class="pk-range pk-range--v js-rr" step="1" aria-label="Montant de la relance" orient="vertical">
             </div>
             <div class="pkx-acts"></div>
           </div>
@@ -438,7 +438,7 @@
         T.raise.hidden = !(raiseOpen && canRaise);
         if (raiseOpen && canRaise) {
           T.rr.min = minTo; T.rr.max = maxTo; T.rr.value = raiseTo;
-          T.presets.innerHTML = [['Min', minTo], ['½ pot', preset(0.5)], ['¾ pot', preset(0.75)], ['Pot', preset(1)], ['Tapis', maxTo]].map(([l, v]) => `<button type="button" data-v="${v}">${l}</button>`).join('');
+          T.presets.innerHTML = [['Tapis', maxTo], ['Pot', preset(1)], ['¾ pot', preset(0.75)], ['½ pot', preset(0.5)], ['Min', minTo]].map(([l, v]) => `<button type="button" data-v="${v}">${l}</button>`).join('');
         }
         T.acts.innerHTML = `
           <button type="button" class="pkb pkb--fold" data-a="fold">Se coucher</button>
