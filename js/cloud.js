@@ -203,7 +203,8 @@
   /** Crée le profil de jeu d'un compte qui vient de confirmer son email (pseudo choisi à l'inscription). */
   async function createProfile(user) {
     const want = ((user && user.user_metadata && user.user_metadata.username) || '').trim();
-    if (!want) return { error: 'Compte incomplet : réinscris-toi.' };
+    // connexion Google : pas encore de pseudo, on le demande
+    if (!want) return { needName: true };
     const { error } = await sb.from('profiles').insert({ id: user.id, username: want });
     if (!error) return { username: want };
     if (/duplicate|unique|déjà pris/i.test(error.message)) {
@@ -216,6 +217,35 @@
     }
     return { error: error.message || 'Création du compte impossible.' };
   }
+  /** Connexion avec Google (redirige vers Google puis revient sur le site). */
+  auth.google = async () => {
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: SITE } });
+    return error ? errFr(error) : null;
+  };
+  let googleOn = null;
+  auth.googleEnabled = async () => {
+    if (googleOn != null) return googleOn;
+    try {
+      const r = await fetch(SUPABASE_URL + '/auth/v1/settings', { headers: { apikey: SUPABASE_KEY } });
+      googleOn = !!((await r.json()).external || {}).google;
+    } catch { googleOn = false; }
+    return googleOn;
+  };
+  /** Premier passage d'un compte Google : choix du pseudo puis création du compte de jeu. */
+  auth.claimName = async (name) => {
+    name = (name || '').trim();
+    const bad = auth.usernameProblem(name);
+    if (bad) return bad;
+    const { data: s } = await sb.auth.getSession();
+    if (!s.session) return 'Session expirée : reconnecte-toi avec Google.';
+    uid = s.session.user.id;
+    const { error } = await sb.from('profiles').insert({ id: uid, username: name });
+    if (error) return /duplicate|unique|déjà pris/i.test(error.message) ? 'Ce pseudo est déjà pris.' : error.message;
+    cloud.needName = false;
+    await enter(name, { importLocal: false });
+    return null;
+  };
+  auth.cancelClaim = async () => { cloud.needName = false; await sb.auth.signOut(); uid = null; };
   /** Mot de passe oublié : envoie le lien de réinitialisation. */
   auth.resetPassword = async (email) => {
     email = (email || '').trim().toLowerCase();
@@ -287,6 +317,13 @@
     if (!prof) {
       // retour du lien de confirmation : création du compte de jeu
       const r = await createProfile(s.user);
+      if (r.needName) {
+        cloud.needName = true;
+        if (/access_token=/.test(location.hash)) history.replaceState(null, '', location.pathname + '#/inscription');
+        store.remove('utilisateurCourant');
+        emit('cloudload'); setTimeout(() => emit('needname'), 300);
+        return;
+      }
       if (r.error) { await sb.auth.signOut(); uid = null; store.remove('utilisateurCourant'); emit('cloudload'); ui.toast(r.error, 'error', 6000); return; }
       prof = { username: r.username };
       setTimeout(() => ui.toast('Adresse email confirmée : bienvenue au Palace !', 'win', 5000), 1200);
