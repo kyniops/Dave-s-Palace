@@ -205,7 +205,7 @@
   window.addEventListener('storage', (e) => { if (e.key === 'dp_jackpot') emit('jackpot', jackpot.get()); });
 
   /* ---------- Codes promo (une fois par compte) ---------- */
-  const PROMO_CODES = { dave33: 333, fan2jc: 500 };
+  const PROMO_CODES = { dave33: 333, fan2jc: 500, vraigambleur: 777 };
   const promo = {
     key() { return 'dp_codes_' + auth.current(); },
     used() { return store.json(promo.key(), []); },
