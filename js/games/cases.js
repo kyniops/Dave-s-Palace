@@ -61,7 +61,14 @@
     bonninmousse: { name: 'Bonnin Mousse', img: 'bonninmousse.jpg' },
     axbduo: { name: 'AXB Duo', img: 'axbduo.jpg' },
     petitbonninnoel: { name: 'Petit Bonnin de Noël', img: 'petitbonninnoel.jpg' },
-    gillemelon: { name: 'Gille Melon', img: 'gillemelon.jpg' }
+    gillemelon: { name: 'Gille Melon', img: 'gillemelon.jpg' },
+    // selfie
+    tddeam: { name: 'Tddam Gros Plan', img: 'tddeam.jpg' },
+    axbface: { name: 'AXB de Face', img: 'axbface.jpg' },
+    yohangamer: { name: 'Yohan Gamer', img: 'yohangamer.jpg' },
+    hugo: { name: 'Hugo', img: 'hugo.jpg' },
+    tdambeau: { name: 'Tdam Beau Gosse', img: 'tdambeau.jpg' },
+    marco: { name: 'Marco Antonio', img: 'marco.jpg' }
   };
   // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 95 %.
   // La rareté découle du multiplicateur : plus la carte vaut cher dans sa caisse, plus elle est rare.
@@ -76,6 +83,8 @@
       drops: [['oulman', 0.25, null], ['liam', 0.5, 2500], ['petitbonninchut', 0.9, 1800], ['bonninmousse', 1.5, 1100], ['axbduo', 3, 550], ['petitbonninnoel', 10, 140], ['gillemelon', 45, 22]] },
     { id: 'aura', name: 'Caisse Aura', price: 100, color: '#9a6bff', cover: 'lucasco.jpg',
       drops: [['axbblesse', 0.2, null], ['axbserieux', 0.5, 2500], ['tdammasque', 0.9, 1800], ['tony', 1.4, 1200], ['tonny', 3, 600], ['olmanaura', 10, 150], ['lucasco', 35, 25]] },
+    { id: 'selfie', name: 'Caisse Selfie', price: 150, color: '#f472b6', cover: 'tdambeau.jpg',
+      drops: [['tddeam', 0.25, null], ['axbface', 0.5, 2500], ['yohangamer', 0.9, 1800], ['hugo', 1.6, 1100], ['tdambeau', 5, 350], ['marco', 40, 25]] },
     { id: 'wanted', name: 'Caisse Wanted', price: 250, color: '#e5483b', cover: 'eltigre.jpg',
       drops: [['teddam', 0.2, null], ['lucascoselfie', 0.5, 2500], ['mathis', 0.9, 1800], ['tonyargent', 1.6, 1100], ['presidentmali', 5, 350], ['eltigre', 40, 25]] },
     { id: 'royale', name: 'Caisse Royale JPZ', price: 500, color: '#ffc145', cover: 'jpz.png',
@@ -304,7 +313,7 @@
     id: 'cases',
     name: 'DaveCases',
     icon: 'gift',
-    tagline: 'Sept caisses à ouvrir, en Battle contre la bande ou en duel contre tes amis',
+    tagline: 'Huit caisses à ouvrir, en Battle contre la bande ou en duel contre tes amis',
     rtp: '95 %',
     isNew: true,
     hue: 30,
