@@ -76,11 +76,11 @@ create or replace function public.tr_check(p_uid uuid, p_who text) returns void 
 declare a accounts; lv int := eng_gate('trade_level', 10)::int; days numeric := eng_gate('trade_age_days', 3); born timestamptz;
 begin
   select * into a from accounts where user_id = p_uid;
-  if not found then raise exception '% n’a pas encore joué en ligne.', p_who; end if;
-  if is_banned(p_uid) then raise exception '% ne peut pas échanger.', p_who; end if;
-  if eng_lvl(a) < lv then raise exception '% doit être au moins niveau % pour échanger.', p_who, lv; end if;
+  if not found then raise exception 'Échange impossible (%) : pas encore joué en ligne.', p_who; end if;
+  if is_banned(p_uid) then raise exception 'Échange impossible (%) : compte bloqué.', p_who; end if;
+  if eng_lvl(a) < lv then raise exception 'Échange impossible (%) : il faut être au moins niveau %.', p_who, lv; end if;
   select created_at into born from auth.users where id = p_uid;
-  if born is not null and born > now() - make_interval(days => days::int) then raise exception 'Le compte de % doit avoir au moins % jours pour échanger.', lower(p_who), days::int; end if;
+  if born is not null and born > now() - make_interval(days => days::int) then raise exception 'Échange impossible (%) : le compte doit avoir au moins % jours.', p_who, days::int; end if;
 end $$;
 
 -- nettoie une liste de cartes et calcule sa valeur
@@ -161,8 +161,8 @@ begin
   perform tr_expire();
   if p_friend = a.user_id then raise exception 'Tu ne peux pas échanger avec toi-même.'; end if;
   if not tr_friends(a.user_id, p_friend) then raise exception 'Tu ne peux échanger qu’avec tes amis.'; end if;
-  perform tr_check(a.user_id, 'Toi');
-  perform tr_check(p_friend, 'Ton ami');
+  perform tr_check(a.user_id, 'toi');
+  perform tr_check(p_friend, 'ton ami');
   select * into g from tr_norm(p_give);
   select * into w from tr_norm(p_want);
   if not tr_has(a, g.items) then raise exception 'Tu n’as plus ces cartes.'; end if;
@@ -187,7 +187,7 @@ begin
   if not found or t.to_user <> b.user_id then raise exception 'Échange introuvable.'; end if;
   if t.status <> 'pending' then raise exception 'Cet échange n’est plus disponible.'; end if;
   if not tr_friends(t.from_user, t.to_user) then raise exception 'Vous n’êtes plus amis.'; end if;
-  perform tr_check(t.from_user, 'Ton ami'); perform tr_check(t.to_user, 'Toi');
+  perform tr_check(t.from_user, 'ton ami'); perform tr_check(t.to_user, 'toi');
   perform tr_day(t.to_user, t.give_value, 'toi'); perform tr_day(t.from_user, t.want_value, 'ton ami');
   select * into a from accounts where user_id = t.from_user for update;
   if not tr_has(a, t.give) then raise exception 'Ton ami n’a plus les cartes proposées.'; end if;
