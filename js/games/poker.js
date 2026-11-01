@@ -15,14 +15,14 @@
   // places (en % de la scène), la tienne en bas ; ordre = sens des aiguilles d'une montre
   const LAYOUT = {
     wide: {
-      seat: [[50, 87], [7, 71], [7, 25], [50, 14], [93, 25], [93, 71]],
-      bet: [[50, 67], [23, 66], [23, 34], [37, 31], [77, 34], [77, 66]],
-      side: ['me', 'l', 'l', 't', 'r', 'r'], pot: [50, 37], dealer: [50, 4]
+      seat: [[50, 87], [9, 72], [7, 30], [29, 12], [71, 12], [93, 30]],
+      bet: [[50, 67], [25, 64], [23, 39], [36, 32], [64, 32], [77, 39]],
+      side: ['me', 'l', 'l', 'r', 'l', 'r'], pot: [50, 37], dealer: [50, 4]
     },
     tall: {
-      seat: [[50, 89], [12, 69], [12, 29], [50, 10], [88, 29], [88, 69]],
-      bet: [[50, 75], [31, 61], [31, 39], [31, 22], [69, 39], [69, 61]],
-      side: ['me', 'l', 'l', 't', 'r', 'r'], pot: [50, 38], dealer: [50, 2]
+      seat: [[50, 89], [14, 70], [12, 40], [22, 14], [78, 14], [88, 40]],
+      bet: [[50, 75], [32, 62], [31, 45], [33, 27], [67, 27], [69, 45]],
+      side: ['me', 'l', 'l', 'l', 'r', 'r'], pot: [50, 38], dealer: [50, 3]
     }
   };
   const red = (c) => PE.suit(c) === 1 || PE.suit(c) === 2;
@@ -371,11 +371,12 @@
             <div class="pkx-table"><div class="pkx-rail"></div><div class="pkx-felt"><div class="pkx-line"></div>
               <div class="pkx-brand"><span>Dave’s Palace</span><small>Poker Club</small></div>
               <span class="pkx-suits l">♠ ♥</span><span class="pkx-suits r">♦ ♣</span></div></div>
-            <div class="pkx-dealer"><img src="${IMG}jpz.png" alt="JPZ, le croupier"><span>Croupier</span></div>
+            <div class="pkx-dealer on"><img src="${IMG}jpz.png" alt="JPZ, le croupier"><span>Croupier</span><i class="pkx-dealer__deck"></i></div>
             <div class="pkx-pot">${chips(4)}<b class="num js-pot">0</b></div>
             <div class="pkx-board">${'<span class="pkk slot"></span>'.repeat(5)}</div>
             <div class="pkx-msg js-msg"></div>
             ${Array.from({ length: 6 }, (_, k) => `<div class="pkx-seat empty" data-k="${k}">
+                <i class="pkx-aura"></i>
                 <div class="pkx-cards"></div>
                 <div class="pkx-ring"><div class="pkx-av"></div></div>
                 <div class="pkx-plate"><b class="nm"></b><span class="num stk"></span><span class="pkx-streak"></span></div>
@@ -445,7 +446,7 @@
         a.onfinish = () => el.remove();
       }
       // emplacement à l'écran (0 = toi en bas, 3 = en face) selon le nombre de places de la table
-      const SLOTS = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 5], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] };
+      const SLOTS = { 2: [0, 4], 3: [0, 2, 5], 4: [0, 2, 4, 5], 5: [0, 2, 3, 4, 5], 6: [0, 1, 2, 3, 4, 5] };
       const kOf = (seat) => (SLOTS[st.nseats] || SLOTS[6])[(seat - (st.mySeat != null ? st.mySeat : 0) + st.nseats) % st.nseats];
       // montant qui défile
       function countTo(el, to) {
@@ -523,7 +524,9 @@
           if (box2.dataset.key !== key) {
             const wasBack = box2.dataset.key && box2.dataset.key.startsWith('b-b');
             box2.dataset.key = key;
-            box2.innerHTML = cards.map((c, i) => cardHtml(c, `${x.status === 'folded' ? 'dim' : ''} ${newHand ? 'dealt' : wasBack && c != null ? 'flip' : ''}`).replace('class="pkk', `style="--d:${newHand ? (k * 2 + i) * 70 + 260 : 0}ms" class="pkk`)).join('');
+            const nIn = st.seats.filter((y) => ['playing', 'allin'].includes(y.status)).length || 1;
+            const rank = st.seats.filter((y) => ['playing', 'allin'].includes(y.status) && kOf(y.seat) < k).length;
+            box2.innerHTML = cards.map((c, i) => cardHtml(c, `${x.status === 'folded' ? 'dim' : ''} ${newHand ? 'dealt' : wasBack && c != null ? 'flip' : ''}`).replace('class="pkk', `style="--d:${newHand ? 250 + (i * nIn + rank) * 150 + 420 : 0}ms" class="pkk`)).join('');
           }
           el.querySelector('.pkx-streak').textContent = x.me && streak >= 2 ? `🔥 ×${streak}` : '';
           // main en cours (sous tes cartes)
@@ -532,11 +535,14 @@
         });
         // distribution : les cartes partent du croupier
         if (newHand) {
-          sound.play('card');
-          st.seats.filter((x) => ['playing', 'allin'].includes(x.status)).forEach((x) => {
-            const k = kOf(x.seat), to = [lay.seat[k][0], lay.seat[k][1] - 7];
-            [0, 1].forEach((i) => fly(lay.dealer, to, cardHtml(null, 'mini'), { dur: 380, delay: (k * 2 + i) * 70, cls: 'card' }));
-          });
+          const order = st.seats.filter((x) => ['playing', 'allin'].includes(x.status)).sort((a, b) => kOf(a.seat) - kOf(b.seat));
+          const step = 150, total = order.length * 2;
+          dealerDeal(total * step + 350);
+          [0, 1].forEach((round) => order.forEach((x, j) => {
+            const k = kOf(x.seat), to = [lay.seat[k][0], lay.seat[k][1] - 7], n = round * order.length + j;
+            fly(lay.dealer, to, cardHtml(null, 'mini'), { dur: 420, delay: 250 + n * step, cls: 'deal' });
+            setTimeout(() => alive && sound.play('card'), 250 + n * step);
+          }));
         }
         // 3) mises devant les joueurs
         T.bets.forEach((el, k) => {
@@ -553,7 +559,7 @@
           T.dbtn.classList.add('on');
         } else T.dbtn.classList.remove('on');
         // JPZ le croupier, quand la place d'en face est libre
-        T.dealer.classList.toggle('on', !seatOf(3));
+        T.dealer.classList.add('on');
         // 5) tableau (cartes communes) : elles se retournent une à une
         let fresh = 0;
         const drama = prev && prev.hand === st.hand && st.seats.some((x) => x.status === 'allin');
@@ -569,6 +575,17 @@
           nel.dataset.c = key;
           el.replaceWith(nel); T.board[i] = nel;
         });
+        if (fresh) {
+          dealerDeal(fresh * (drama ? 700 : 160) + 300);
+          const sr = T.stage.getBoundingClientRect();
+          T.board.forEach((el, i) => {
+            if (!el.dataset.c || (prev && prev.board[i] != null && prev.hand === st.hand)) return;
+            const r = el.getBoundingClientRect(), j = i - (st.board.length - fresh);
+            if (j < 0) return;
+            const to = [((r.left + r.width / 2 - sr.left) / sr.width) * 100, ((r.top + r.height / 2 - sr.top) / sr.height) * 100];
+            fly(lay.dealer, to, cardHtml(null, 'mini'), { dur: 360, delay: j * (drama ? 700 : 140) - 300, cls: 'deal' });
+          });
+        }
         if (fresh) for (let i = 0; i < (drama ? fresh : 1); i++) setTimeout(() => alive && sound.play(drama ? 'reelStop' : 'cardFlip', { i: i * 3 }), 100 + i * (drama ? 700 : 0));
         // abattage : les 5 cartes de la main gagnante s'illuminent, les autres s'assombrissent
         T.stage.querySelectorAll('.pkk.best, .pkk.dimmed').forEach((c) => c.classList.remove('best', 'dimmed'));
@@ -690,6 +707,14 @@
       }
       const onDocClick = (e) => { if (emoMenu && !emoMenu.contains(e.target)) closeEmoMenu(); };
       document.addEventListener('click', onDocClick);
+
+      let dealT = 0;
+      function dealerDeal(ms) {
+        if (!T) return;
+        clearTimeout(dealT);
+        T.dealer.classList.add('dealing');
+        dealT = setTimeout(() => T && T.dealer.classList.remove('dealing'), Math.max(400, ms));
+      }
 
       /* ---------- Effets « dopamine » ---------- */
       function winFx(w, pot) {

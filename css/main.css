@@ -1721,3 +1721,25 @@ body:has(.modal) { overflow: hidden; }
 .pmail__form { display: flex; gap: 8px; flex-wrap: wrap; }
 .pmail__form input { height: 34px; min-width: 220px; padding: 0 10px; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line-2); }
 .pmail__form input:focus { outline: none; border-color: var(--accent); }
+
+/* Croupier : toujours présent en haut ; il distribue */
+.pkx-dealer { z-index: 6; }
+.pkx-dealer__deck { position: absolute; left: 50%; bottom: -26%; width: 34%; aspect-ratio: 5 / 7; transform: translateX(-50%) rotate(-8deg); background: #0d1b36 url("../assets/img/cardback_sm.png?v=1") center / 100% 100% no-repeat; box-shadow: 2px 2px 0 #0d1b36, 4px 4px 0 #1b2c52, 0 8px 14px rgba(0, 0, 0, .6); opacity: 0; transition: opacity .3s; }
+.pkx-dealer.dealing .pkx-dealer__deck { opacity: 1; animation: pkx-deck .3s ease-in-out infinite alternate; }
+.pkx-dealer.dealing img { animation: pkx-dealer-bob .3s ease-in-out infinite alternate; box-shadow: 0 0 0 3px #0b0d14, 0 0 40px rgba(255, 107, 44, .8); }
+@keyframes pkx-dealer-bob { from { transform: rotate(-4deg); } to { transform: rotate(4deg) translateY(2px); } }
+@keyframes pkx-deck { to { transform: translateX(-50%) rotate(6deg) translateY(-3px); } }
+.pkx-fly.deal .pkk { animation: pkx-spin .42s linear; }
+@keyframes pkx-spin { from { transform: rotate(-200deg) scale(.7); } to { transform: rotate(0) scale(1); } }
+.pkx.is-tall .pkx-dealer { width: 18%; }
+@media (prefers-reduced-motion: reduce) { .pkx-dealer.dealing img, .pkx-dealer.dealing .pkx-dealer__deck, .pkx-fly.deal .pkk { animation: none; } }
+
+/* Gagnant de la main : grande aura jaune */
+.pkx-aura { display: none; }
+.pkx-seat.won .pkx-aura { display: block; position: absolute; left: 50%; top: 38%; z-index: 0; width: 290%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 230, 120, 1) 0%, rgba(255, 214, 80, .95) 22%, rgba(255, 196, 60, .7) 36%, rgba(255, 180, 40, .35) 50%, rgba(255, 170, 40, .12) 60%, rgba(255, 170, 40, 0) 70%); mix-blend-mode: screen; animation: pkx-aura 1.1s ease-in-out infinite alternate; }
+.pkx-seat.won .pkx-ring { --rc: #ffd65a; box-shadow: 0 0 0 4px #ffd65a, 0 0 36px 8px rgba(255, 214, 90, .85), 0 0 90px 20px rgba(255, 193, 69, .45); }
+.pkx-seat.won .pkx-plate { border-color: #ffd65a; box-shadow: 0 0 26px rgba(255, 214, 90, .7), 0 10px 22px rgba(0, 0, 0, .55); }
+.pkx-seat.won .nm, .pkx-seat.won .stk { color: #ffe9a8; }
+@keyframes pkx-aura { from { opacity: .65; transform: translate(-50%, -50%) scale(.92); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .pkx-seat.won .pkx-aura { animation: none; } }
