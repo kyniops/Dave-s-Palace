@@ -25,8 +25,17 @@
     const n = L < MAX_LEVEL ? need(L) : 1;
     return { level: L, into: L < MAX_LEVEL ? left : n, need: n, pct: L < MAX_LEVEL ? left / n : 1, rank: rankOf(L) };
   }
-  const caseForLevel = (L) => (L >= 40 ? 'royale' : L >= 30 ? 'aura' : L >= 20 ? 'kawai' : L >= 10 ? 'gamers' : 'bande');
-  const levelReward = (L) => ({ coins: 50 * L, freeCase: L % 5 === 0 ? caseForLevel(L) : null });
+  // Récompenses de niveau (même règle que le serveur) : une caisse à chaque niveau, plus une caisse du palier
+  // au-dessus tous les 5 niveaux. Plus de DaveCoins : ils reviennent par le rakeback.
+  const CASE_TIERS = ['bande', 'gamers', 'kawai', 'horsserie', 'aura', 'wanted', 'royale'];
+  const caseForLevel = (L) => (L >= 70 ? 'royale' : L >= 50 ? 'wanted' : L >= 40 ? 'aura' : L >= 30 ? 'horsserie' : L >= 20 ? 'kawai' : L >= 10 ? 'gamers' : 'bande');
+  const caseUp = (c) => CASE_TIERS[Math.min(CASE_TIERS.length - 1, CASE_TIERS.indexOf(c) + 1)];
+  const levelReward = (L) => ({ coins: 0, cases: L % 5 === 0 ? [caseForLevel(L), caseUp(caseForLevel(L))] : [caseForLevel(L)] });
+  // Rakeback : part de l'avantage du casino rendue sur chaque mise, selon le rang
+  const RB_PCT = { Bronze: 0.10, Argent: 0.15, Or: 0.20, Platine: 0.25, Diamant: 0.30, 'Maître': 0.35, JPZ: 0.40 };
+  const rbPct = (level) => RB_PCT[rankOf(level).name] || 0.1;
+  // avantage du casino d'un jeu, d'après son taux de redistribution affiché (ex. « 99 % » → 1 %)
+  const edgeOf = (id) => { const g = games.find(id); const rtp = g ? parseFloat(String(g.rtp).replace(',', '.')) : 99; return Math.max(0, Math.min(0.2, 1 - (rtp || 99) / 100)); };
   const caseName = (id) => ((DP.cases && DP.cases.list.find((c) => c.id === id)) || { name: 'Caisse' }).name;
 
   /** Badge hexagonal du rang, avec le niveau au centre. */
@@ -90,9 +99,7 @@
     const total = { coins: 0, cases: [] };
     let rankUp = false;
     for (let L = Math.max(before, p.top) + 1; L <= after; L++) {
-      const rw = levelReward(L);
-      total.coins += rw.coins;
-      if (rw.freeCase) { p.free[rw.freeCase] = (p.free[rw.freeCase] || 0) + 1; total.cases.push(rw.freeCase); }
+      levelReward(L).cases.forEach((c) => { p.free[c] = (p.free[c] || 0) + 1; total.cases.push(c); });
       if (rankOf(L).from === L) rankUp = true;
     }
     p.top = after;
@@ -264,8 +271,26 @@
       flush();
     };
   }
+  /** Rakeback du joueur : à réclamer, déjà touché, taux du rang. */
+  function rakeback(p = load()) {
+    const level = levelInfo(p.xp || 0).level;
+    return { pending: Math.floor((p.rb || 0) * 100) / 100, total: p.rbTotal || 0, pct: rbPct(level), rank: rankOf(level).name };
+  }
+  /** Hors ligne : verse le rakeback accumulé (en ligne, c'est rakeback_claim sur le serveur). */
+  function claimRakeback() {
+    const p = load(), amt = Math.floor((p.rb || 0) * 100) / 100;
+    if (amt < 0.01) return 0;
+    p.rb = Math.round(((p.rb || 0) - amt) * 10000) / 10000;
+    p.rbTotal = round2((p.rbTotal || 0) + amt);
+    save(p);
+    giveCoins(amt, 'rakeback');
+    emit('progress', p);
+    return amt;
+  }
   on('played', handle((p, h) => {
     if (!h) return;
+    // rakeback : part de l'avantage du casino sur cette mise (calculé avant l'XP, au niveau actuel)
+    if (h.bet > 0) p.rb = Math.round(((p.rb || 0) + h.bet * edgeOf(h.game) * rbPct(levelInfo(p.xp).level)) * 10000) / 10000;
     // XP = risque réellement pris (même règle que le serveur) : un pari presque sans risque rapporte peu d'XP
     const risk = round2(Math.min(h.bet, Math.abs(h.payout - h.bet) + h.bet * 0.1));
     addXp(p, risk);
@@ -301,6 +326,12 @@
   let bannerChain = Promise.resolve();
   const later = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  // « 2 × Caisse de la Bande · Caisse Gamers offertes »
+  const casesText = (list) => {
+    const n = {}; list.forEach((c) => (n[c] = (n[c] || 0) + 1));
+    const parts = Object.entries(n).map(([c, k]) => (k > 1 ? k + ' × ' : '') + esc(caseName(c)));
+    return parts.length ? parts.join(' · ') + (list.length > 1 ? ' offertes' : ' offerte') : '';
+  };
   // une célébration en attente absorbe les niveaux suivants (parties enchaînées)
   let lvlPending = null;
   function celebrateLevel(L0, rw0, rankUp0) {
@@ -313,7 +344,7 @@
       const el = ui.el(`<div class="lvlup ${rankUp ? 'lvlup--rank' : ''}" style="--rc:${r.c}" role="status">
         <div class="lvlup__badge">${badge(L, 92)}</div>
         <div class="lvlup__txt"><span>${rankUp ? 'Nouveau rang' : 'Niveau supérieur'}</span><b>${rankUp ? 'Rang ' + r.name : 'Niveau ' + L}</b>
-        <small>+${fmt(rw.coins)} DaveCoins${rw.cases.map((c) => ' · ' + esc(caseName(c)) + ' offerte').join('')}</small></div>
+        <small>${casesText(rw.cases)}${rw.coins ? ' · +' + fmt(rw.coins) + ' DaveCoins' : ''}</small></div>
       </div>`);
       document.body.appendChild(el);
       sound.play(rankUp ? 'jackpot' : 'win', { x: 20 });
@@ -356,7 +387,8 @@
       const list = missionsOf(p);
       if (!(DP.engine && DP.engine.on)) save(p); // fige les missions du jour (en ligne : c'est le serveur)
       const nextRank = RANKS.find((x) => x.from > info.level);
-      const nextRw = (() => { for (let L = info.level + 1; L <= MAX_LEVEL; L++) { const rw = levelReward(L); if (rw.freeCase) return { L, rw }; } return null; })();
+      const nextRw = info.level < MAX_LEVEL ? { L: info.level + 1, rw: levelReward(info.level + 1) } : null;
+      const rb = rakeback(p);
       const x = ctxOf(p);
       const unlocked = ACHS.filter((a) => p.ach[a.id]).length;
       const cats = [...new Set(ACHS.map((a) => a.cat))];
@@ -368,15 +400,16 @@
             <span class="prog-hero__rank">Rang ${r.name}</span>
             <h1>Niveau ${info.level}${info.level >= MAX_LEVEL ? ' · max' : ''}</h1>
             <div class="xpbar"><i style="width:${(info.pct * 100).toFixed(1)}%"></i></div>
-            <p class="muted"><b class="num">${fmt(Math.floor(info.into))}</b> / <span class="num">${fmt(info.need)}</span> XP · 1 DaveCoin misé = 1 XP</p>
+            <p class="muted"><b class="num">${fmt(Math.floor(info.into))}</b> / <span class="num">${fmt(info.need)}</span> XP · l’XP suit le risque que tu prends en misant</p>
             <div class="prog-hero__next">
               ${nextRank ? `<span>${I('trending-up', 'i--sm')}Rang ${nextRank.name} au niveau ${nextRank.from}</span>` : '<span>Rang maximum atteint</span>'}
-              ${nextRw ? `<span>${I('gift', 'i--sm')}Niveau ${nextRw.L} : +${fmt(nextRw.rw.coins)} et ${esc(caseName(nextRw.rw.freeCase))} offerte</span>` : ''}
+              ${nextRw ? `<span>${I('gift', 'i--sm')}Niveau ${nextRw.L} : ${casesText(nextRw.rw.cases)}</span>` : ''}
+              <span>${I('percent', 'i--sm')}Rakeback ${Math.round(rb.pct * 100)} % · <b class="num">${fmt(rb.pending)}</b> à réclamer dans Bonus</span>
             </div>
           </div>
         </section>
 
-        <div class="ranks" data-reveal>${RANKS.map((rk) => `<div class="ranks__item ${info.level >= rk.from ? 'on' : ''} ${rk === r ? 'cur' : ''}" style="--rc:${rk.c}">${badge(rk.from, 46)}<b>${rk.name}</b><small>Niv. ${rk.from}</small></div>`).join('')}</div>
+        <div class="ranks" data-reveal>${RANKS.map((rk) => `<div class="ranks__item ${info.level >= rk.from ? 'on' : ''} ${rk === r ? 'cur' : ''}" style="--rc:${rk.c}">${badge(rk.from, 46)}<b>${rk.name}</b><small>Niv. ${rk.from}</small><small class="ranks__rb">Rakeback ${Math.round(RB_PCT[rk.name] * 100)} %</small></div>`).join('')}</div>
 
         ${free.length ? `<div class="freecases" data-reveal>${I('gift')}<span>Caisses offertes :</span>${free.map(([id, n]) => `<a class="btn btn--primary btn--sm" href="#/caisses/${id}">${esc(caseName(id))} ×${n}</a>`).join('')}</div>` : ''}
 
@@ -473,5 +506,5 @@
     else list.forEach(achPopup);
   }
 
-  DP.progress = { RANKS, MAX_LEVEL, levelInfo, rankOf, badge, render, summary, freeCases, caseName, achievements, xpFor, celebrateLevel, achPopups, missionToast, describe };
+  DP.progress = { RANKS, MAX_LEVEL, RB_PCT, levelInfo, rankOf, badge, render, summary, freeCases, caseName, achievements, xpFor, celebrateLevel, achPopups, missionToast, describe, levelReward, rakeback, claimRakeback };
 })();

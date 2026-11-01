@@ -1453,3 +1453,9 @@ body:has(.modal) { overflow: hidden; }
 .pkx.is-tall .pkx-hud .pkx-hb span { display: none; }
 .pkx.is-tall .pkx-hud .pkx-hb { width: 38px; padding: 0; justify-content: center; }
 @media (prefers-reduced-motion: reduce) { .pkx-bg i, .pkx::after, .pkx-seat.won .pkx-ring, .pkk.dealt, .pkk.flip { animation: none; } }
+
+/* Rakeback */
+.bonus-row--rb { margin-top: 14px; }
+.bonus-row--rb span b { color: var(--text); }
+.ranks__item .ranks__rb { display: block; margin-top: 2px; font-size: 10px; letter-spacing: .04em; color: var(--accent); }
+.ranks__item:not(.on) .ranks__rb { color: var(--dim); }

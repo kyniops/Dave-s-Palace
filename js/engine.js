@@ -30,13 +30,12 @@
     const la = P.levelInfo(a.xp || 0).level, lb = P.levelInfo(b.xp || 0).level;
     const top = Math.max(1, a.top || a.level || 1);
     if (lb > la && lb > top) {
-      let coins = 0; const cases = []; let rankUp = false;
+      const cases = []; let rankUp = false;
       for (let L = Math.max(la, top) + 1; L <= lb; L++) {
-        coins += 50 * L;
-        if (L % 5 === 0) cases.push(L >= 40 ? 'royale' : L >= 30 ? 'aura' : L >= 20 ? 'kawai' : L >= 10 ? 'gamers' : 'bande');
+        cases.push(...P.levelReward(L).cases);
         if (P.rankOf(L).from === L) rankUp = true;
       }
-      P.celebrateLevel(lb, { coins, cases }, rankUp);
+      P.celebrateLevel(lb, { coins: 0, cases }, rankUp);
     }
     const oldAch = a.ach || {}, fresh = Object.keys(b.ach || {}).filter((id) => !oldAch[id]);
     if (fresh.length) P.achPopups(fresh);

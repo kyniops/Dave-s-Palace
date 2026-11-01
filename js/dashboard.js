@@ -19,7 +19,7 @@
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
     return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
   };
-  const INCOME = { daily: 'Roue quotidienne', rescue: 'Dépannage', promo: 'Codes promo', album: 'Albums complétés', sale: 'Ventes de cartes', level: 'Niveaux', mission: 'Missions', achievement: 'Succès' };
+  const INCOME = { daily: 'Roue quotidienne', rescue: 'Dépannage', promo: 'Codes promo', album: 'Albums complétés', sale: 'Ventes de cartes', level: 'Niveaux', mission: 'Missions', achievement: 'Succès', rakeback: 'Rakeback' };
 
   const signed = (v) => (v > 0 ? '+' : '') + fmt(round2(v));
   const tone = (v) => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');

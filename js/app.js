@@ -266,9 +266,10 @@
     };
     raf = requestAnimationFrame(step);
     const b = document.querySelector('.wallet__bonus');
-    if (b) b.classList.toggle('ready', bonus.dailyLeft() === 0 || bonus.canRescue());
+    if (b) b.classList.toggle('ready', bonus.dailyLeft() === 0 || bonus.canRescue() || (DP.progress && DP.progress.rakeback().pending >= 1));
   }
   on('balance', refreshTopbar);
+  on('progress', refreshTopbar);
   on('bonus', refreshTopbar);
 
   /* ---------- Bonus ---------- */
@@ -300,6 +301,10 @@
           <div class="dwheel__hub"><img src="${IMG}jppz.jpg" alt="JPZ"></div>
         </div>
         <button class="btn btn--primary btn--lg btn--block dwheel__btn" data-b="daily" type="button"></button>
+        <div class="bonus-row bonus-row--rb">
+          <div><strong>${I('percent', 'i--sm')}Rakeback</strong><span class="js-rbtxt"></span></div>
+          <button class="btn btn--primary" data-b="rb" type="button">Réclamer</button>
+        </div>
         <div class="bonus-row">
           <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde est à 0 (1 fois / heure)</span></div>
           <button class="btn btn--ghost" data-b="rescue" type="button"></button>
@@ -332,11 +337,24 @@
 
     const daily = modal.querySelector('[data-b=daily]');
     const rescue = modal.querySelector('[data-b=rescue]');
+    const rbBtn = modal.querySelector('[data-b=rb]'), rbTxt = modal.querySelector('.js-rbtxt');
+    let rbBusy = false;
+    rbBtn.addEventListener('click', async () => {
+      if (rbBusy) return;
+      rbBusy = true; paint();
+      let got = 0;
+      if (DP.engine && DP.engine.on) { const r = await DP.engine.call('rakeback_claim'); got = r ? r.amount : 0; } else got = DP.progress.claimRakeback();
+      rbBusy = false; paint();
+      if (got) { sound.play('coin'); ui.coinRain(card, 20); ui.floatText(rbBtn, '+' + fmt(got)); ui.toast(`Rakeback : +${fmt(got)} DaveCoins`, 'win'); }
+    });
     const paint = () => {
       if (!modal.isConnected) { clearInterval(timer); return; }
       const d = bonus.dailyLeft();
       daily.disabled = d > 0 || spinning;
       daily.innerHTML = spinning ? 'La roue tourne…' : d > 0 ? `Prochaine rotation dans <span class="num">${countdown(d)}</span>` : `${I('play', 'i--sm')}Tourner la roue`;
+      const rb = DP.progress.rakeback();
+      rbTxt.innerHTML = `Rang ${esc(rb.rank)} : <b>${Math.round(rb.pct * 100)} %</b> de l’avantage du casino te revient sur chaque mise · <b class="num" style="color:var(--coin)">${fmt(rb.pending)}</b> à réclamer${rb.total ? ` · ${fmt(rb.total)} déjà touchés` : ''}`;
+      rbBtn.disabled = rb.pending < 0.01 || rbBusy;
       const r = bonus.rescueLeft();
       rescue.disabled = !bonus.canRescue();
       rescue.textContent = wallet.get() >= 1 ? 'Solde > 0' : r > 0 ? countdown(r) : 'Récupérer';

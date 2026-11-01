@@ -178,7 +178,15 @@ end $$;
 
 /* ---------- Progression : XP, niveaux et leurs récompenses ---------- */
 create or replace function public.eng_case_for_level(l int) returns text language sql immutable as $$
-  select case when l >= 40 then 'royale' when l >= 30 then 'aura' when l >= 20 then 'kawai' when l >= 10 then 'gamers' else 'bande' end;
+  select case when l >= 70 then 'royale' when l >= 50 then 'wanted' when l >= 40 then 'aura' when l >= 30 then 'horsserie' when l >= 20 then 'kawai' when l >= 10 then 'gamers' else 'bande' end;
+$$;
+-- caisse du palier au-dessus (bonus tous les 5 niveaux)
+create or replace function public.eng_case_up(c text) returns text language sql immutable as $$
+  select (array['bande','gamers','kawai','horsserie','aura','wanted','royale','royale'])[array_position(array['bande','gamers','kawai','horsserie','aura','wanted','royale'], c) + 1];
+$$;
+-- part de l'avantage du casino rendue en rakeback, selon le rang
+create or replace function public.eng_rb_pct(l int) returns numeric language sql immutable as $$
+  select case when l >= 90 then 0.40 when l >= 70 then 0.35 when l >= 50 then 0.30 when l >= 35 then 0.25 when l >= 20 then 0.20 when l >= 10 then 0.15 else 0.10 end;
 $$;
 create or replace function public.eng_xp(a public.accounts, p_n numeric) returns public.accounts language plpgsql as $$
 declare p jsonb := coalesce(a.prog, '{}'::jsonb); before_l int; after_l int; top int; coins numeric := 0; free jsonb; l int; cid text;
@@ -193,8 +201,8 @@ begin
   if after_l > before_l and after_l > top then
     free := coalesce(p -> 'free', '{}'::jsonb);
     for l in greatest(before_l, top) + 1 .. after_l loop
-      coins := coins + 50 * l;
-      if l % 5 = 0 then cid := eng_case_for_level(l); free := free || jsonb_build_object(cid, jn(free, cid) + 1); end if;
+      cid := eng_case_for_level(l); free := free || jsonb_build_object(cid, jn(free, cid) + 1);
+      if l % 5 = 0 then cid := eng_case_up(eng_case_for_level(l)); free := free || jsonb_build_object(cid, jn(free, cid) + 1); end if;
     end loop;
     p := jsonb_set(jsonb_set(p, '{free}', free), '{top}', to_jsonb(after_l));
   end if;
@@ -316,8 +324,12 @@ declare net numeric := p_pay - p_bet; m numeric := case when p_bet > 0 then p_pa
   -- risque réellement pris : écart entre mise et gain (+10 % de la mise), au plus la mise.
   -- Empêche de « farmer » l'XP et les missions avec des paris presque sans risque (1 bombe, toute la roulette…).
   risk numeric := r2(least(p_bet, abs(p_pay - p_bet) + p_bet * 0.1));
+  rb numeric;
 begin
   a := eng_record(a, p_game, p_bet, p_pay);
+  -- rakeback = mise × avantage du casino sur ce jeu × part du rang (toujours moins que ce que le casino gagne en moyenne)
+  rb := round(p_bet * coalesce((eng_c('edges') ->> p_game)::numeric, 0.01) * eng_rb_pct(eng_level(jn(a.prog, 'xp'))), 4);
+  if rb > 0 then a.prog := jsonb_set(coalesce(a.prog, '{}'::jsonb), '{rb}', to_jsonb(round(jn(a.prog, 'rb') + rb, 4))); end if;
   a := eng_xp(a, risk);
   a := eng_bump(a, 'played', jsonb_build_object('game', p_game, 'bet', p_bet, 'payout', p_pay, 'mult', m, 'risk', risk));
   if p_bet > 0 then update jackpot set amount = r2(amount + p_bet * 0.01) where id = 1; end if;
@@ -1116,6 +1128,18 @@ begin
   return jsonb_build_object('amount', c.reward, 'acct', eng_commit(a));
 end $$;
 
+-- réclamer le rakeback accumulé
+create or replace function public.rakeback_claim() returns jsonb language plpgsql security definer set search_path = public as $$
+declare a accounts := eng_load(); amt numeric;
+begin
+  amt := floor(jn(a.prog, 'rb') * 100) / 100;
+  if amt < 0.01 then raise exception 'Rien à réclamer pour l’instant : joue encore un peu !'; end if;
+  a.prog := jsonb_set(a.prog, '{rb}', to_jsonb(round(jn(a.prog, 'rb') - amt, 4)));
+  a.prog := jsonb_set(a.prog, '{rbTotal}', to_jsonb(r2(jn(a.prog, 'rbTotal') + amt)));
+  a := eng_income(a, 'rakeback', amt);
+  return jsonb_build_object('amount', amt, 'acct', eng_commit(a));
+end $$;
+
 create or replace function public.mission_claim(p_i int) returns jsonb language plpgsql security definer set search_path = public as $$
 declare a accounts := eng_load(); m jsonb; ti int; coins numeric; xp numeric; all_done boolean;
 begin
@@ -1236,7 +1260,7 @@ grant execute on function
   public.rocket_start(numeric, numeric), public.rocket_poll(), public.rocket_cash(),
   public.bj_deal(numeric), public.bj_act(text),
   public.daily_spin(), public.rescue_claim(), public.promo_redeem(text), public.inv_sell(jsonb, text), public.inv_fuse(text),
-  public.album_claim(text), public.mission_claim(int)
+  public.album_claim(text), public.mission_claim(int), public.rakeback_claim()
 to authenticated;
 do $$ begin
   grant execute on function public.is_admin(), public.admin_set_save(uuid, jsonb, numeric, int), public.admin_set_jackpot(numeric), public.admin_clear_feed() to authenticated;
@@ -1310,6 +1334,7 @@ insert into public.eng_const values ('slot_scatter', '{"3":[15,2],"4":[20,10],"5
 insert into public.eng_const values ('slot_fs_mult', '[2]'::jsonb);
 insert into public.eng_const values ('plinko', '{"8":{"low":[5.6,2.1,1.1,1,0.5,1,1.1,2.1,5.6],"medium":[13,3,1.3,0.7,0.4,0.7,1.3,3,13],"high":[29,4,1.5,0.3,0.2,0.3,1.5,4,29]},"12":{"low":[10,3,1.6,1.4,1.1,1,0.5,1,1.1,1.4,1.6,3,10],"medium":[33,11,4,2,1.1,0.6,0.3,0.6,1.1,2,4,11,33],"high":[170,24,8.1,2,0.7,0.2,0.2,0.2,0.7,2,8.1,24,170]},"16":{"low":[16,9,2,1.4,1.4,1.2,1.1,1,0.5,1,1.1,1.2,1.4,1.4,2,9,16],"medium":[110,41,10,5,3,1.5,1,0.5,0.3,0.5,1,1.5,3,5,10,41,110],"high":[1000,130,26,9,4,2,0.2,0.2,0.2,0.2,0.2,2,4,9,26,130,1000]}}'::jsonb);
 insert into public.eng_const values ('daily', '[[100,18],[500,8],[150,16],[1000,4],[200,14],[2500,1.5],[100,18],[750,6],[250,12],[5000,0.5]]'::jsonb);
+insert into public.eng_const values ('edges', '{"dice":0.042,"roulette":0.027,"plinko":0.01,"machine":0.035,"mines":0.01,"tower":0.02,"chicken":0.01,"flip":0.01,"rocket":0.01,"blackjack":0.006,"cases":0.05,"upgrade":0.05,"scratch":0.05,"poker":0}'::jsonb);
 insert into public.eng_const values ('limits', '{"max_bet":5000}'::jsonb);
 insert into public.eng_const values ('promo', '{"dave33":3333,"fan2jc":5000}'::jsonb);
 insert into public.eng_achs values ('play1', 1, 'played', 1);
