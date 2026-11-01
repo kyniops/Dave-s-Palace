@@ -1,5 +1,6 @@
 -- Dave's Palace : nouvelle économie façon Stake.
 -- Les niveaux rapportent des caisses (plus de DaveCoins), et une part de l'avantage du casino revient au joueur en rakeback à réclamer.
+-- Corrige aussi la fusion : une carte brillante vaut 5 fois la carte (le prix de la fusion), et non plus 7 fois.
 -- À coller dans SQL Editor > New query, puis « Run ». Peut être relancé sans risque.
 
 create or replace function public.eng_case_for_level(l int) returns text language sql immutable as $$
@@ -77,3 +78,58 @@ insert into public.eng_const values ('edges', '{"dice":0.042,"roulette":0.027,"p
 revoke execute on function public.eng_case_up(text), public.eng_rb_pct(int) from public, anon, authenticated;
 revoke execute on function public.rakeback_claim() from public, anon;
 grant execute on function public.rakeback_claim() to authenticated;
+
+-- Cartes brillantes : valeur ×5 (= 5 cartes fusionnées). À ×7, fusionner puis revendre rapportait +40 % : argent infini avec les caisses.
+create or replace function public.upgrade_roll(p_items jsonb, p_coins numeric, p_target text) returns jsonb language plpgsql security definer set search_path = public as $$
+declare a accounts := eng_load(); it jsonb; card eng_cards; tgt eng_cards; stake numeric := 0; nitems int := 0; bag text; have numeric; chance numeric; r double precision; win boolean; coins numeric := r2(greatest(0, coalesce(p_coins, 0)));
+begin
+  select * into tgt from eng_cards where id = p_target;
+  if not found then raise exception 'Carte visée inconnue.'; end if;
+  for it in select value from jsonb_array_elements(coalesce(p_items, '[]')) loop
+    select * into card from eng_cards where id = it ->> 'id';
+    if not found or jn(it, 'n') < 1 then raise exception 'Carte invalide.'; end if;
+    bag := case when (it ->> 'shiny')::boolean then 'shiny' else 'cards' end;
+    have := jn(a.inv -> bag, card.id);
+    if have < jn(it, 'n') then raise exception 'Ces cartes ne sont plus dans ton inventaire.'; end if;
+    a.inv := jsonb_set(a.inv, array[bag], (a.inv -> bag) - card.id || case when have - jn(it, 'n') > 0 then jsonb_build_object(card.id, have - jn(it, 'n')) else '{}'::jsonb end);
+    stake := stake + card.value * case when bag = 'shiny' then 5 else 1 end * jn(it, 'n');
+    nitems := nitems + jn(it, 'n')::int;
+  end loop;
+  if nitems > 10 then raise exception '10 cartes maximum.'; end if;
+  if coins > 0 then coins := eng_bet(a, coins); a.balance := a.balance - coins; end if;
+  stake := r2(stake + coins);
+  if stake <= 0 or tgt.value < stake * 1.2 then raise exception 'Choisis une carte qui vaut au moins 1,2 fois ta mise.'; end if;
+  chance := least(0.8, 0.95 * stake / tgt.value);
+  r := eng_rand(); win := r < chance;
+  if win then a := eng_add_cards(a, array[tgt.id]); end if;
+  a := eng_played(a, 'upgrade', stake, case when win then tgt.value else 0 end);
+  return jsonb_build_object('r', r, 'chance', chance, 'win', win, 'stake', stake, 'acct', eng_commit(a));
+end $$;
+
+create or replace function public.inv_sell(p_items jsonb, p_mode text default 'list') returns jsonb language plpgsql security definer set search_path = public as $$
+declare a accounts := eng_load(); it jsonb; card eng_cards; bag text; have numeric; n numeric; total numeric := 0; sold numeric := 0; items jsonb := coalesce(p_items, '[]');
+begin
+  if p_mode = 'dups' then
+    items := coalesce((select jsonb_agg(jsonb_build_object('id', key, 'n', value::numeric - 1, 'shiny', false)) from jsonb_each_text(a.inv -> 'cards') where value::numeric > 1), '[]');
+  elsif p_mode = 'all' then
+    items := coalesce((select jsonb_agg(jsonb_build_object('id', key, 'n', value::numeric, 'shiny', false)) from jsonb_each_text(a.inv -> 'cards')), '[]')
+          || coalesce((select jsonb_agg(jsonb_build_object('id', key, 'n', value::numeric, 'shiny', true)) from jsonb_each_text(a.inv -> 'shiny')), '[]');
+  end if;
+  for it in select value from jsonb_array_elements(items) loop
+    select * into card from eng_cards where id = it ->> 'id';
+    continue when not found;
+    bag := case when coalesce((it ->> 'shiny')::boolean, false) then 'shiny' else 'cards' end;
+    have := jn(a.inv -> bag, card.id);
+    n := least(have, greatest(0, floor(jn(it, 'n'))));
+    continue when n <= 0;
+    a.inv := jsonb_set(a.inv, array[bag], ((a.inv -> bag) - card.id) || case when have - n > 0 then jsonb_build_object(card.id, have - n) else '{}'::jsonb end);
+    total := total + card.value * case when bag = 'shiny' then 5 else 1 end * n;
+    sold := sold + n;
+  end loop;
+  if sold = 0 then raise exception 'Aucune carte à vendre.'; end if;
+  a := eng_income(a, 'sale', r2(total));
+  a := eng_counter(a, 'sold', sold);
+  a := eng_bump(a, 'sold', jsonb_build_object('n', sold));
+  a := eng_ach(a);
+  return jsonb_build_object('value', r2(total), 'sold', sold, 'acct', eng_commit(a));
+end $$;

@@ -599,7 +599,7 @@ begin
     have := jn(a.inv -> bag, card.id);
     if have < jn(it, 'n') then raise exception 'Ces cartes ne sont plus dans ton inventaire.'; end if;
     a.inv := jsonb_set(a.inv, array[bag], (a.inv -> bag) - card.id || case when have - jn(it, 'n') > 0 then jsonb_build_object(card.id, have - jn(it, 'n')) else '{}'::jsonb end);
-    stake := stake + card.value * case when bag = 'shiny' then 7 else 1 end * jn(it, 'n');
+    stake := stake + card.value * case when bag = 'shiny' then 5 else 1 end * jn(it, 'n');
     nitems := nitems + jn(it, 'n')::int;
   end loop;
   if nitems > 10 then raise exception '10 cartes maximum.'; end if;
@@ -1091,7 +1091,7 @@ begin
     n := least(have, greatest(0, floor(jn(it, 'n'))));
     continue when n <= 0;
     a.inv := jsonb_set(a.inv, array[bag], ((a.inv -> bag) - card.id) || case when have - n > 0 then jsonb_build_object(card.id, have - n) else '{}'::jsonb end);
-    total := total + card.value * case when bag = 'shiny' then 7 else 1 end * n;
+    total := total + card.value * case when bag = 'shiny' then 5 else 1 end * n;
     sold := sold + n;
   end loop;
   if sold = 0 then raise exception 'Aucune carte à vendre.'; end if;

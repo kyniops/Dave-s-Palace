@@ -980,7 +980,8 @@
    * L'inventaire stocke seulement le nombre d'exemplaires de chaque carte.
    */
   const cards = { byId: {}, sets: [] };
-  const SHINY_MULT = 7, FUSE_COST = 5;
+  // une brillante vaut exactement les 5 cartes fusionnées : la fusion ne crée pas de DaveCoins
+  const SHINY_MULT = 5, FUSE_COST = 5;
   const inventory = {
     SHINY_MULT, FUSE_COST,
     key() { return 'dp_inv_' + auth.current(); },
@@ -1020,7 +1021,7 @@
       inventory._save(d);
       return true;
     },
-    /** Fusion : 5 exemplaires identiques deviennent 1 carte brillante (valeur ×7). */
+    /** Fusion : 5 exemplaires identiques deviennent 1 carte brillante (valeur ×5). */
     fuse(id) {
       if (DP.engine && DP.engine.on) return false;
       const d = inventory._get();

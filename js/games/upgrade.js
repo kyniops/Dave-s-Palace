@@ -44,7 +44,7 @@
       <ul><li>Ta chance = <strong>95 % × ta mise ÷ valeur de la carte visée</strong>, jusqu’à 80 % maximum.</li>
       <li>L’aiguille tourne : si elle s’arrête dans la zone colorée, tu gagnes la carte visée.</li>
       <li>Sinon, les cartes et les DaveCoins misés sont perdus.</li>
-      <li>Les cartes brillantes comptent pour 7 fois leur valeur.</li></ul>`,
+      <li>Les cartes brillantes comptent pour 5 fois leur valeur.</li></ul>`,
     mount(root) {
       const { panel, stage } = ui.layout(root);
       const sel = new Map(); // clé → { card, shiny, n }
