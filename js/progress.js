@@ -27,8 +27,8 @@
   }
   // Récompenses de niveau (même règle que le serveur) : une caisse à chaque niveau, plus une caisse du palier
   // au-dessus tous les 5 niveaux. Plus de DaveCoins : ils reviennent par le rakeback.
-  const CASE_TIERS = ['bande', 'gamers', 'kawai', 'horsserie', 'aura', 'wanted', 'royale'];
-  const caseForLevel = (L) => (L >= 70 ? 'royale' : L >= 50 ? 'wanted' : L >= 40 ? 'aura' : L >= 30 ? 'horsserie' : L >= 20 ? 'kawai' : L >= 10 ? 'gamers' : 'bande');
+  const CASE_TIERS = ['bande', 'gamers', 'kawai', 'selfie', 'aura', 'wanted', 'royale'];
+  const caseForLevel = (L) => (L >= 70 ? 'royale' : L >= 50 ? 'wanted' : L >= 40 ? 'aura' : L >= 30 ? 'selfie' : L >= 20 ? 'kawai' : L >= 10 ? 'gamers' : 'bande');
   const caseUp = (c) => CASE_TIERS[Math.min(CASE_TIERS.length - 1, CASE_TIERS.indexOf(c) + 1)];
   const levelReward = (L) => ({ coins: 0, cases: L % 5 === 0 ? [caseForLevel(L), caseUp(caseForLevel(L))] : [caseForLevel(L)] });
   // Rakeback : part de l'avantage du casino rendue sur chaque mise, selon le rang

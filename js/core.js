@@ -1034,7 +1034,15 @@
   const inventory = {
     SHINY_MULT, FUSE_COST,
     key() { return 'dp_inv_' + auth.current(); },
-    _get() { return Object.assign({ cards: {}, shiny: {}, claimed: {} }, store.json(inventory.key(), {})); },
+    _get() {
+      const d = Object.assign({ cards: {}, shiny: {}, claimed: {} }, store.json(inventory.key(), {}));
+      // cartes déplacées dans une autre caisse : on reprend leur nouvel identifiant
+      const al = cards.alias || {};
+      let moved = false;
+      ['cards', 'shiny'].forEach((bag) => Object.keys(d[bag]).forEach((id) => { if (al[id]) { d[bag][al[id]] = (d[bag][al[id]] || 0) + d[bag][id]; delete d[bag][id]; moved = true; } }));
+      if (moved) store.setJson(inventory.key(), d);
+      return d;
+    },
     _save(d) { store.setJson(inventory.key(), d); emit('inventory', d); },
     count(id) { return inventory._get().cards[id] || 0; },
     shinyCount(id) { return inventory._get().shiny[id] || 0; },

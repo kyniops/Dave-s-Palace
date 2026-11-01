@@ -73,23 +73,30 @@
   // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 95 %.
   // La rareté découle du multiplicateur : plus la carte vaut cher dans sa caisse, plus elle est rare.
   const CASES = [
+    // Les portraits de la bande
     { id: 'bande', name: 'Caisse de la Bande', price: 10, color: '#ff6b2c', cover: 'sevare.png',
-      drops: [['olman', 0.3, null], ['tdam', 0.5, 2600], ['yohan', 0.8, 2000], ['axb', 1.2, 1500], ['billy', 2, 900], ['sevare', 4.5, 300], ['nathan', 12, 90], ['nathanmuscle', 40, 18]] },
+      drops: [['olman', 0.3, null], ['tdam', 0.5, 2274], ['yohan', 0.8, 1339], ['axb', 1.2, 848], ['oulman', 1.875, 512], ['billy', 2, 476], ['liam', 3.75, 235], ['sevare', 4.5, 191], ['nathan', 12, 63], ['nathanmuscle', 40, 16]] },
+    // Les setups et les manettes
     { id: 'gamers', name: 'Caisse Gamers', price: 25, color: '#2ea8ff', cover: 'linkay.jpg',
-      drops: [['carl', 0.25, null], ['petitbonnin', 0.5, 2600], ['tddam', 0.9, 1900], ['linkay', 1.4, 1300], ['linkaypose', 3, 600], ['tdam2', 8, 150], ['casino', 30, 30]] },
+      drops: [['carl', 0.25, null], ['tddam', 0.9, 1632], ['linkay', 1.4, 1015], ['linkaypose', 3, 447], ['yohangamer', 5.4, 237], ['tdam2', 8, 156], ['casino', 30, 38]] },
+    // Les mignons : Petit Bonnin et les versions kawaï
     { id: 'kawai', name: 'Caisse Kawaï', price: 50, color: '#ff7ad9', cover: 'slymefire.png',
-      drops: [['slyme', 0.25, null], ['petitkawai', 0.8, 2000], ['lucascoroi', 5, 300], ['jpzkawai', 50, 25]] },
-    { id: 'horsserie', name: 'Caisse Hors-Série', price: 75, color: '#2fd3c4', cover: 'gillemelon.jpg',
-      drops: [['oulman', 0.25, null], ['liam', 0.5, 2500], ['petitbonninchut', 0.9, 1800], ['bonninmousse', 1.5, 1100], ['axbduo', 3, 550], ['petitbonninnoel', 10, 140], ['gillemelon', 45, 22]] },
+      drops: [['petitbonnin', 0.25, null], ['slyme', 0.25, 3667], ['petitkawai', 0.8, 1477], ['petitbonninchut', 1.35, 982], ['petitbonninnoel', 15, 149], ['jpzkawai', 50, 58]] },
+    // Les selfies et les gros plans
+    { id: 'selfie', name: 'Caisse Selfie', price: 75, color: '#2fd3c4', cover: 'tdambeau.jpg',
+      drops: [['tddeam', 0.5, null], ['teddam', 0.6667, 2853], ['axbface', 1, 1676], ['lucascoselfie', 1.6667, 858], ['hugo', 3.2, 364], ['tdambeau', 10, 82], ['marco', 80, 5]] },
+    // Les poses qui ont de l’aura
     { id: 'aura', name: 'Caisse Aura', price: 100, color: '#9a6bff', cover: 'lucasco.jpg',
-      drops: [['axbblesse', 0.2, null], ['axbserieux', 0.5, 2500], ['tdammasque', 0.9, 1800], ['tony', 1.4, 1200], ['tonny', 3, 600], ['olmanaura', 10, 150], ['lucasco', 35, 25]] },
-    { id: 'selfie', name: 'Caisse Selfie', price: 150, color: '#f472b6', cover: 'tdambeau.jpg',
-      drops: [['tddeam', 0.25, null], ['axbface', 0.5, 2500], ['yohangamer', 0.9, 1800], ['hugo', 1.6, 1100], ['tdambeau', 5, 350], ['marco', 40, 25]] },
+      drops: [['axbblesse', 0.2, null], ['axbserieux', 0.5, 2076], ['tdammasque', 0.9, 1215], ['tony', 1.4, 813], ['axbduo', 2.25, 527], ['tonny', 3, 406], ['olmanaura', 10, 136], ['lucasco', 35, 43]] },
+    // Les légendes et les recherchés
     { id: 'wanted', name: 'Caisse Wanted', price: 250, color: '#e5483b', cover: 'eltigre.jpg',
-      drops: [['teddam', 0.2, null], ['lucascoselfie', 0.5, 2500], ['mathis', 0.9, 1800], ['tonyargent', 1.6, 1100], ['presidentmali', 5, 350], ['eltigre', 40, 25]] },
+      drops: [['bonninmousse', 0.45, null], ['mathis', 0.9, 2000], ['lucascoroi', 1, 1737], ['tonyargent', 1.6, 924], ['presidentmali', 5, 200], ['gillemelon', 13.5, 53], ['eltigre', 40, 12]] },
+    // la royauté
     { id: 'royale', name: 'Caisse Royale JPZ', price: 500, color: '#ffc145', cover: 'jpz.png',
       drops: [['jpzcap', 0.15, null], ['sauce', 0.4, 2400], ['jpz2', 0.8, 1700], ['jppz', 1.5, 1100], ['charis', 6, 300], ['jpz', 40, 25], ['forton', 300, 2]] }
   ];
+  // réorganisation des caisses : anciens identifiants de cartes → nouveaux (pour les inventaires gardés dans le navigateur)
+  cards.alias = { 'gamers:petitbonnin': 'kawai:petitbonnin', 'kawai:lucascoroi': 'wanted:lucascoroi', 'horsserie:oulman': 'bande:oulman', 'horsserie:liam': 'bande:liam', 'horsserie:petitbonninchut': 'kawai:petitbonninchut', 'horsserie:bonninmousse': 'wanted:bonninmousse', 'horsserie:axbduo': 'aura:axbduo', 'horsserie:petitbonninnoel': 'kawai:petitbonninnoel', 'horsserie:gillemelon': 'wanted:gillemelon', 'selfie:yohangamer': 'gamers:yohangamer', 'wanted:teddam': 'selfie:teddam', 'wanted:lucascoselfie': 'selfie:lucascoselfie' };
   CASES.forEach((c) => {
     const rest = c.drops.slice(1);
     const sw = rest.reduce((a, d) => a + d[2], 0), swm = rest.reduce((a, d) => a + d[2] * d[1], 0);
@@ -313,7 +320,7 @@
     id: 'cases',
     name: 'DaveCases',
     icon: 'gift',
-    tagline: 'Huit caisses à ouvrir, en Battle contre la bande ou en duel contre tes amis',
+    tagline: 'Sept caisses à ouvrir, en Battle contre la bande ou en duel contre tes amis',
     rtp: '95 %',
     isNew: true,
     hue: 30,
