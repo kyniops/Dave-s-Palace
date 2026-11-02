@@ -1,0 +1,299 @@
+{
+  "version": 2,
+  "icons": {
+    "pack": "fluent-systems-regular",
+    "sizes": [
+      16,
+      18,
+      22,
+      32
+    ],
+    "color": "currentColor",
+    "items": {
+      "castle": {
+        "id": "tTfPW993UqPH",
+        "commonName": "castle"
+      },
+      "cherry": {
+        "id": "fWLG9EA1hgEV",
+        "commonName": "cherry"
+      },
+      "bomb": {
+        "id": "wIGZGNW5sUYU",
+        "commonName": "bomb"
+      },
+      "rocket": {
+        "id": "UOXsWpsgfxq5",
+        "commonName": "rocket"
+      },
+      "target": {
+        "id": "HXqmRNImsflG",
+        "commonName": "target"
+      },
+      "spade": {
+        "id": "oupEMYH10xys",
+        "commonName": "spade"
+      },
+      "bird": {
+        "id": "zOoA9kbGQM3w",
+        "commonName": "bird"
+      },
+      "dices": {
+        "id": "iLgZOuB7QegK",
+        "commonName": "dices"
+      },
+      "coins": {
+        "id": "c6JA9p8Nnzkq",
+        "commonName": "coins"
+      },
+      "arrow-left": {
+        "id": "sOeJvxVWHbVy",
+        "commonName": "arrow-left"
+      },
+      "book-open": {
+        "id": "V8Llcp5r9iZW",
+        "commonName": "book-open"
+      },
+      "x": {
+        "id": "1NVn5K29mOSz",
+        "commonName": "x"
+      },
+      "crown": {
+        "id": "JYQrEM0EyitQ",
+        "commonName": "crown"
+      },
+      "zap": {
+        "id": "ce15jJ99meTS",
+        "commonName": "zap"
+      },
+      "repeat": {
+        "id": "05GCQoIONbpI",
+        "commonName": "repeat"
+      },
+      "rotate-ccw": {
+        "id": "b6Yq8OIcS43x",
+        "commonName": "rotate-ccw"
+      },
+      "trash-2": {
+        "id": "nerFBdXcYDve",
+        "commonName": "trash-2"
+      },
+      "sparkles": {
+        "id": "YxCw7An8DYqf",
+        "commonName": "sparkles"
+      },
+      "trophy": {
+        "id": "6YtrB5VnlPqY",
+        "commonName": "trophy"
+      },
+      "history": {
+        "id": "mDMf4QY53cql",
+        "commonName": "history"
+      },
+      "wallet": {
+        "id": "drmCLEwhFUo3",
+        "commonName": "wallet"
+      },
+      "plus": {
+        "id": "SpuYztywr0Vl",
+        "commonName": "plus"
+      },
+      "user": {
+        "id": "zxB19VPoVLjK",
+        "commonName": "user"
+      },
+      "log-out": {
+        "id": "Q1xkcFuVON39",
+        "commonName": "log-out"
+      },
+      "gift": {
+        "id": "x9gD2am0uGsn",
+        "commonName": "gift"
+      },
+      "volume-2": {
+        "id": "iWO20ZvCeU53",
+        "commonName": "volume-2"
+      },
+      "volume-x": {
+        "id": "R7hT1LS48SSp",
+        "commonName": "volume-x"
+      },
+      "menu": {
+        "id": "quuyJoZCkYni",
+        "commonName": "menu"
+      },
+      "flag": {
+        "id": "K4jLy6sZ7yfc",
+        "commonName": "flag"
+      },
+      "play": {
+        "id": "LVtMPps1ASuP",
+        "commonName": "play"
+      },
+      "hand": {
+        "id": "adMzmSwdjNNE",
+        "commonName": "hand"
+      },
+      "hand-coins": {
+        "id": "osB7pidovOHs",
+        "commonName": "hand-coins"
+      },
+      "split": {
+        "id": "WIDJJMRbRlk1",
+        "commonName": "split"
+      },
+      "refresh-cw": {
+        "id": "dUT1e6ccW1yv",
+        "commonName": "refresh-cw"
+      },
+      "chevron-right": {
+        "id": "AgsBKswRnV1i",
+        "commonName": "chevron-right"
+      },
+      "gem": {
+        "id": "1p7f52jDbkKI",
+        "commonName": "gem"
+      },
+      "shuffle": {
+        "id": "QqQ9t0fbQ4Yw",
+        "commonName": "shuffle"
+      },
+      "circle-dot": {
+        "id": "0n05yZTiYt2u",
+        "commonName": "circle-dot"
+      },
+      "orbit": {
+        "id": "S2BaAbj5j5GA",
+        "commonName": "orbit"
+      },
+      "star": {
+        "id": "tAfqdu2AVpjT",
+        "commonName": "star"
+      },
+      "layers-2": {
+        "id": "8kvDToFaCkmL",
+        "commonName": "layers-2"
+      },
+      "car": {
+        "id": "x4c15ldfVTY6",
+        "commonName": "car"
+      },
+      "timer": {
+        "id": "RdG9RHtfdFqQ",
+        "commonName": "timer"
+      },
+      "percent": {
+        "id": "cKYYpKHgC6YT",
+        "commonName": "percent"
+      },
+      "triangle-alert": {
+        "id": "sWOXMMdMXpBD",
+        "commonName": "triangle-alert"
+      },
+      "info": {
+        "id": "lzICmAiUWSkI",
+        "commonName": "info"
+      },
+      "sigma": {
+        "id": "FQ9g4RLoZN46",
+        "commonName": "sigma"
+      },
+      "plinko": {
+        "id": "55tzOxSJXIjm",
+        "commonName": "plinko"
+      },
+      "chicken": {
+        "id": "ISHwy2r2Odov",
+        "commonName": "chicken"
+      },
+      "roulette": {
+        "id": "7aGGpTlIpvkf",
+        "commonName": "roulette"
+      },
+      "check": {
+        "id": "VfY8rwjNJSAQ",
+        "commonName": "check"
+      },
+      "skull": {
+        "id": "gpW8qjoqYDNv",
+        "commonName": "skull"
+      },
+      "swords": {
+        "id": "PQUW03I6yw4E",
+        "commonName": "swords"
+      },
+      "users": {
+        "id": "31ELDuosUoNz",
+        "commonName": "users"
+      },
+      "copy": {
+        "id": "pNYOTp5DinZ3",
+        "commonName": "copy"
+      },
+      "package-open": {
+        "id": "8U7gVs7h3UBU",
+        "commonName": "package-open"
+      },
+      "library": {
+        "id": "jVSVLS6oEd5G",
+        "commonName": "library"
+      },
+      "door-closed": {
+        "id": "xWawfbOgfNti",
+        "commonName": "door-closed"
+      },
+      "door-open": {
+        "id": "zxPKFbyNX7i6",
+        "commonName": "door-open"
+      },
+      "tower-control": {
+        "id": "qei1o4N80MyQ",
+        "commonName": "tower-control"
+      },
+      "package": {
+        "id": "FnCSMZbfR6RU",
+        "commonName": "package"
+      },
+      "boxes": {
+        "id": "5QdRMkFGkGMa",
+        "commonName": "boxes"
+      },
+      "layout-dashboard": {
+        "id": "sUJRwjfnGwbJ",
+        "commonName": "layout-dashboard"
+      },
+      "shield": {
+        "id": "vy6OvJYHSJ8I",
+        "commonName": "shield"
+      },
+      "lock": {
+        "id": "XkaSssewbJSt",
+        "commonName": "lock"
+      },
+      "trending-up": {
+        "id": "xsNavd7kJsfL",
+        "commonName": "trending-up"
+      },
+      "bell": {
+        "id": "eMfeVHKyTnkc",
+        "commonName": "bell"
+      },
+      "user-plus": {
+        "id": "T594YO5M5wL5",
+        "commonName": "user-plus"
+      },
+      "user-check": {
+        "id": "mIu26niLUjW4",
+        "commonName": "user-check"
+      },
+      "search": {
+        "id": "XU3XKgdpT0qG",
+        "commonName": "search"
+      },
+      "ticket": {
+        "id": "2xIX3PtQG26u",
+        "commonName": "ticket"
+      }
+    }
+  }
+}

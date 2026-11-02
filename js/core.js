@@ -656,10 +656,9 @@
       return t.content.firstElementChild;
     },
     coin(cls = '') { return `<img class="coin ${cls}" src="${IMG}davecoin.png" alt="DaveCoin">`; },
-    /** Icône SVG (Lucide) en ligne. */
+    /** Icône Icons8 (Windows 11 Regular, js/icons.js) : masque CSS, la couleur suit currentColor. */
     icon(name, cls = '') {
-      const body = (window.DP_ICONS || {})[name] || '';
-      return `<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+      return `<i class="i ${cls}" data-i="${name}" aria-hidden="true"></i>`;
     },
     toast(text, type = 'info', ms = 2600) {
       let wrap = document.getElementById('toasts');

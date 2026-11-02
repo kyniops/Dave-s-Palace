@@ -218,5 +218,5 @@ Ajoute ensuite la balise `<script>` dans `index.html`. Pour la version en ligne,
 ---
 
 <div align="center">
-<sub>Icônes <a href="https://lucide.dev">Lucide</a> (licence ISC) · crédits des effets sonores dans <a href="assets/sfx/CREDITS.txt">assets/sfx/CREDITS.txt</a></sub>
+<sub>Icônes <a href="https://icons8.com">Icons8</a> (pack Windows 11 Regular) · crédits des effets sonores dans <a href="assets/sfx/CREDITS.txt">assets/sfx/CREDITS.txt</a></sub>
 </div>
