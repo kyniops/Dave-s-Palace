@@ -347,7 +347,7 @@
     };
     raf = requestAnimationFrame(step);
     const b = document.querySelector('.wallet__bonus');
-    if (b) b.classList.toggle('ready', bonus.dailyLeft() === 0 || bonus.canRescue() || (DP.progress && DP.progress.rakeback().pending >= 1));
+    if (b) b.classList.toggle('ready', bonus.dailyLeft() === 0 || !bonus.streak().claimed || bonus.canRescue() || (DP.progress && DP.progress.rakeback().pending >= 1));
   }
   on('balance', refreshTopbar);
   // à sec : on propose le dépannage tout de suite
@@ -382,13 +382,106 @@
     })), { hi, labelR: 0.7 });
   }
 
+  /* Roue en or du jour 7 */
+  function drawGold(g, S, ang, hi) {
+    ui.wheel(g, S, ang, bonus.STREAK_GOLD.map(([v], i) => ({
+      c: v >= 25000 ? '#ff3d6e' : v >= 10000 ? '#ff6b2c' : i % 2 ? '#b27a14' : '#f2c14e', label: fmt(v), ink: v >= 10000 ? '#ffffff' : '#1a0d00', size: 0.1, icon: v >= 10000 ? 'star' : 'coin'
+    })), { hi, labelR: 0.7 });
+  }
+  function openGoldWheel(onDone) {
+    const modal = ui.el(`<div class="modal modal--gold" role="dialog" aria-modal="true">
+      <div class="modal__card modal__card--wheel modal__card--gold">
+        <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
+        <h3>${I('crown')}Roue en or</h3>
+        <p class="muted" style="margin:0 0 6px">Jour 7 : ta récompense de fidélité. Jusqu’à <strong class="num" style="color:var(--coin)">${fmt(bonus.GOLD_MAX)}</strong> DaveCoins.</p>
+        <div class="dwheel dwheel--gold">
+          <canvas></canvas>
+          <div class="wheel-spot"></div>
+          <div class="gem-pointer"><svg viewBox="0 0 40 52"><path d="M20 52 L4 18 L12 4 H28 L36 18 Z" fill="#ffc145"/><path d="M20 52 L12 18 L20 6 L28 18 Z" fill="#fff3c8" opacity=".7"/><path d="M4 18 H36" stroke="#7a4b00" stroke-width="1.5"/></svg></div>
+          <div class="dwheel__hub"><img src="${IMG}jppz.jpg" alt="JPZ"></div>
+        </div>
+        <button class="btn btn--primary btn--lg btn--block dwheel__btn dwheel__btn--gold" type="button">${I('play', 'i--sm')}Tourner la roue en or</button>
+      </div>
+    </div>`);
+    document.body.appendChild(modal);
+    const card = modal.querySelector('.modal__card'), box = modal.querySelector('.dwheel'), btn = modal.querySelector('.dwheel__btn');
+    ui.bulbs(box, 30);
+    const cv = box.querySelector('canvas'), g = cv.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), S = box.clientWidth;
+    cv.width = cv.height = Math.round(S * dpr);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = bonus.STREAK_GOLD, seg = (Math.PI * 2) / W.length;
+    let ang = 0, spinning = false, done = false, hi = null, raf = 0, lt = performance.now();
+    drawGold(g, S, ang, hi);
+    if (document.fonts) document.fonts.ready.then(() => drawGold(g, S, ang, hi));
+    const idle = (now) => {
+      if (!modal.isConnected) return;
+      if (!spinning && hi == null) { ang += (now - lt) * 0.0003; drawGold(g, S, ang, hi); }
+      lt = now; raf = requestAnimationFrame(idle);
+    };
+    raf = requestAnimationFrame(idle);
+    sound.play('gong');
+    const close = () => { if (spinning) return; cancelAnimationFrame(raf); modal.remove(); if (onDone) onDone(); };
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    modal.querySelector('.modal__close').addEventListener('click', close);
+    btn.addEventListener('click', async () => {
+      if (spinning || done) return;
+      let srv = null;
+      spinning = true; btn.disabled = true; btn.textContent = 'La roue tourne…';
+      if (DP.engine && DP.engine.on) {
+        srv = await DP.engine.call('streak_claim', {}, { defer: true });
+        if (!srv) { spinning = false; btn.disabled = false; btn.innerHTML = `${I('play', 'i--sm')}Tourner la roue en or`; return; }
+      }
+      const idx = srv ? srv.idx : bonus.drawGold();
+      box.classList.add('is-spinning');
+      sound.play('whoosh');
+      const from = ang;
+      const base = from - (from % (Math.PI * 2)) + Math.PI * 2 * 7;
+      const to = base + (Math.PI * 2 - idx * seg) + (rng.float() - 0.5) * seg * 0.6;
+      const t0 = performance.now(), dur = 6500;
+      let lastSeg = -1;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur);
+        ang = from + (to - from) * (1 - Math.pow(1 - k, 3.6));
+        const sIdx = Math.floor((ang + seg / 2) / seg);
+        if (sIdx !== lastSeg) { lastSeg = sIdx; sound.play('tick', { p: 2 * (1 - k) }); }
+        drawGold(g, S, ang, null);
+        if (k < 1 && modal.isConnected) { requestAnimationFrame(step); return; }
+        hi = idx; done = true; spinning = false;
+        box.classList.remove('is-spinning');
+        box.style.setProperty('--win-c', '#ffc145');
+        box.classList.add('is-win');
+        drawGold(g, S, ang, hi);
+        const gain = srv ? srv.amount : bonus.claimStreak(idx);
+        if (srv) DP.engine.reveal(srv.acct);
+        btn.innerHTML = `+${fmt(gain)} DaveCoins !`;
+        const big = gain >= 5000;
+        DP.emit('bigwin', { game: 'daily', x: big ? 100 : 50 });
+        sound.play('jackpot', { x: gain / 100 });
+        sound.play('slam');
+        ui.burst(box, { n: big ? 110 : 70, colors: ['#ffc145', '#fff3c4', '#ff6b2c', '#ffffff'], spread: 2.6 });
+        ui.coinRain(card, big ? 90 : 60);
+        ui.shake(card, 2);
+        ui.floatText(box, '+' + fmt(gain));
+        ui.toast(`Roue en or : +${fmt(gain)} DaveCoins`, 'win', 5000);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
   window.DP_DRAW_DAILY = drawDaily; // réutilisée par la page de présentation
 
+  // temps restant avant minuit (heure de Paris), quand le bonus 7 jours revient
+  function msToParisMidnight() {
+    const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date()).split(':').map(Number);
+    return Math.max(0, (86400 - (p[0] * 3600 + p[1] * 60 + p[2])) * 1000);
+  }
   function openBonus() {
     sound.play('click');
     const modal = ui.el(`<div class="modal" role="dialog" aria-modal="true">
-      <div class="modal__card modal__card--wheel">
+      <div class="modal__card modal__card--wheel modal__card--bonus">
         <button class="modal__close icon-btn" type="button" aria-label="Fermer">${I('x')}</button>
+        <div class="bonus-grid"><div class="bonus-col bonus-col--wheel">
         <h3>${I('gift')}Roue quotidienne</h3>
         <p class="muted" style="margin:0 0 16px">Une rotation gratuite toutes les 12 h. Jusqu’à <strong class="num" style="color:var(--coin)">${fmt(bonus.DAILY_MAX)}</strong> DaveCoins.</p>
         <div class="dwheel">
@@ -398,6 +491,12 @@
           <div class="dwheel__hub"><img src="${IMG}jppz.jpg" alt="JPZ"></div>
         </div>
         <button class="btn btn--primary btn--lg btn--block dwheel__btn" data-b="daily" type="button"></button>
+        </div><div class="bonus-col">
+        <div class="streak">
+          <div class="streak__head"><strong>${I('timer', 'i--sm')}Bonus 7 jours</strong><span class="js-sttxt"></span></div>
+          <div class="streak__days">${[1, 2, 3, 4, 5, 6, 7].map((d) => `<div class="streak__d${d === 7 ? ' streak__d--gold' : ''}" data-d="${d}"><small>${d === 7 ? 'Jour 7' : 'J' + d}</small>${d === 7 ? `${I('crown')}<b>Roue en or</b>` : `${ui.coin('coin--xs')}<b class="num">${fmt(bonus.STREAK_DAYS[d - 1])}</b>`}</div>`).join('')}</div>
+          <button class="btn btn--primary btn--block" data-b="streak" type="button"></button>
+        </div>
         <div class="bonus-row bonus-row--rb">
           <div><strong>${I('percent', 'i--sm')}Rakeback</strong><span class="js-rbtxt"></span></div>
           <button class="btn btn--primary" data-b="rb" type="button">Réclamer</button>
@@ -406,6 +505,7 @@
           <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde passe sous ${bonus.RESCUE_BELOW} (toutes les 15 min${DP.engine && DP.engine.on ? ', après 5 parties' : ''})</span></div>
           <button class="btn btn--ghost" data-b="rescue" type="button"></button>
         </div>
+        </div></div>
       </div>
     </div>`);
     document.body.appendChild(modal);
@@ -435,6 +535,24 @@
     const daily = modal.querySelector('[data-b=daily]');
     const rescue = modal.querySelector('[data-b=rescue]');
     const rbBtn = modal.querySelector('[data-b=rb]'), rbTxt = modal.querySelector('.js-rbtxt');
+    const stBtn = modal.querySelector('[data-b=streak]'), stTxt = modal.querySelector('.js-sttxt');
+    let stBusy = false;
+    stBtn.addEventListener('click', async () => {
+      const st = bonus.streak();
+      if (stBusy || st.claimed) return;
+      if (st.day === 7) { openGoldWheel(paint); return; }
+      stBusy = true; paint();
+      let got = 0;
+      if (DP.engine && DP.engine.on) { const r = await DP.engine.call('streak_claim'); got = r ? r.amount : 0; } else got = bonus.claimStreak();
+      stBusy = false; paint();
+      if (got) {
+        sound.play('coin');
+        const tile = modal.querySelector(`.streak__d[data-d="${bonus.streak().done}"]`);
+        if (tile) { ui.burst(tile, { n: 24, colors: ['#ffc145', '#ff6b2c', '#ffffff'], spread: 1.2 }); tile.classList.add('pop'); }
+        ui.coinRain(card, 20); ui.floatText(stBtn, '+' + fmt(got));
+        ui.toast(`Bonus jour ${bonus.streak().done} : +${fmt(got)} DaveCoins`, 'win');
+      }
+    });
     let rbBusy = false;
     rbBtn.addEventListener('click', async () => {
       if (rbBusy) return;
@@ -449,6 +567,16 @@
       const d = bonus.dailyLeft();
       daily.disabled = d > 0 || spinning;
       daily.innerHTML = spinning ? 'La roue tourne…' : d > 0 ? `Prochaine rotation dans <span class="num">${countdown(d)}</span>` : `${I('play', 'i--sm')}Tourner la roue`;
+      const st = bonus.streak();
+      modal.querySelectorAll('.streak__d').forEach((t) => {
+        const d = +t.dataset.d;
+        t.classList.toggle('done', d <= st.done);
+        t.classList.toggle('today', !st.claimed && d === st.day);
+      });
+      stBtn.disabled = st.claimed || stBusy;
+      stBtn.innerHTML = st.claimed ? `${st.next === 7 ? 'Roue en or' : 'Jour ' + st.next} dans <span class="num">${countdown(msToParisMidnight())}</span>`
+        : st.day === 7 ? `${I('crown', 'i--sm')}Tourner la roue en or` : `${I('gift', 'i--sm')}Récupérer le jour ${st.day} (+${fmt(bonus.STREAK_DAYS[st.day - 1])})`;
+      stTxt.textContent = st.claimed ? 'Reviens chaque jour pour monter jusqu’à la roue en or.' : st.lost ? 'Série perdue : un jour manqué te ramène au jour 1.' : 'Un jour manqué te ramène au jour 1.';
       const rb = DP.progress.rakeback();
       rbTxt.innerHTML = `Rang ${esc(rb.rank)} : <b>${Math.round(rb.pct * 100)} %</b> de l’avantage du casino te revient sur chaque mise · <b class="num" style="color:var(--coin)">${fmt(rb.pending)}</b> à réclamer${rb.total ? ` · ${fmt(rb.total)} déjà touchés` : ''}`;
       rbBtn.disabled = rb.pending < 0.01 || rbBusy;

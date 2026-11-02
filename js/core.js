@@ -14,6 +14,10 @@
   // Cases de la roue quotidienne : [gain, poids]
   const DAILY_WHEEL = [[100, 18], [500, 8], [150, 16], [1000, 4], [200, 14], [2500, 1.5], [100, 18], [750, 6], [250, 12], [5000, 0.5]];
   const RESCUE_AMOUNT = 500;
+  // bonus de connexion sur 7 jours : jours 1 à 6 en DaveCoins, jour 7 = roue en or
+  const STREAK_DAYS = [100, 150, 200, 300, 400, 500];
+  const STREAK_GOLD = [[1000, 30], [1500, 25], [2500, 18], [5000, 13], [7500, 8], [10000, 4], [25000, 2]];
+  const parisDay = (ms = Date.now()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
   const RESCUE_BELOW = 10; // dépannage possible sous ce solde
   const RESCUE_COOLDOWN = 15 * 60 * 1000; // dépannage toutes les 15 min quand on est à sec
 
@@ -157,6 +161,33 @@
       emit('bonus');
       return amount;
     },
+    /** Où on en est de la semaine : done = jours déjà pris, day = jour à prendre aujourd'hui (null si déjà pris). */
+    streak() {
+      const s = (auth.current() && store.json(bonus._key('prog'), {}).streak) || {};
+      const n = s.n || 0;
+      if (s.d === parisDay()) return { done: n, day: null, claimed: true, next: (n % 7) + 1 };
+      const done = s.d === parisDay(Date.now() - 86400000) ? n % 7 : 0;
+      return { done, day: done + 1, claimed: false, next: done + 1, lost: !!s.d && done === 0 && n % 7 > 0 };
+    },
+    drawGold() {
+      const total = STREAK_GOLD.reduce((a, s) => a + s[1], 0);
+      let r = rng.float() * total;
+      for (let i = 0; i < STREAK_GOLD.length; i++) { r -= STREAK_GOLD[i][1]; if (r < 0) return i; }
+      return 0;
+    },
+    claimStreak(idx) {
+      if (DP.engine && DP.engine.on) return 0;
+      const st = bonus.streak();
+      if (st.claimed) return 0;
+      const amount = st.day === 7 ? STREAK_GOLD[idx || 0][0] : STREAK_DAYS[st.day - 1];
+      const k = bonus._key('prog'), p = store.json(k, {});
+      p.streak = { n: st.day, d: parisDay() };
+      store.setJson(k, p);
+      wallet.credit(amount);
+      stats.income('streak', amount);
+      emit('bonus');
+      return amount;
+    },
     rescueLeft() {
       const last = parseInt(store.get(bonus._key('rescue'), '0'), 10) || 0;
       return Math.max(0, last + RESCUE_COOLDOWN - Date.now());
@@ -171,7 +202,7 @@
       emit('bonus');
       return RESCUE_AMOUNT;
     },
-    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT, RESCUE_BELOW
+    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT, RESCUE_BELOW, STREAK_DAYS, STREAK_GOLD, GOLD_MAX: 25000
   };
 
   /* ---------- Jackpot global progressif ----------

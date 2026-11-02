@@ -1049,6 +1049,30 @@ begin
   return jsonb_build_object('idx', idx, 'amount', amount, 'acct', eng_commit(a));
 end $$;
 
+create or replace function public.streak_claim() returns jsonb language plpgsql security definer set search_path = public as $$
+declare a accounts := eng_load(); c jsonb := eng_c('streak'); s jsonb; today text := eng_day();
+  yday text := to_char((clock_timestamp() at time zone 'Europe/Paris')::date - 1, 'YYYY-MM-DD');
+  n int; amount numeric; idx int := null; w jsonb; tot numeric; r numeric; i int;
+begin
+  s := coalesce(a.prog -> 'streak', '{}'::jsonb);
+  if s ->> 'd' = today then raise exception 'Bonus du jour déjà récupéré : reviens demain.'; end if;
+  -- jour suivant si on est venu hier, sinon on repart du jour 1 ; après le jour 7, nouvelle semaine
+  n := (case when s ->> 'd' = yday then coalesce((s ->> 'n')::int, 0) % 7 else 0 end) + 1;
+  if n < 7 then
+    amount := (c -> 'days' ->> (n - 1))::numeric;
+  else
+    -- jour 7 : la roue en or
+    w := c -> 'gold';
+    tot := (select sum((x ->> 1)::numeric) from jsonb_array_elements(w) x);
+    r := eng_rand() * tot; idx := 0;
+    for i in 0 .. jsonb_array_length(w) - 1 loop r := r - (w -> i ->> 1)::numeric; if r < 0 then idx := i; exit; end if; end loop;
+    amount := (w -> idx ->> 0)::numeric;
+  end if;
+  a.prog := jsonb_set(coalesce(a.prog, '{}'::jsonb), '{streak}', jsonb_build_object('n', n, 'd', today));
+  a := eng_income(a, 'streak', amount);
+  return jsonb_build_object('day', n, 'idx', idx, 'amount', amount, 'acct', eng_commit(a));
+end $$;
+
 create or replace function public.rescue_claim() returns jsonb language plpgsql security definer set search_path = public as $$
 declare a accounts := eng_load(); need int := eng_gate('rescue_played', 5)::int; below numeric := eng_gate('rescue_below', 10); amt numeric := eng_gate('rescue_amount', 500); cd bigint := (eng_gate('rescue_minutes', 15) * 60000)::bigint;
 begin
@@ -1264,7 +1288,7 @@ grant execute on function
   public.flip_toss(numeric, text), public.flip_cash(),
   public.rocket_start(numeric, numeric), public.rocket_poll(), public.rocket_cash(),
   public.bj_deal(numeric), public.bj_act(text),
-  public.daily_spin(), public.rescue_claim(), public.promo_redeem(text), public.inv_sell(jsonb, text), public.inv_fuse(text),
+  public.daily_spin(), public.streak_claim(), public.rescue_claim(), public.promo_redeem(text), public.inv_sell(jsonb, text), public.inv_fuse(text),
   public.album_claim(text), public.mission_claim(int), public.rakeback_claim()
 to authenticated;
 do $$ begin
@@ -1344,6 +1368,7 @@ insert into public.eng_const values ('slot_pays', '{"wild":[70,350,1400],"casino
 insert into public.eng_const values ('slot_scatter', '{"3":[15,2],"4":[20,10],"5":[25,50]}'::jsonb);
 insert into public.eng_const values ('slot_fs_mult', '[2]'::jsonb);
 insert into public.eng_const values ('plinko', '{"8":{"low":[5.6,2.1,1.1,1,0.5,1,1.1,2.1,5.6],"medium":[13,3,1.3,0.7,0.4,0.7,1.3,3,13],"high":[29,4,1.5,0.3,0.2,0.3,1.5,4,29]},"12":{"low":[10,3,1.6,1.4,1.1,1,0.5,1,1.1,1.4,1.6,3,10],"medium":[33,11,4,2,1.1,0.6,0.3,0.6,1.1,2,4,11,33],"high":[170,24,8.1,2,0.7,0.2,0.2,0.2,0.7,2,8.1,24,170]},"16":{"low":[16,9,2,1.4,1.4,1.2,1.1,1,0.5,1,1.1,1.2,1.4,1.4,2,9,16],"medium":[110,41,10,5,3,1.5,1,0.5,0.3,0.5,1,1.5,3,5,10,41,110],"high":[1000,130,26,9,4,2,0.2,0.2,0.2,0.2,0.2,2,4,9,26,130,1000]}}'::jsonb);
+insert into public.eng_const values ('streak', '{"days":[100,150,200,300,400,500],"gold":[[1000,30],[1500,25],[2500,18],[5000,13],[7500,8],[10000,4],[25000,2]]}'::jsonb);
 insert into public.eng_const values ('daily', '[[100,18],[500,8],[150,16],[1000,4],[200,14],[2500,1.5],[100,18],[750,6],[250,12],[5000,0.5]]'::jsonb);
 insert into public.eng_const values ('edges', '{"dice":0.042,"roulette":0.027,"plinko":0.01,"machine":0.035,"mines":0.01,"tower":0.02,"chicken":0.01,"flip":0.01,"rocket":0.01,"blackjack":0.006,"cases":0.05,"upgrade":0.05,"scratch":0.05,"poker":0}'::jsonb);
 insert into public.eng_const values ('gates', '{"promo_level":5,"poker_level":5,"rescue_played":5,"rescue_below":10,"rescue_amount":500,"rescue_minutes":15,"trade_level":10,"trade_age_days":3,"trade_ratio":0.75,"trade_day_n":5,"trade_day_value":10000,"trade_items":8}'::jsonb);

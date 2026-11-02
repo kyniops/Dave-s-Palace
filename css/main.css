@@ -1768,6 +1768,41 @@ body:has(.modal) { overflow: hidden; }
 .modal:has(.modal__card--wheel) { overflow-y: auto; place-items: safe center; }
 .modal__card--wheel { max-height: none; }
 .modal__card--wheel .dwheel { width: min(76vw, clamp(170px, calc(100vh - 520px), 320px)); margin-top: 18px !important; margin-bottom: 22px !important; }
+/* fenêtre des bonus : roue à gauche, bonus 7 jours / rakeback / dépannage à droite sur grand écran */
+.modal__card--bonus { width: min(460px, 100%); }
+.modal__card--bonus .dwheel { width: min(76vw, clamp(170px, calc(100vh - 680px), 320px)); }
+@media (min-width: 880px) {
+  .modal__card--bonus { width: min(900px, 100%); }
+  .bonus-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+  .bonus-grid .bonus-col:last-child { text-align: left; }
+  .modal__card--bonus .dwheel { width: clamp(200px, calc(100vh - 290px), 340px); }
+}
+.streak { padding: 4px 0 16px; text-align: left; }
+.streak__head strong { display: flex; align-items: center; gap: 8px; font-family: var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.streak__head strong .i { color: var(--accent); }
+.streak__head span { display: block; font-size: var(--t-sm); color: var(--muted); margin-top: 2px; }
+.streak__days { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)) minmax(0, 1.5fr); gap: 5px; margin: 12px 0; }
+.streak__d { position: relative; display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 64px; padding: 6px 2px; background: #121624; box-shadow: inset 0 0 0 1px var(--line-2); text-align: center; }
+.streak__d small { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.streak__d b { font-family: var(--display); font-size: 12px; }
+.streak__d.done { background: rgba(74, 222, 128, .1); box-shadow: inset 0 0 0 1px rgba(74, 222, 128, .45); }
+.streak__d.done::after { content: '✓'; position: absolute; top: 2px; right: 4px; font-size: 11px; color: #4ade80; font-weight: 700; }
+.streak__d.today { box-shadow: inset 0 0 0 2px var(--accent), 0 0 16px rgba(255, 107, 44, .45); animation: streak-glow 1.4s ease-in-out infinite; }
+@keyframes streak-glow { 50% { box-shadow: inset 0 0 0 2px var(--accent), 0 0 26px rgba(255, 107, 44, .75); } }
+.streak__d.pop { animation: streak-pop .5s var(--ease); }
+@keyframes streak-pop { 40% { transform: scale(1.15); } }
+.streak__d--gold { background: linear-gradient(160deg, #3b2a08, #6b4a10 45%, #2a1d05); box-shadow: inset 0 0 0 1px #e8c26c; }
+.streak__d--gold .i { width: 18px; height: 18px; color: #ffd76a; filter: drop-shadow(0 0 6px rgba(255, 193, 69, .8)); }
+.streak__d--gold b { color: #ffe9a8; font-size: 11px; }
+.streak__d--gold.today { box-shadow: inset 0 0 0 2px #ffc145, 0 0 22px rgba(255, 193, 69, .7); animation: gold-glow 1.2s ease-in-out infinite; }
+@keyframes gold-glow { 50% { box-shadow: inset 0 0 0 2px #fff3c4, 0 0 34px rgba(255, 193, 69, 1); } }
+/* roue en or */
+.modal__card--gold { width: min(460px, 100%); background: radial-gradient(120% 70% at 50% 0%, rgba(255, 193, 69, .18), transparent 60%), #0b0d14; border-color: #b8862b; }
+.modal__card--gold h3 { color: #ffd76a; }
+.modal__card--gold .dwheel { width: min(76vw, clamp(200px, calc(100vh - 300px), 360px)); }
+.dwheel__btn--gold { background: linear-gradient(90deg, #ffc145, #ffe9a8, #ffc145); color: #1a0d00; }
+.dwheel__btn--gold:hover { background: linear-gradient(90deg, #ffd76a, #fff3c4, #ffd76a); }
+
 /* joueurs en ligne : qui joue à quoi */
 .nav-online { flex-direction: column; align-items: stretch; cursor: pointer; }
 .nav-online__top { display: flex; align-items: center; gap: 8px; }
@@ -1780,3 +1815,10 @@ body:has(.modal) { overflow: hidden; }
 .nav-online__list a em { font-style: normal; color: #86efac; font-size: 12px; overflow-wrap: anywhere; }
 .nav-online__list a:hover span { color: var(--accent); }
 .nav-online__list p { margin: 0; }
+/* petit écran : le solde ne se superpose plus aux boutons de droite (son, niveau, profil) */
+@media (max-width: 560px) {
+  .wallet { position: static; transform: none; margin-left: auto; flex: none; }
+  .topbar__right { margin-left: 0; gap: 4px; }
+  .streak__d { min-height: 56px; }
+  .streak__d b { font-size: 11px; }
+}
