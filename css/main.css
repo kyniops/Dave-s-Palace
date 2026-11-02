@@ -1763,3 +1763,20 @@ body:has(.modal) { overflow: hidden; }
   transform: translate(-50%, 140%); transition: transform .45s cubic-bezier(.2, 1.4, .4, 1); }
 .broke.in { transform: translate(-50%, 0); animation: broke-pulse 1.2s ease-in-out .5s infinite alternate; }
 @keyframes broke-pulse { to { filter: brightness(1.12); } }
+
+/* roue quotidienne : la roue rétrécit sur les petits écrans pour que « Dave te dépanne » reste visible */
+.modal:has(.modal__card--wheel) { overflow-y: auto; place-items: safe center; }
+.modal__card--wheel { max-height: none; }
+.modal__card--wheel .dwheel { width: min(76vw, clamp(170px, calc(100vh - 520px), 320px)); margin-top: 18px !important; margin-bottom: 22px !important; }
+/* joueurs en ligne : qui joue à quoi */
+.nav-online { flex-direction: column; align-items: stretch; cursor: pointer; }
+.nav-online__top { display: flex; align-items: center; gap: 8px; }
+.nav-online__chev { margin-left: auto; transition: transform .2s; }
+.nav-online.open .nav-online__chev { transform: rotate(180deg); }
+.nav-online__list { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(74, 222, 128, .2); }
+.nav-online.open .nav-online__list { display: grid; gap: 6px; }
+.nav-online__list a { display: grid; gap: 1px; color: var(--text); text-decoration: none; }
+.nav-online__list a span { font-family: var(--display); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.nav-online__list a em { font-style: normal; color: #86efac; font-size: 12px; overflow-wrap: anywhere; }
+.nav-online__list a:hover span { color: var(--accent); }
+.nav-online__list p { margin: 0; }

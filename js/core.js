@@ -381,8 +381,14 @@
       src.start(ctx.currentTime + (o.t || 0));
       return true;
     }
+    // onglet caché : on coupe le moteur audio (sinon le navigateur le ralentit et ça grésille), il repart au retour
+    document.addEventListener('visibilitychange', () => {
+      if (!ctx) return;
+      if (document.hidden) ctx.suspend().catch(() => {});
+      else if (!api.muted) ctx.resume().catch(() => {});
+    });
     function ready() {
-      if (api.muted) return null;
+      if (api.muted || document.hidden) return null;
       if (!ctx && !init()) return null;
       if (ctx.state === 'suspended') ctx.resume();
       return ctx;

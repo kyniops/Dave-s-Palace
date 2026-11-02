@@ -234,7 +234,7 @@
         </header>
         <div class="gticker"><span class="gticker__lbl">${I('trophy', 'i--sm')}Gagnants</span><div class="gticker__win"><div class="ticker__track js-gtrack">${tickerHtml()}${tickerHtml()}</div></div></div>
         <nav class="sidebar">
-          <div class="nav-online js-online" hidden><i></i><b class="num">0</b> joueurs en ligne</div>
+          <div class="nav-online js-online" role="button" tabindex="0" title="Voir qui joue à quoi" hidden><div class="nav-online__top"><i></i><b class="num">0</b> joueurs en ligne<span class="nav-online__chev">▾</span></div><div class="nav-online__list"></div></div>
           <a class="nav-item" data-nav="lobby" href="#/lobby">${I('castle')}Lobby</a>
           <div class="nav-title">Collection</div>
           <a class="nav-item nav-item--hero" data-nav="caisses" href="#/caisses">${I('package-open')}Caisses<span class="nav-tag">Ouvrir</span></a>
@@ -262,6 +262,16 @@
 
     app.querySelector('.burger').addEventListener('click', () => document.body.classList.toggle('nav-open'));
     app.querySelector('.scrim').addEventListener('click', closeSidebar);
+    // recliquer sur la page où on est déjà (ex. Caisses pendant une ouverture) la recharge : retour au choix
+    app.querySelector('.sidebar').addEventListener('click', (e) => {
+      const a = e.target.closest('a.nav-item[href]');
+      if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const cur = location.hash && location.hash !== '#/' ? location.hash : '#/lobby';
+      if (a.getAttribute('href') === cur) { e.preventDefault(); closeSidebar(); navigate(); }
+    });
+    // joueurs en ligne : liste de qui joue à quoi
+    const onl = app.querySelector('.js-online');
+    onl.addEventListener('click', () => { onl.classList.toggle('open'); paintOnline(); });
     app.querySelector('.logout').addEventListener('click', () => {
       if (window.DP_INTRO) { DP_INTRO.transitionTo('#/', () => auth.logout()); return; }
       auth.logout(); location.hash = ''; route();
@@ -877,7 +887,7 @@
         <div><h1>Codes</h1><p>Un code te donne des DaveCoins. Chaque code ne fonctionne qu’une fois par compte${DP.engine && DP.engine.on ? ', à partir du niveau 5' : ''}.</p></div>
       </div>
       <form class="code-box" data-reveal novalidate>
-        <label class="field"><span>Ton code</span><input name="code" autocomplete="off" spellcheck="false" maxlength="32" placeholder="Ex. DAVE33"></label>
+        <label class="field"><span>Ton code</span><input name="code" autocomplete="off" spellcheck="false" maxlength="32" placeholder="Entre un code"></label>
         <button class="btn btn--primary btn--lg" type="submit">${I('sparkles', 'i--sm')}Activer</button>
         <p class="code-box__msg" role="status"></p>
       </form>
@@ -998,13 +1008,26 @@
   function paintOnline() {
     const pr = DP.cloud && DP.cloud.presence ? DP.cloud.presence() : null;
     const box = document.querySelector('.js-online');
-    if (box) { box.hidden = !pr; if (pr) box.querySelector('b').textContent = pr.total; }
+    if (box) {
+      box.hidden = !pr;
+      if (pr) {
+        box.querySelector('b').textContent = pr.total;
+        // seulement les jeux (pas l'inventaire, le profil…)
+        const who = pr.who || {};
+        const rows = [['caisses', 'Caisses']].concat(games.list.filter((g) => g.id !== 'cases').map((g) => [g.id, g.name]))
+          .filter(([k]) => who[k] && who[k].length)
+          .map(([k, n]) => `<a href="${k === 'caisses' ? '#/caisses' : '#/jeu/' + k}"><span>${esc(n)}</span><em>${who[k].map(esc).join(', ')}</em></a>`);
+        box.querySelector('.nav-online__list').innerHTML = rows.length ? rows.join('') : '<p>Personne en jeu pour l’instant</p>';
+      }
+    }
     document.querySelectorAll('.nav-item[data-nav]').forEach((n) => {
       let tag = n.querySelector('.nav-pl');
       const k = pr ? pr.per[n.dataset.nav] || 0 : 0;
       if (!k) { if (tag) tag.remove(); return; }
       if (!tag) { tag = document.createElement('span'); tag.className = 'nav-pl num'; tag.title = 'Joueurs sur ce jeu'; n.appendChild(tag); }
       tag.innerHTML = `<i></i>${k}`;
+      const names = pr.who && pr.who[n.dataset.nav];
+      tag.title = names && names.length ? names.join(', ') : 'Joueurs sur ce jeu';
     });
   }
   on('presence', paintOnline);

@@ -390,16 +390,21 @@
     presCh = sb.channel('presence-palace', { config: { presence: { key: uid } } });
     presCh.on('presence', { event: 'sync' }, () => {
       const st = presCh.presenceState();
-      const per = {}; let total = 0;
-      Object.values(st).forEach((metas) => { const m = metas[metas.length - 1] || {}; total++; if (m.page) per[m.page] = (per[m.page] || 0) + 1; });
+      const per = {}, who = {}; let total = 0;
+      Object.values(st).forEach((metas) => {
+        const m = metas[metas.length - 1] || {}; total++;
+        if (!m.page) return;
+        per[m.page] = (per[m.page] || 0) + 1;
+        if (m.name) (who[m.page] = who[m.page] || []).push(String(m.name).slice(0, 24));
+      });
       // la page des caisses compte aussi pour le jeu des caisses dans le menu
-      presState = { total, per };
+      presState = { total, per, who };
       emit('presence', presState);
-    }).subscribe((status) => { if (status === 'SUBSCRIBED') presCh.track({ page }); });
+    }).subscribe((status) => { if (status === 'SUBSCRIBED') presCh.track({ page, name: auth.current() }); });
   }
   function stopPresence() { if (presCh) { try { sb.removeChannel(presCh); } catch { /* ignore */ } presCh = null; presState = null; emit('presence', null); } }
   cloud.presence = () => presState;
-  cloud.setPage = (k) => { if (!k || k === page) return; page = k; if (presCh) presCh.track({ page }); };
+  cloud.setPage = (k) => { if (!k || k === page) return; page = k; if (presCh) presCh.track({ page, name: auth.current() }); };
 
   /* ---------- Classement et admin ---------- */
   /* Profils (photo, bannière, titre…) de tous les joueurs, pour les afficher partout */
