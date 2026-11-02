@@ -1274,7 +1274,9 @@
   const games = {
     list: [],
     register(def) { games.list.push(def); },
-    find(id) { return games.list.find((g) => g.id === id); }
+    find(id) { return games.list.find((g) => g.id === id) || games.extra[id]; },
+    // « jeux » qui ne sont pas dans la liste des jeux (la bourse a sa propre page)
+    extra: { market: { id: 'market', name: 'DaveBourse', icon: 'coins', rtp: '98 %', hue: 150 } }
   };
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

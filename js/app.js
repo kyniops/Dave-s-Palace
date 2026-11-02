@@ -35,6 +35,7 @@
     else if (page === 'admin' && !DP_DASH.isAdmin()) { location.replace('#/lobby'); return; }
     else if (page === 'admin') unmountView = DP_DASH.admin(view, { rerender: route });
     else if (page === 'progression') unmountView = DP.progress.render(view);
+    else if (page === 'bourse') unmountView = DP.bourse.render(view);
     else if (page === 'classement') unmountView = renderLeaderboard(view);
     else if (page === 'amis') unmountView = DP.social.render(view);
     else if (page === 'duel' && arg) {
@@ -244,6 +245,8 @@
             const list = casinoGames().filter((g) => catOf(g) === c);
             return list.length ? `<div class="nav-title">${c}</div>` + list.map((g) => `<a class="nav-item" data-nav="${g.id}" href="#/jeu/${g.id}">${I(g.icon)}${g.name}${g.isNew ? '<span class="nav-tag">Nouveau</span>' : ''}</a>`).join('') : '';
           }).join('')}
+          <div class="nav-title">Bourse</div>
+          <a class="nav-item" data-nav="bourse" href="#/bourse">${I('coins')}DaveBourse<span class="nav-tag">Nouveau</span></a>
           <div class="nav-title">Compte</div>
           <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Mon profil</a>
           <a class="nav-item" data-nav="dashboard" href="#/dashboard">${I('layout-dashboard')}Dashboard</a>
@@ -1161,9 +1164,9 @@
         box.querySelector('b').textContent = pr.total;
         // seulement les jeux (pas l'inventaire, le profil…)
         const who = pr.who || {};
-        const rows = [['caisses', 'Caisses']].concat(games.list.filter((g) => g.id !== 'cases').map((g) => [g.id, g.name]))
+        const rows = [['caisses', 'Caisses']].concat(games.list.filter((g) => g.id !== 'cases').map((g) => [g.id, g.name]), [['bourse', 'DaveBourse']])
           .filter(([k]) => who[k] && who[k].length)
-          .map(([k, n]) => `<a href="${k === 'caisses' ? '#/caisses' : '#/jeu/' + k}"><span>${esc(n)}</span><em>${who[k].map(esc).join(', ')}</em></a>`);
+          .map(([k, n]) => `<a href="${k === 'caisses' ? '#/caisses' : k === 'bourse' ? '#/bourse' : '#/jeu/' + k}"><span>${esc(n)}</span><em>${who[k].map(esc).join(', ')}</em></a>`);
         box.querySelector('.nav-online__list').innerHTML = rows.length ? rows.join('') : '<p>Personne en jeu pour l’instant</p>';
       }
     }
@@ -1211,7 +1214,7 @@
   /* ---------- Classement (version en ligne) ---------- */
   function renderLeaderboard(view) {
     let sortKey = 'balance', alive = true, list = [];
-    const COLS = [['balance', 'Solde'], ['level', 'Niveau'], ['wagered', 'Total misé'], ['biggest_win', 'Plus gros gain']];
+    const COLS = [['balance', 'Fortune'], ['level', 'Niveau'], ['wagered', 'Total misé'], ['biggest_win', 'Plus gros gain']];
     view.innerHTML = `
       <div class="page-head" data-reveal><span class="game-head__ico">${I('trophy', 'i--lg')}</span>
         <div><h1>Classement</h1><p>${DP.cloud && DP.cloud.online ? 'Tous les joueurs du Palace, en direct.' : 'Disponible sur la version en ligne du site.'}</p></div></div>

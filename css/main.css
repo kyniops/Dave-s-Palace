@@ -1825,3 +1825,79 @@ body:has(.modal) { overflow: hidden; }
 
 /* mise trop grosse par rapport au solde */
 .bet__warn { margin-top: 6px; padding: 6px 10px; font-size: 12px; color: #ffb38a; background: rgba(255, 107, 44, .1); box-shadow: inset 2px 0 0 var(--accent); }
+
+/* ---------- DaveBourse ---------- */
+.mk-news { display: flex; align-items: stretch; height: 40px; margin-bottom: 16px; background: linear-gradient(90deg, rgba(99, 102, 241, .14), rgba(56, 189, 248, .06)); box-shadow: inset 0 0 0 1px rgba(129, 140, 248, .3); overflow: hidden; }
+.mk-news__lbl { display: flex; align-items: center; gap: 6px; flex: none; padding: 0 14px; background: #4f46e5; color: #fff; font-family: var(--display); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); padding-right: 22px; }
+.mk-news__win { flex: 1; overflow: hidden; display: flex; align-items: center; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.mk-news__track { display: flex; gap: 34px; white-space: nowrap; padding-left: 16px; }
+.mk-news__track.run { animation: mk-scroll 60s linear infinite; }
+.mk-news:hover .mk-news__track { animation-play-state: paused; }
+@keyframes mk-scroll { to { transform: translateX(-50%); } }
+.mk-news__it { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text); }
+.mk-news__it img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+.mk-news__it b { font-family: var(--display); color: #a5b4fc; }
+.mk-news__it em { font-style: normal; font-weight: 700; }
+.mk-news__it small { color: var(--muted); font-size: 11px; }
+.mk { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 16px; align-items: start; }
+.mk-list { display: grid; gap: 8px; }
+.mk-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) 70px auto; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; background: #0f1320; color: var(--text); text-align: left; box-shadow: inset 0 0 0 1px var(--line-2); cursor: pointer; transition: box-shadow .2s, background .2s, transform .2s; }
+.mk-row:hover { background: #141a2b; transform: translateX(2px); }
+.mk-row.on { background: #161c30; box-shadow: inset 0 0 0 1px var(--accent), inset 3px 0 0 var(--accent); }
+.mk-row img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
+.mk-row__n { display: grid; min-width: 0; }
+.mk-row__n b { font-family: var(--display); letter-spacing: .03em; }
+.mk-row__n small { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-row__n i { font-style: normal; color: #ffc145; }
+.mk-row__sp svg { display: block; width: 70px; height: 30px; }
+.mk-row__p { display: grid; justify-items: end; }
+.mk-row__p b { font-family: var(--display); }
+.mk-row__p small { font-size: 12px; }
+.pos { color: #4ade80; } .neg { color: #f87171; }
+.mk-main { padding: 18px; }
+.mk-head { display: flex; align-items: center; gap: 14px; }
+.mk-head img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px var(--line-2); }
+.mk-head h2 { margin: 0; font-family: var(--display); font-size: 22px; }
+.mk-head h2 small { font-size: 13px; color: var(--muted); font-family: var(--body, inherit); }
+.mk-tag { font-size: 12px; color: var(--muted); }
+.mk-head__p { margin-left: auto; display: grid; justify-items: end; }
+.mk-head__p b { font-family: var(--display); font-size: 26px; }
+.mk-head__p small { color: var(--muted); }
+.mk-chart { position: relative; height: 300px; margin: 14px 0; }
+.mk-chart canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+.mk-ranges { position: absolute; top: 0; left: 8px; }
+.mk-ranges button { padding: 4px 10px; font-size: 12px; }
+.mk-tip { position: absolute; pointer-events: none; display: grid; padding: 6px 10px; background: #0b0d14; box-shadow: 0 0 0 1px var(--line-2), 0 10px 30px rgba(0,0,0,.5); font-size: 12px; }
+.mk-tip b { font-family: var(--display); font-size: 14px; }
+.mk-tip span { color: var(--muted); }
+.mk-trade { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.mk-box { padding: 14px; background: rgba(0,0,0,.25); box-shadow: inset 0 0 0 1px var(--line-2); display: grid; gap: 10px; align-content: start; }
+.mk-box__h { display: flex; align-items: center; gap: 8px; font-family: var(--display); text-transform: uppercase; letter-spacing: .05em; font-size: 13px; }
+.mk-box__h .i { color: var(--accent); }
+.mk-prev { margin: 0; font-size: 12px; color: var(--muted); }
+.mk-pos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+.mk-pos span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.mk-pos b { font-family: var(--display); }
+.mk-empty { margin: 0; font-size: 13px; }
+.mk-wait { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; color: #ffc145; }
+.mk-sell { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.mk-sell .btn { padding-left: 6px; padding-right: 6px; font-size: 12px; }
+.mk-port { margin-top: 16px; padding: 16px 18px; }
+.mk-port__h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.mk-port__h h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--display); text-transform: uppercase; font-size: 15px; }
+.mk-port__h b { font-family: var(--display); }
+.mk-prow { display: grid; grid-template-columns: 28px 1fr 1fr 1fr 1fr; align-items: center; gap: 10px; width: 100%; padding: 8px 4px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--text); text-align: left; cursor: pointer; }
+.mk-prow:hover { background: rgba(255,255,255,.03); }
+.mk-prow img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+.mk-prow b { font-family: var(--display); }
+.mk-prow--h { cursor: default; border-top: 0; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.mk-prow--h:hover { background: none; }
+@media (max-width: 1100px) { .mk { grid-template-columns: 1fr; } .mk-list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); } }
+@media (max-width: 640px) {
+  .mk-trade { grid-template-columns: 1fr; }
+  .mk-chart { height: 220px; }
+  .mk-head__p b { font-size: 20px; }
+  .mk-prow { grid-template-columns: 24px 1fr 1fr 1fr; } .mk-prow > :nth-child(3) { display: none; }
+  .mk-news__lbl { padding: 0 16px 0 10px; }
+}
+.mk-ranges button, .mk-head__p span { white-space: nowrap; }
