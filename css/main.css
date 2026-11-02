@@ -1822,3 +1822,6 @@ body:has(.modal) { overflow: hidden; }
   .streak__d { min-height: 56px; }
   .streak__d b { font-size: 11px; }
 }
+
+/* mise trop grosse par rapport au solde */
+.bet__warn { margin-top: 6px; padding: 6px 10px; font-size: 12px; color: #ffb38a; background: rgba(255, 107, 44, .1); box-shadow: inset 2px 0 0 var(--accent); }

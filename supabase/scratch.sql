@@ -4,7 +4,7 @@
 -- DaveTicket : ticket à gratter. 3 photos identiques sur 9 cases = prix × multiplicateur de la photo (RTP 95 %)
 create or replace function public.scratch_buy(p_price numeric) returns jsonb language plpgsql security definer set search_path = public as $$
 declare a accounts := eng_load(); mults numeric[] := array[1, 2, 3, 5, 10, 25, 100, 1000];
-  probs numeric[] := array[0.1, 0.095, 0.06, 0.03, 0.012, 0.004, 0.0006, 0.00005];
+  probs numeric[] := array[0.12, 0.13, 0.07, 0.035, 0.01, 0.0024, 0.0003, 0.00002];
   cost numeric; r numeric := eng_rand(); win int := -1; i int; j int; tmp int; s int; grid int[] := '{}'; cnt int[] := array[0, 0, 0, 0, 0, 0, 0, 0]; pay numeric := 0;
 begin
   if p_price is null or p_price not in (5, 25, 100, 500) then raise exception 'Ticket invalide.'; end if;

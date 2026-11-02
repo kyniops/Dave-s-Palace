@@ -1,6 +1,6 @@
 /* DaveTicket — ticket à gratter. 9 cases cachées sous une pellicule : 3 photos identiques = gain
  * (multiplicateur de la photo × prix du ticket). Le résultat est tiré à l'achat ; gratter ne fait que le révéler.
- * RTP 95 % : chances et gains identiques côté serveur (supabase/scratch.sql, fonction scratch_buy).
+ * RTP 97,5 % : chances et gains identiques côté serveur (supabase/scratch.sql, fonction scratch_buy).
  */
 (function () {
   'use strict';
@@ -8,14 +8,14 @@
 
   // du moins cher au plus cher ; P = chance de gagner avec cette photo
   const SYMS = [
-    { id: 'carl', name: 'Carl', img: 'carl.jpg', x: 1, p: 0.1 },
-    { id: 'tdam', name: 'Tdam', img: 'tdam.png', x: 2, p: 0.095 },
-    { id: 'yohan', name: 'Yohan', img: 'yohan.jpg', x: 3, p: 0.06 },
-    { id: 'billy', name: 'Billy', img: 'billy.jpg', x: 5, p: 0.03 },
-    { id: 'mathis', name: 'Mathis', img: 'mathis.jpg', x: 10, p: 0.012 },
-    { id: 'tonyargent', name: 'Tony Billets', img: 'tonyargent.jpg', x: 25, p: 0.004 },
-    { id: 'eltigre', name: 'El Tigre', img: 'eltigre.jpg', x: 100, p: 0.0006 },
-    { id: 'forton', name: 'Absolute Forton', img: 'forton.jpg', x: 1000, p: 0.00005 }
+    { id: 'carl', name: 'Carl', img: 'carl.jpg', x: 1, p: 0.12 },
+    { id: 'tdam', name: 'Tdam', img: 'tdam.png', x: 2, p: 0.13 },
+    { id: 'yohan', name: 'Yohan', img: 'yohan.jpg', x: 3, p: 0.07 },
+    { id: 'billy', name: 'Billy', img: 'billy.jpg', x: 5, p: 0.035 },
+    { id: 'mathis', name: 'Mathis', img: 'mathis.jpg', x: 10, p: 0.01 },
+    { id: 'tonyargent', name: 'Tony Billets', img: 'tonyargent.jpg', x: 25, p: 0.0024 },
+    { id: 'eltigre', name: 'El Tigre', img: 'eltigre.jpg', x: 100, p: 0.0003 },
+    { id: 'forton', name: 'Absolute Forton', img: 'forton.jpg', x: 1000, p: 0.00002 }
   ];
   const TICKETS = [
     { price: 5, label: 'Bronze', cls: 'bronze' },
@@ -42,7 +42,7 @@
     name: 'DaveTicket',
     icon: 'ticket',
     tagline: 'Gratte, trouve 3 photos identiques',
-    rtp: '95 %',
+    rtp: '97,5 %',
     hue: 140,
     art: `<div class="art-ticket"><div class="art-ticket__t"><b>DAVE TICKET</b><span><img src="${IMG}forton.jpg" alt=""><img src="${IMG}eltigre.jpg" alt=""><i></i></span><em>×1000</em></div></div>`,
     rules: `<p>Achète un ticket, puis gratte les 9 cases avec la souris ou le doigt.</p>

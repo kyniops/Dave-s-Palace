@@ -347,7 +347,7 @@
     };
     raf = requestAnimationFrame(step);
     const b = document.querySelector('.wallet__bonus');
-    if (b) b.classList.toggle('ready', bonus.dailyLeft() === 0 || !bonus.streak().claimed || bonus.canRescue() || (DP.progress && DP.progress.rakeback().pending >= 1));
+    if (b) b.classList.toggle('ready', bonus.dailyLeft() === 0 || !bonus.streak().claimed || bonus.cashback().amount >= 1 || bonus.canRescue() || (DP.progress && DP.progress.rakeback().pending >= 1));
   }
   on('balance', refreshTopbar);
   // à sec : on propose le dépannage tout de suite
@@ -502,6 +502,10 @@
           <button class="btn btn--primary" data-b="rb" type="button">Réclamer</button>
         </div>
         <div class="bonus-row">
+          <div><strong>${I('rotate-ccw', 'i--sm')}Remboursement</strong><span class="js-cbtxt"></span></div>
+          <button class="btn btn--primary" data-b="cb" type="button">Récupérer</button>
+        </div>
+        <div class="bonus-row">
           <div><strong>${I('hand-coins', 'i--sm')}Dave te dépanne</strong><span>+${fmt(bonus.RESCUE_AMOUNT)} ${ui.coin('coin--xs')} si ton solde passe sous ${bonus.RESCUE_BELOW} (toutes les 15 min${DP.engine && DP.engine.on ? ', après 5 parties' : ''})</span></div>
           <button class="btn btn--ghost" data-b="rescue" type="button"></button>
         </div>
@@ -536,6 +540,16 @@
     const rescue = modal.querySelector('[data-b=rescue]');
     const rbBtn = modal.querySelector('[data-b=rb]'), rbTxt = modal.querySelector('.js-rbtxt');
     const stBtn = modal.querySelector('[data-b=streak]'), stTxt = modal.querySelector('.js-sttxt');
+    const cbBtn = modal.querySelector('[data-b=cb]'), cbTxt = modal.querySelector('.js-cbtxt');
+    let cbBusy = false;
+    cbBtn.addEventListener('click', async () => {
+      if (cbBusy) return;
+      cbBusy = true; paint();
+      let got = 0;
+      if (DP.engine && DP.engine.on) { const r = await DP.engine.call('cashback_claim'); got = r ? r.amount : 0; } else got = bonus.claimCashback();
+      cbBusy = false; paint();
+      if (got) { sound.play('coin'); ui.coinRain(card, 20); ui.floatText(cbBtn, '+' + fmt(got)); ui.toast(`Remboursement : +${fmt(got)} DaveCoins`, 'win'); }
+    });
     let stBusy = false;
     stBtn.addEventListener('click', async () => {
       const st = bonus.streak();
@@ -577,6 +591,11 @@
       stBtn.innerHTML = st.claimed ? `${st.next === 7 ? 'Roue en or' : 'Jour ' + st.next} dans <span class="num">${countdown(msToParisMidnight())}</span>`
         : st.day === 7 ? `${I('crown', 'i--sm')}Tourner la roue en or` : `${I('gift', 'i--sm')}Récupérer le jour ${st.day} (+${fmt(bonus.STREAK_DAYS[st.day - 1])})`;
       stTxt.textContent = st.claimed ? 'Reviens chaque jour pour monter jusqu’à la roue en or.' : st.lost ? 'Série perdue : un jour manqué te ramène au jour 1.' : 'Un jour manqué te ramène au jour 1.';
+      const cb = bonus.cashback(), pc = Math.round(bonus.CASHBACK_PCT * 100);
+      cbTxt.innerHTML = cb.claimed ? `${pc} % de tes pertes d’hier : récupéré, reviens demain`
+        : cb.amount >= 1 ? `${pc} % de tes pertes d’hier · <b class="num" style="color:var(--coin)">${fmt(cb.amount)}</b> à récupérer`
+        : `${pc} % de tes pertes de la journée, à récupérer le lendemain`;
+      cbBtn.disabled = cb.claimed || cb.amount < 1 || cbBusy;
       const rb = DP.progress.rakeback();
       rbTxt.innerHTML = `Rang ${esc(rb.rank)} : <b>${Math.round(rb.pct * 100)} %</b> de l’avantage du casino te revient sur chaque mise · <b class="num" style="color:var(--coin)">${fmt(rb.pending)}</b> à réclamer${rb.total ? ` · ${fmt(rb.total)} déjà touchés` : ''}`;
       rbBtn.disabled = rb.pending < 0.01 || rbBusy;

@@ -1,11 +1,11 @@
 /* DaveCases — vitrine de caisses, ouverture (×1 à ×4) et mode Battle contre la bande.
- * Chaque caisse rend 95 % de son prix en moyenne : le poids de l'objet le moins cher est
+ * Chaque caisse rend 97 % de son prix en moyenne : le poids de l'objet le moins cher est
  * calculé au chargement pour tomber pile sur ce taux. Les chances exactes sont affichées.
  */
 (function () {
   'use strict';
   const { IMG, rng, fmt, wallet, settle, sound, ui, round2, sleep, esc, cards, inventory } = DP;
-  const RTP = 0.95;
+  const RTP = 0.97;
 
   // Une photo = une carte, présente dans une seule caisse (le thème de la caisse suit la photo)
   const ITEMS = {
@@ -70,7 +70,7 @@
     tdambeau: { name: 'Tdam Beau Gosse', img: 'tdambeau.jpg' },
     marco: { name: 'Marco Antonio', img: 'marco.jpg' }
   };
-  // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 95 %.
+  // [objet, multiplicateur du prix, poids] — le 1er poids (null) est calibré pour un RTP de 97 %.
   // La rareté découle du multiplicateur : plus la carte vaut cher dans sa caisse, plus elle est rare.
   const CASES = [
     // Les portraits de la bande
@@ -321,7 +321,7 @@
     name: 'DaveCases',
     icon: 'gift',
     tagline: 'Sept caisses à ouvrir, en Battle contre la bande ou en duel contre tes amis',
-    rtp: '95 %',
+    rtp: '97 %',
     isNew: true,
     hue: 30,
     art: `<div class="art-case">${crateHtml(CASES[4], 'crate--sm')}</div>`,
@@ -329,7 +329,7 @@
       <ul><li>Tu peux ouvrir jusqu’à <strong>4 caisses</strong> d’un coup.</li>
       <li><strong>Battle</strong> : tu affrontes 1 à 3 membres de la bande sur 1 à 5 manches avec la même caisse. Le plus gros total remporte <strong>toutes les cartes</strong> de la partie (en cas d’égalité, la valeur est partagée en DaveCoins).</li>
       <li><strong>Collection</strong> : chaque caisse est un album. Possède toutes ses cartes en même temps pour débloquer une récompense unique de ${SET_REWARD}× le prix de la caisse.</li>
-      <li>Chaque caisse rend 95 % de son prix en moyenne. Les chances exactes de chaque objet sont affichées sur la page de la caisse.</li></ul>`,
+      <li>Chaque caisse rend 97 % de son prix en moyenne. Les chances exactes de chaque objet sont affichées sur la page de la caisse.</li></ul>`,
     mount(root, opts = {}) {
       const { panel, stage } = ui.layout(root);
       const gameEl = root.querySelector('.game');
@@ -412,7 +412,7 @@
               <p class="muted">Meilleur objet : <b style="color:${rarity(c.best[1]).c}">${ITEMS[c.best[0]].name}</b> · ${fmt(c.price * c.best[1])} DaveCoins</p></div>
           </div>
           <div class="cases__strips"></div>
-          <div class="cases__dropshead"><h4>Cartes de la caisse</h4><span class="muted">Chances exactes · RTP 95 % · album complet = ${fmt(c.price * SET_REWARD)} DaveCoins</span></div>
+          <div class="cases__dropshead"><h4>Cartes de la caisse</h4><span class="muted">Chances exactes · RTP 97 % · album complet = ${fmt(c.price * SET_REWARD)} DaveCoins</span></div>
           <div class="cases__drops">${[...c.drops].reverse().map((d) => { const card = cardOf(c, d); const own = inventory.count(card.id); return `<div class="drop">${cards.html(card, { count: own, compact: true })}<span class="drop__pct num">${(card.chance * 100).toFixed(card.chance < 0.01 ? 2 : 1)} %${own ? ` · <span class="pos">possédée ×${own}</span>` : ''}</span></div>`; }).join('')}</div>
         </div>`;
         DP_MOTION.reveal(stage, '.cases__top, .cases__hero, .cases__dropshead');

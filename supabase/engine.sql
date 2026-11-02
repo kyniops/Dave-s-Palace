@@ -317,6 +317,15 @@ begin
 end $$;
 
 /* ---------- Fin d'une partie : stats, XP, missions, jackpot, fil des gains, succès ---------- */
+-- pertes nettes du jour (heure de Paris), gardées pour aujourd'hui et hier seulement
+create or replace function public.eng_cb_add(j jsonb, d numeric) returns jsonb language plpgsql as $$
+declare k text := eng_day(); y text := to_char((clock_timestamp() at time zone 'Europe/Paris')::date - 1, 'YYYY-MM-DD');
+begin
+  j := coalesce(j, '{}'::jsonb);
+  j := jsonb_strip_nulls(jsonb_build_object(y, j -> y, k, j -> k));
+  return j || jsonb_build_object(k, round(jn(j, k) + d, 2));
+end $$;
+
 create or replace function public.eng_played(a public.accounts, p_game text, p_bet numeric, p_pay numeric) returns public.accounts language plpgsql security definer set search_path = public as $$
 declare net numeric := p_pay - p_bet; m numeric := case when p_bet > 0 then p_pay / p_bet else 0 end; uname text;
   -- risque réellement pris : écart entre mise et gain (+10 % de la mise), au plus la mise.
@@ -328,6 +337,8 @@ begin
   -- rakeback = mise × avantage du casino sur ce jeu × part du rang (toujours moins que ce que le casino gagne en moyenne)
   rb := round(p_bet * coalesce((eng_c('edges') ->> p_game)::numeric, 0.01) * eng_rb_pct(eng_level(jn(a.prog, 'xp'))), 4);
   if rb > 0 then a.prog := jsonb_set(coalesce(a.prog, '{}'::jsonb), '{rb}', to_jsonb(round(jn(a.prog, 'rb') + rb, 4))); end if;
+  -- remboursement des pertes : perte nette du jour (hors poker, où l'argent perdu va aux autres joueurs)
+  if p_game <> 'poker' then a.prog := jsonb_set(coalesce(a.prog, '{}'::jsonb), '{cbl}', eng_cb_add(a.prog -> 'cbl', p_bet - p_pay)); end if;
   a := eng_xp(a, risk);
   a := eng_bump(a, 'played', jsonb_build_object('game', p_game, 'bet', p_bet, 'payout', p_pay, 'mult', m, 'risk', risk));
   if p_bet > 0 then update jackpot set amount = r2(amount + p_bet * 0.01) where id = 1; end if;
@@ -430,10 +441,10 @@ begin
   return jsonb_build_object('path', to_jsonb(path), 'k', k, 'mult', m, 'payout', r2(bet * m), 'acct', eng_commit(a));
 end $$;
 
--- DaveTicket : ticket à gratter. 3 photos identiques sur 9 cases = prix × multiplicateur de la photo (RTP 95 %)
+-- DaveTicket : ticket à gratter. 3 photos identiques sur 9 cases = prix × multiplicateur de la photo (RTP 97,5 %)
 create or replace function public.scratch_buy(p_price numeric) returns jsonb language plpgsql security definer set search_path = public as $$
 declare a accounts := eng_load(); mults numeric[] := array[1, 2, 3, 5, 10, 25, 100, 1000];
-  probs numeric[] := array[0.1, 0.095, 0.06, 0.03, 0.012, 0.004, 0.0006, 0.00005];
+  probs numeric[] := array[0.12, 0.13, 0.07, 0.035, 0.01, 0.0024, 0.0003, 0.00002];
   cost numeric; r numeric := eng_rand(); win int := -1; i int; j int; tmp int; s int; grid int[] := '{}'; cnt int[] := array[0, 0, 0, 0, 0, 0, 0, 0]; pay numeric := 0;
 begin
   if p_price is null or p_price not in (5, 25, 100, 500) then raise exception 'Ticket invalide.'; end if;
@@ -604,7 +615,7 @@ begin
   if coins > 0 then coins := eng_bet(a, coins); a.balance := a.balance - coins; end if;
   stake := r2(stake + coins);
   if stake <= 0 or tgt.value < stake * 1.2 then raise exception 'Choisis une carte qui vaut au moins 1,2 fois ta mise.'; end if;
-  chance := least(0.8, 0.95 * stake / tgt.value);
+  chance := least(0.8, 0.97 * stake / tgt.value);
   r := eng_rand(); win := r < chance;
   if win then a := eng_add_cards(a, array[tgt.id]); end if;
   a := eng_played(a, 'upgrade', stake, case when win then tgt.value else 0 end);
@@ -1158,6 +1169,18 @@ begin
 end $$;
 
 -- réclamer le rakeback accumulé
+create or replace function public.cashback_claim() returns jsonb language plpgsql security definer set search_path = public as $$
+declare a accounts := eng_load(); y text := to_char((clock_timestamp() at time zone 'Europe/Paris')::date - 1, 'YYYY-MM-DD');
+  pct numeric := eng_gate('cashback_pct', 0.1); amt numeric;
+begin
+  if a.prog ->> 'cb' = y then raise exception 'Remboursement déjà récupéré : reviens demain.'; end if;
+  amt := floor(greatest(0, jn(a.prog -> 'cbl', y)) * pct * 100) / 100;
+  if amt < 1 then raise exception 'Rien à rembourser : tu n’as pas perdu hier.'; end if;
+  a.prog := jsonb_set(coalesce(a.prog, '{}'::jsonb), '{cb}', to_jsonb(y));
+  a := eng_income(a, 'cashback', amt);
+  return jsonb_build_object('amount', amt, 'acct', eng_commit(a));
+end $$;
+
 create or replace function public.rakeback_claim() returns jsonb language plpgsql security definer set search_path = public as $$
 declare a accounts := eng_load(); amt numeric;
 begin
@@ -1289,7 +1312,7 @@ grant execute on function
   public.rocket_start(numeric, numeric), public.rocket_poll(), public.rocket_cash(),
   public.bj_deal(numeric), public.bj_act(text),
   public.daily_spin(), public.streak_claim(), public.rescue_claim(), public.promo_redeem(text), public.inv_sell(jsonb, text), public.inv_fuse(text),
-  public.album_claim(text), public.mission_claim(int), public.rakeback_claim()
+  public.album_claim(text), public.mission_claim(int), public.rakeback_claim(), public.cashback_claim()
 to authenticated;
 do $$ begin
   grant execute on function public.is_admin(), public.admin_set_save(uuid, jsonb, numeric, int), public.admin_set_jackpot(numeric), public.admin_clear_feed() to authenticated;
@@ -1303,13 +1326,13 @@ exception when undefined_function then null; end $$;
    CATALOGUE (généré depuis le code du jeu : mêmes caisses, cartes, rouleaux et tables)
    ===================================================================================== */
 delete from public.eng_cases; delete from public.eng_cards; delete from public.eng_const; delete from public.eng_achs;
-insert into public.eng_cases values ('bande', 10, '[["olman",0.3,4028],["tdam",0.5,2274],["yohan",0.8,1339],["axb",1.2,848],["oulman",1.875,512],["billy",2,476],["liam",3.75,235],["sevare",4.5,191],["nathan",12,63],["nathanmuscle",40,16]]'::jsonb, 9982, 100);
-insert into public.eng_cases values ('gamers', 25, '[["carl",0.25,6500],["tddam",0.9,1632],["linkay",1.4,1015],["linkaypose",3,447],["yohangamer",5.4,237],["tdam2",8,156],["casino",30,38]]'::jsonb, 10025, 250);
-insert into public.eng_cases values ('kawai', 50, '[["petitbonnin",0.25,3632],["slyme",0.25,3667],["petitkawai",0.8,1477],["petitbonninchut",1.35,982],["petitbonninnoel",15,149],["jpzkawai",50,58]]'::jsonb, 9965, 500);
-insert into public.eng_cases values ('selfie', 75, '[["tddeam",0.5,4104],["teddam",0.6667,2853],["axbface",1,1676],["lucascoselfie",1.6667,858],["hugo",3.2,364],["tdambeau",10,82],["marco",80,5]]'::jsonb, 9942, 750);
-insert into public.eng_cases values ('aura', 100, '[["axbblesse",0.2,4778],["axbserieux",0.5,2076],["tdammasque",0.9,1215],["tony",1.4,813],["axbduo",2.25,527],["tonny",3,406],["olmanaura",10,136],["lucasco",35,43]]'::jsonb, 9994, 1000);
-insert into public.eng_cases values ('wanted', 250, '[["bonninmousse",0.45,5062],["mathis",0.9,2000],["lucascoroi",1,1737],["tonyargent",1.6,924],["presidentmali",5,200],["gillemelon",13.5,53],["eltigre",40,12]]'::jsonb, 9988, 2500);
-insert into public.eng_cases values ('royale', 500, '[["jpzcap",0.15,2649],["sauce",0.4,2400],["jpz2",0.8,1700],["jppz",1.5,1100],["charis",6,300],["jpz",40,25],["forton",300,2]]'::jsonb, 8176, 5000);
+insert into public.eng_cases values ('bande', 10, '[["olman",0.3,3730],["tdam",0.5,2274],["yohan",0.8,1339],["axb",1.2,848],["oulman",1.875,512],["billy",2,476],["liam",3.75,235],["sevare",4.5,191],["nathan",12,63],["nathanmuscle",40,16]]'::jsonb, 9684, 100);
+insert into public.eng_cases values ('gamers', 25, '[["carl",0.25,6221],["tddam",0.9,1632],["linkay",1.4,1015],["linkaypose",3,447],["yohangamer",5.4,237],["tdam2",8,156],["casino",30,38]]'::jsonb, 9746, 250);
+insert into public.eng_cases values ('kawai', 50, '[["petitbonnin",0.25,3356],["slyme",0.25,3667],["petitkawai",0.8,1477],["petitbonninchut",1.35,982],["petitbonninnoel",15,149],["jpzkawai",50,58]]'::jsonb, 9689, 500);
+insert into public.eng_cases values ('selfie', 75, '[["tddeam",0.5,3681],["teddam",0.6667,2853],["axbface",1,1676],["lucascoselfie",1.6667,858],["hugo",3.2,364],["tdambeau",10,82],["marco",80,5]]'::jsonb, 9519, 750);
+insert into public.eng_cases values ('aura', 100, '[["axbblesse",0.2,4518],["axbserieux",0.5,2076],["tdammasque",0.9,1215],["tony",1.4,813],["axbduo",2.25,527],["tonny",3,406],["olmanaura",10,136],["lucasco",35,43]]'::jsonb, 9734, 1000);
+insert into public.eng_cases values ('wanted', 250, '[["bonninmousse",0.45,4678],["mathis",0.9,2000],["lucascoroi",1,1737],["tonyargent",1.6,924],["presidentmali",5,200],["gillemelon",13.5,53],["eltigre",40,12]]'::jsonb, 9604, 2500);
+insert into public.eng_cases values ('royale', 500, '[["jpzcap",0.15,2450],["sauce",0.4,2400],["jpz2",0.8,1700],["jppz",1.5,1100],["charis",6,300],["jpz",40,25],["forton",300,2]]'::jsonb, 7977, 5000);
 insert into public.eng_cards values ('bande:olman', 'bande', 'olman', 3, 0);
 insert into public.eng_cards values ('bande:tdam', 'bande', 'tdam', 5, 0);
 insert into public.eng_cards values ('bande:yohan', 'bande', 'yohan', 8, 1);
@@ -1362,15 +1385,15 @@ insert into public.eng_cards values ('royale:jppz', 'royale', 'jppz', 750, 2);
 insert into public.eng_cards values ('royale:charis', 'royale', 'charis', 3000, 3);
 insert into public.eng_cards values ('royale:jpz', 'royale', 'jpz', 20000, 4);
 insert into public.eng_cards values ('royale:forton', 'royale', 'forton', 150000, 5);
-insert into public.eng_const values ('slot_strips', '[["carl","linkay","carl","lucasco","yohan","tdam2","yohan","carl","tdam2","tdam2","petitbonnin","yohan","yohan","lucasco","billy","scat","casino","billy","carl","carl","tdam2","olmanaura","casino","petitbonnin","linkay","linkay","tddam","linkay","petitbonnin","linkay","yohan","petitbonnin","yohan","yohan","yohan","linkay","linkay","lucasco","casino","yohan","petitbonnin","petitbonnin","carl","tddam","linkay","tdam2","scat","tdam2","tdam2","carl","billy","tdam2","carl","tddam","carl","tdam2","olmanaura","petitbonnin","olmanaura","petitbonnin","tddam","billy"],["linkay","carl","tdam2","yohan","yohan","yohan","petitbonnin","tdam2","lucasco","wild","lucasco","petitbonnin","linkay","casino","petitbonnin","tdam2","scat","billy","carl","petitbonnin","petitbonnin","billy","tdam2","yohan","tdam2","tdam2","tddam","yohan","linkay","linkay","carl","petitbonnin","lucasco","tddam","tdam2","wild","linkay","petitbonnin","carl","billy","linkay","wild","billy","tdam2","carl","wild","linkay","carl","olmanaura","scat","tdam2","yohan","olmanaura","yohan","casino","tddam","wild","olmanaura","carl","petitbonnin","carl","yohan","yohan","carl","linkay","casino","tddam"],["casino","petitbonnin","yohan","olmanaura","carl","lucasco","olmanaura","casino","billy","tdam2","yohan","petitbonnin","carl","linkay","carl","carl","scat","tdam2","wild","yohan","tdam2","linkay","yohan","yohan","billy","tddam","tddam","yohan","lucasco","petitbonnin","carl","petitbonnin","tdam2","petitbonnin","billy","casino","wild","petitbonnin","tdam2","tdam2","tddam","linkay","linkay","billy","yohan","carl","linkay","wild","tdam2","scat","wild","yohan","linkay","olmanaura","linkay","tddam","carl","carl","tdam2","carl","wild","tdam2","linkay","yohan","petitbonnin","lucasco","petitbonnin"],["petitbonnin","carl","billy","yohan","carl","tdam2","olmanaura","linkay","linkay","carl","yohan","linkay","casino","petitbonnin","tddam","wild","scat","yohan","carl","petitbonnin","lucasco","tdam2","petitbonnin","carl","linkay","olmanaura","yohan","yohan","linkay","petitbonnin","wild","tddam","billy","yohan","wild","tdam2","petitbonnin","linkay","carl","tdam2","carl","carl","tddam","yohan","yohan","tdam2","wild","olmanaura","carl","scat","tdam2","tdam2","tdam2","linkay","petitbonnin","billy","wild","casino","billy","lucasco","casino","lucasco","linkay","tddam","tdam2","petitbonnin","yohan"],["yohan","lucasco","carl","casino","yohan","yohan","wild","tddam","carl","wild","carl","yohan","tddam","linkay","petitbonnin","petitbonnin","scat","casino","wild","lucasco","petitbonnin","billy","carl","tdam2","casino","tdam2","petitbonnin","lucasco","carl","tdam2","olmanaura","tdam2","olmanaura","yohan","petitbonnin","linkay","linkay","tddam","tdam2","carl","olmanaura","petitbonnin","yohan","carl","wild","carl","tdam2","yohan","wild","scat","billy","yohan","petitbonnin","tdam2","billy","yohan","tdam2","linkay","linkay","linkay","linkay","linkay","petitbonnin","tddam","carl","tdam2","billy"]]'::jsonb);
+insert into public.eng_const values ('slot_strips', '[["carl","linkay","carl","lucasco","yohan","tdam2","yohan","carl","tdam2","tdam2","petitbonnin","yohan","yohan","lucasco","billy","scat","casino","billy","carl","carl","tdam2","olmanaura","casino","petitbonnin","linkay","linkay","tddam","linkay","petitbonnin","linkay","yohan","petitbonnin","yohan","yohan","yohan","linkay","linkay","lucasco","casino","yohan","petitbonnin","petitbonnin","carl","tddam","linkay","tdam2","scat","tdam2","tdam2","carl","billy","tdam2","carl","tddam","carl","tdam2","olmanaura","petitbonnin","olmanaura","petitbonnin","tddam","billy"],["linkay","carl","tdam2","yohan","yohan","yohan","petitbonnin","tdam2","lucasco","wild","scat","lucasco","petitbonnin","linkay","casino","petitbonnin","tdam2","billy","carl","petitbonnin","petitbonnin","billy","tdam2","yohan","tdam2","tdam2","tddam","yohan","linkay","linkay","carl","petitbonnin","scat","lucasco","tddam","tdam2","wild","linkay","petitbonnin","carl","billy","linkay","wild","billy","tdam2","carl","wild","linkay","carl","olmanaura","tdam2","yohan","olmanaura","yohan","scat","casino","tddam","wild","olmanaura","carl","petitbonnin","carl","yohan","yohan","carl","linkay","casino","tddam"],["casino","petitbonnin","yohan","olmanaura","carl","lucasco","olmanaura","casino","billy","tdam2","scat","yohan","petitbonnin","carl","linkay","carl","carl","tdam2","wild","yohan","tdam2","linkay","yohan","yohan","billy","tddam","tddam","yohan","lucasco","petitbonnin","carl","petitbonnin","scat","tdam2","petitbonnin","billy","casino","wild","petitbonnin","tdam2","tdam2","tddam","linkay","linkay","billy","yohan","carl","linkay","wild","tdam2","wild","yohan","linkay","olmanaura","scat","linkay","tddam","carl","carl","tdam2","carl","wild","tdam2","linkay","yohan","petitbonnin","lucasco","petitbonnin"],["petitbonnin","carl","billy","yohan","carl","tdam2","olmanaura","linkay","linkay","carl","scat","yohan","linkay","casino","petitbonnin","tddam","wild","yohan","carl","petitbonnin","lucasco","tdam2","petitbonnin","carl","linkay","olmanaura","yohan","yohan","linkay","petitbonnin","wild","tddam","scat","billy","yohan","wild","tdam2","petitbonnin","linkay","carl","tdam2","carl","carl","tddam","yohan","yohan","tdam2","wild","olmanaura","carl","tdam2","tdam2","tdam2","linkay","scat","petitbonnin","billy","wild","casino","billy","lucasco","casino","lucasco","linkay","tddam","tdam2","petitbonnin","yohan"],["yohan","lucasco","carl","casino","yohan","yohan","wild","tddam","carl","wild","carl","yohan","tddam","linkay","petitbonnin","petitbonnin","scat","casino","wild","lucasco","petitbonnin","billy","carl","tdam2","casino","tdam2","petitbonnin","lucasco","carl","tdam2","olmanaura","tdam2","olmanaura","yohan","petitbonnin","linkay","linkay","tddam","tdam2","carl","olmanaura","petitbonnin","yohan","carl","wild","carl","tdam2","yohan","wild","scat","billy","yohan","petitbonnin","tdam2","billy","yohan","tdam2","linkay","linkay","linkay","linkay","linkay","petitbonnin","tddam","carl","tdam2","billy"]]'::jsonb);
 insert into public.eng_const values ('slot_lines', '[[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[0,0,1,2,2],[2,2,1,0,0],[1,0,0,0,1],[1,2,2,2,1],[1,0,1,2,1],[1,2,1,0,1],[0,1,1,1,0],[2,1,1,1,2],[0,1,0,1,0],[2,1,2,1,2],[1,1,0,1,1],[1,1,2,1,1],[0,0,2,0,0],[2,2,0,2,2],[0,2,0,2,0]]'::jsonb);
 insert into public.eng_const values ('slot_pays', '{"wild":[70,350,1400],"casino":[60,210,800],"lucasco":[45,160,580],"olmanaura":[45,160,580],"tddam":[30,90,320],"billy":[30,90,320],"petitbonnin":[14,40,140],"linkay":[14,40,140],"yohan":[12,35,115],"carl":[9,28,90],"tdam2":[7,22,70]}'::jsonb);
-insert into public.eng_const values ('slot_scatter', '{"3":[15,2],"4":[20,10],"5":[25,50]}'::jsonb);
+insert into public.eng_const values ('slot_scatter', '{"3":[8,2],"4":[12,10],"5":[16,50]}'::jsonb);
 insert into public.eng_const values ('slot_fs_mult', '[2]'::jsonb);
 insert into public.eng_const values ('plinko', '{"8":{"low":[5.6,2.1,1.1,1,0.5,1,1.1,2.1,5.6],"medium":[13,3,1.3,0.7,0.4,0.7,1.3,3,13],"high":[29,4,1.5,0.3,0.2,0.3,1.5,4,29]},"12":{"low":[10,3,1.6,1.4,1.1,1,0.5,1,1.1,1.4,1.6,3,10],"medium":[33,11,4,2,1.1,0.6,0.3,0.6,1.1,2,4,11,33],"high":[170,24,8.1,2,0.7,0.2,0.2,0.2,0.7,2,8.1,24,170]},"16":{"low":[16,9,2,1.4,1.4,1.2,1.1,1,0.5,1,1.1,1.2,1.4,1.4,2,9,16],"medium":[110,41,10,5,3,1.5,1,0.5,0.3,0.5,1,1.5,3,5,10,41,110],"high":[1000,130,26,9,4,2,0.2,0.2,0.2,0.2,0.2,2,4,9,26,130,1000]}}'::jsonb);
 insert into public.eng_const values ('streak', '{"days":[100,150,200,300,400,500],"gold":[[1000,30],[1500,25],[2500,18],[5000,13],[7500,8],[10000,4],[25000,2]]}'::jsonb);
 insert into public.eng_const values ('daily', '[[100,18],[500,8],[150,16],[1000,4],[200,14],[2500,1.5],[100,18],[750,6],[250,12],[5000,0.5]]'::jsonb);
-insert into public.eng_const values ('edges', '{"dice":0.042,"roulette":0.027,"plinko":0.01,"machine":0.035,"mines":0.01,"tower":0.02,"chicken":0.01,"flip":0.01,"rocket":0.01,"blackjack":0.006,"cases":0.05,"upgrade":0.05,"scratch":0.05,"poker":0}'::jsonb);
+insert into public.eng_const values ('edges', '{"dice":0.042,"roulette":0.027,"plinko":0.01,"machine":0.031,"mines":0.01,"tower":0.02,"chicken":0.01,"flip":0.01,"rocket":0.01,"blackjack":0.006,"cases":0.03,"upgrade":0.03,"scratch":0.025,"poker":0}'::jsonb);
 insert into public.eng_const values ('gates', '{"promo_level":5,"poker_level":5,"rescue_played":5,"rescue_below":10,"rescue_amount":500,"rescue_minutes":15,"trade_level":10,"trade_age_days":3,"trade_ratio":0.75,"trade_day_n":5,"trade_day_value":10000,"trade_items":8}'::jsonb);
 insert into public.eng_const values ('limits', '{"max_bet":5000}'::jsonb);
 insert into public.eng_const values ('promo', '{"dave33":333,"fan2jc":500,"vraigambleur":777}'::jsonb);

@@ -24,7 +24,7 @@
   // Uniquement des visages. RTP 96,5 % (calcul exact), ~35 % de tours gagnants, bonus ≈ 1 tour sur 153.
   const WEIGHTS = {
     wild:      [0, 5, 5, 5, 5],
-    scat:      [2, 2, 2, 2, 2],
+    scat:      [2, 3, 3, 3, 2],
     casino:    [3, 3, 3, 3, 3],
     lucasco:   [3, 3, 3, 3, 3],
     olmanaura: [3, 3, 3, 3, 3],
@@ -45,7 +45,7 @@
   ];
 
   // Scatters : free spins accordés et gain direct (× mise totale) selon le nombre visible
-  const SCATTER = { 3: { spins: 15, pay: 2 }, 4: { spins: 20, pay: 10 }, 5: { spins: 25, pay: 50 } };
+  const SCATTER = { 3: { spins: 8, pay: 2 }, 4: { spins: 12, pay: 10 }, 5: { spins: 16, pay: 50 } };
   const FS_MULT = 2;         // tous les gains sont doublés pendant les free spins
   
   /** Générateur pseudo-aléatoire à graine (les rouleaux sont identiques à chaque chargement). */

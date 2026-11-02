@@ -1,11 +1,11 @@
 /* DaveUpgrade — sacrifie des cartes (et des DaveCoins) pour tenter d'obtenir une carte plus chère.
- * Chance = 95 % × mise ÷ valeur de la carte visée (max 80 %). L'aiguille tourne : dans la zone, c'est gagné.
+ * Chance = 97 % × mise ÷ valeur de la carte visée (max 80 %). L'aiguille tourne : dans la zone, c'est gagné.
  */
 (function () {
   'use strict';
   const { IMG, rng, fmt, wallet, settle, sound, ui, round2, esc, cards, inventory, sleep } = DP;
   const I = ui.icon;
-  const EDGE = 0.95, MAX_CHANCE = 0.8, MIN_MULT = 1.2, MAX_ITEMS = 10;
+  const EDGE = 0.97, MAX_CHANCE = 0.8, MIN_MULT = 1.2, MAX_ITEMS = 10;
   const MULTS = [1.5, 2, 3, 5, 10, 25];
   const chanceFor = (stake, target) => (target && stake > 0 ? Math.min(MAX_CHANCE, (EDGE * stake) / target.value) : 0);
   const keyOf = (id, shiny) => id + '|' + (shiny ? 1 : 0);
@@ -36,12 +36,12 @@
     name: 'DaveUpgrade',
     icon: 'trending-up',
     tagline: 'Sacrifie tes cartes pour viser une carte plus rare',
-    rtp: '95 %',
+    rtp: '97 %',
     isNew: true,
     hue: 300,
     art: `<div class="art-upgrade"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="9"/><circle cx="50" cy="50" r="40" fill="none" stroke="#c04dff" stroke-width="9" stroke-dasharray="80 252" transform="rotate(-90 50 50)"/></svg><img src="${IMG}jpzcharis.jpg" alt=""></div>`,
     rules: `<p>Choisis des cartes de ton inventaire (et ajoute des DaveCoins si tu veux), puis vise une carte plus chère.</p>
-      <ul><li>Ta chance = <strong>95 % × ta mise ÷ valeur de la carte visée</strong>, jusqu’à 80 % maximum.</li>
+      <ul><li>Ta chance = <strong>97 % × ta mise ÷ valeur de la carte visée</strong>, jusqu’à 80 % maximum.</li>
       <li>L’aiguille tourne : si elle s’arrête dans la zone colorée, tu gagnes la carte visée.</li>
       <li>Sinon, les cartes et les DaveCoins misés sont perdus.</li>
       <li>Les cartes brillantes comptent pour 5 fois leur valeur.</li></ul>`,

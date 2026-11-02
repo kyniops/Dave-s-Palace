@@ -17,6 +17,7 @@
   // bonus de connexion sur 7 jours : jours 1 à 6 en DaveCoins, jour 7 = roue en or
   const STREAK_DAYS = [100, 150, 200, 300, 400, 500];
   const STREAK_GOLD = [[1000, 30], [1500, 25], [2500, 18], [5000, 13], [7500, 8], [10000, 4], [25000, 2]];
+  const CASHBACK_PCT = 0.1; // remboursement de 10 % des pertes de la veille
   const parisDay = (ms = Date.now()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
   const RESCUE_BELOW = 10; // dépannage possible sous ce solde
   const RESCUE_COOLDOWN = 15 * 60 * 1000; // dépannage toutes les 15 min quand on est à sec
@@ -188,6 +189,29 @@
       emit('bonus');
       return amount;
     },
+    /** Remboursement des pertes d'hier : montant à récupérer. */
+    cashback() {
+      if (!auth.current()) return { amount: 0, claimed: false };
+      const p = store.json(bonus._key('prog'), {});
+      const y = parisDay(Date.now() - 86400000);
+      if (p.cb === y) return { amount: 0, claimed: true };
+      let loss;
+      if (DP.engine && DP.engine.on) loss = (p.cbl || {})[y] || 0;
+      else { const d = stats.get().days[dayKey(Date.now() - 86400000)]; loss = d ? d.wagered - d.won : 0; }
+      return { amount: Math.floor(Math.max(0, loss) * CASHBACK_PCT * 100) / 100, claimed: false };
+    },
+    claimCashback() {
+      if (DP.engine && DP.engine.on) return 0;
+      const c = bonus.cashback();
+      if (c.claimed || c.amount < 1) return 0;
+      const k = bonus._key('prog'), p = store.json(k, {});
+      p.cb = parisDay(Date.now() - 86400000);
+      store.setJson(k, p);
+      wallet.credit(c.amount);
+      stats.income('cashback', c.amount);
+      emit('bonus');
+      return c.amount;
+    },
     rescueLeft() {
       const last = parseInt(store.get(bonus._key('rescue'), '0'), 10) || 0;
       return Math.max(0, last + RESCUE_COOLDOWN - Date.now());
@@ -202,7 +226,7 @@
       emit('bonus');
       return RESCUE_AMOUNT;
     },
-    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT, RESCUE_BELOW, STREAK_DAYS, STREAK_GOLD, GOLD_MAX: 25000
+    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT, RESCUE_BELOW, STREAK_DAYS, STREAK_GOLD, GOLD_MAX: 25000, CASHBACK_PCT
   };
 
   /* ---------- Jackpot global progressif ----------
@@ -979,7 +1003,9 @@
     /** Champ de mise avec raccourcis ½ / 2× / Max. */
     betInput(parent, { label = 'Mise', initial = 10, gameId = '' } = {}) {
       const saved = parseFloat(store.get('dp_lastbet_' + gameId));
-      const start = saved > 0 ? saved : initial;
+      // première partie sur ce jeu : 1 % du solde (arrondi)
+      const pct1 = () => { const b = Math.min(MAX_BET, wallet.get() * 0.01); return b >= 10 ? Math.round(b) : Math.max(0.1, Math.round(b * 10) / 10); };
+      const start = saved > 0 ? saved : initial > 0 ? pct1() : initial;
       const node = ui.el(`<div class="field">
         <div class="field__head"><label>${label}</label><span class="field__hint"></span></div>
         <div class="bet">
@@ -988,6 +1014,7 @@
           <button type="button" data-a="double">2×</button>
           <button type="button" data-a="max">Max</button>
         </div>
+        <div class="bet__warn" hidden></div>
       </div>`);
       parent.appendChild(node);
       const input = node.querySelector('input');
@@ -997,6 +1024,18 @@
         if ((parseFloat(input.value) || 0) > MAX_BET) { input.value = MAX_BET; input.dispatchEvent(new Event('input')); ui.toast(`Mise maximum : ${fmt(MAX_BET)} DaveCoins par partie.`, 'info'); }
       });
       const btns = node.querySelectorAll('button');
+      // mise de plus de 10 % du solde : on prévient (sans bloquer)
+      const warnEl = node.querySelector('.bet__warn');
+      const warn = () => {
+        if (!node.isConnected && warnEl.dataset.on) { offBal(); return; }
+        warnEl.dataset.on = '1';
+        const v = parseFloat(input.value) || 0, bal = wallet.get(), pc = bal > 0 ? v / bal : 0;
+        warnEl.hidden = !(v > 0 && pc > 0.1);
+        if (!warnEl.hidden) warnEl.textContent = pc >= 1 ? 'Tout ton solde sur une seule partie !' : `Attention : ${Math.round(pc * 100)} % de ton solde sur une seule partie`;
+      };
+      input.addEventListener('input', warn);
+      const offBal = on('balance', warn);
+      setTimeout(warn, 0);
       const clamp = (v) => round2(Math.max(0, Math.min(v, wallet.get(), MAX_BET)));
       node.addEventListener('click', (e) => {
         const a = e.target.closest('button')?.dataset.a;

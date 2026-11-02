@@ -35,7 +35,7 @@
     <p><strong>5 rouleaux, 3 rangées, 20 lignes.</strong> Les gains se lisent de gauche à droite à partir du premier rouleau. Ta mise est répartie sur les 20 lignes.</p>
     <ul>
       <li><strong>JPZ couronné est le Wild</strong> (rouleaux 2 à 5) : il remplace tous les symboles sauf la carte Free JPZ.</li>
-      <li><strong>3 cartes Free JPZ ou plus</strong> n’importe où : <strong>15 free spins</strong> (20 pour 4, 25 pour 5) + gain direct ×2 / ×10 / ×50 la mise.</li>
+      <li><strong>3 cartes Free JPZ ou plus</strong> n’importe où : <strong>8 free spins</strong> (12 pour 4, 16 pour 5) + gain direct ×2 / ×10 / ×50 la mise.</li>
       <li>Pendant les free spins, <strong>tous les gains sont doublés</strong>. Les cartes Free JPZ qui retombent <strong>ajoutent</strong> des free spins.</li>
       <li><strong>Jackpot global</strong> : il monte avec chaque mise du casino. Tu le remportes avec <strong>5 cartes Free JPZ</strong>, ou par un <strong>déclenchement mystère</strong> possible à chaque tour (plus ta mise est grosse, plus il a de chances de tomber). Très rare.</li>
       <li><strong>Tirage auto</strong> : choisis 10, 25, 50, 100 tours ou illimité, et arrête quand tu veux.</li>
@@ -51,7 +51,7 @@
     name: 'DaveMachine',
     icon: 'cherry',
     tagline: '5 rouleaux, 20 lignes, free spins ×2',
-    rtp: '96,5 %',
+    rtp: '96,9 %',
     hot: true,
     hue: 38,
     art: `<img src="${IMG}casino.png" alt="">`,
