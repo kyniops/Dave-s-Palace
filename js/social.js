@@ -189,10 +189,13 @@
     if (n.kind === 'trade') return `${who(n)} te propose un échange de cartes (<b class="num">${fmt(p.give)}</b> contre <b class="num">${fmt(p.want)}</b>)`;
     if (n.kind === 'trade_done') return `${who(n)} a accepté ton échange de cartes !`;
     if (n.kind === 'trade_declined') return `${who(n)} a refusé ton échange de cartes`;
+    if (n.kind === 'guild_join') return `${who(n)} a rejoint ta guilde <b>${esc(p.name || '')}</b>`;
+    if (n.kind === 'guild_kick') return `Tu as été exclu de la guilde <b>${esc(p.name || '')}</b>`;
+    if (n.kind === 'guild_owner') return `Tu es maintenant le chef de la guilde <b>${esc(p.name || '')}</b>`;
     if (n.kind === 'renamed') return `Un admin t’a renommé : <b>${esc((n.payload || {}).old || '')}</b> → <b>${esc((n.payload || {}).new || '')}</b>`;
     return esc(n.kind);
   }
-  const iconOf = (k) => ({ friend_request: 'user-plus', friend_accept: 'user-check', friend_win: 'trophy', admin: 'shield', duel: 'swords', duel_result: 'swords', duel_declined: 'swords', trade: 'repeat', trade_done: 'repeat', trade_declined: 'repeat' }[k] || 'bell');
+  const iconOf = (k) => ({ friend_request: 'user-plus', friend_accept: 'user-check', friend_win: 'trophy', admin: 'shield', duel: 'swords', duel_result: 'swords', duel_declined: 'swords', trade: 'repeat', trade_done: 'repeat', trade_declined: 'repeat', guild_join: 'flag', guild_kick: 'flag', guild_owner: 'crown' }[k] || 'bell');
   const ago = (t) => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
 
   /* ---------- Cloche ---------- */
@@ -217,6 +220,7 @@
             ${n.kind === 'duel' && !n.read ? `<div class="nitem__act"><button type="button" class="btn btn--primary btn--sm js-dacc" data-d="${n.payload.duel}">Accepter le duel</button><button type="button" class="btn btn--ghost btn--sm js-dref" data-d="${n.payload.duel}">Refuser</button></div>` : ''}
             ${n.kind === 'duel_result' ? `<div class="nitem__act"><a class="btn btn--primary btn--sm" href="#/duel/${n.payload.duel}">Revoir le duel</a></div>` : ''}
             ${n.kind === 'trade' && !n.read ? `<div class="nitem__act"><a class="btn btn--primary btn--sm" href="#/amis">Voir l’échange</a></div>` : ''}
+            ${(n.kind === 'guild_join' || n.kind === 'guild_owner') && n.payload && n.payload.guild ? `<div class="nitem__act"><a class="btn btn--primary btn--sm" href="#/guilde/${+n.payload.guild}">Voir la guilde</a></div>` : ''}
             ${n.from_user && n.kind !== 'admin' ? `<a class="nitem__link" href="#/joueur/${encodeURIComponent(n.from_name || '')}">Voir le profil</a>` : ''}</div></div>`;
         }).join('') : `<div class="npop__empty">${I('bell', 'i--lg')}<span>Aucune notification</span></div>`}</div>
         <footer><a href="#/amis" class="linkbtn">${I('users', 'i--sm')}Mes amis</a></footer>`;

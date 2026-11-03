@@ -84,13 +84,14 @@
   /* ---------- Profil public d'un autre joueur ---------- */
   function renderPublic(view, name) {
     let alive = true;
+    if (DP.guilds) DP.guilds.loadTags();
     view.innerHTML = `<div class="empty">${I('user', 'i--lg')}<strong>Chargement du profil…</strong></div>`;
     const parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
     const show = (pl) => {
       if (!alive) return;
       if (!pl) { view.innerHTML = `<div class="empty">${I('users', 'i--lg')}<strong>Joueur introuvable</strong>Aucun joueur ne s’appelle « ${esc(name)} ».<a class="btn btn--primary" style="margin-top:10px" href="#/classement">Voir le classement</a></div>`; return; }
       const d = pl.data || {};
-      const p = Object.assign(BLANK(), parse(d.dp_profile_, {}));
+      const p = norm(parse(d.dp_profile_, {}));
       const s = Object.assign({ played: 0, biggestWin: 0, biggestMult: 0, wagered: 0 }, parse(d.dp_stats_, {}));
       const prog = Object.assign({ xp: 0, ach: {} }, parse(d.dp_prog_, {}));
       const inv = Object.assign({ cards: {}, shiny: {} }, parse(d.dp_inv_, {}));
@@ -107,7 +108,7 @@
             <div class="pcard__avatar">${avatarHtml(pl.name, 'avatar avatar--xl')}<span class="pcard__lvl">${DP.progress.badge(info.level, 44)}</span></div>
             <div class="pcard__id">
               <h1>${esc(pl.name)}</h1>
-              <div class="pcard__tags">${titleHtml(t)}<span class="prank">Rang ${info.rank.name} · niveau ${info.level}</span></div>
+              <div class="pcard__tags">${DP.guilds ? DP.guilds.tagHtml(pl.name, true) : ''}${titleHtml(t)}<span class="prank">Rang ${info.rank.name} · niveau ${info.level}</span></div>
               ${p.bio ? `<p class="pcard__bio">${esc(p.bio)}</p>` : ''}
             </div>
             <div class="pcard__actions"><span class="js-pfriend">${DP.social && DP.social.available() ? DP.social.friendBtnHtml(pl.id) : ''}</span><a class="btn btn--ghost" href="#/classement">${I('trophy', 'i--sm')}Classement</a></div>

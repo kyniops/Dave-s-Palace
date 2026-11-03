@@ -26,7 +26,7 @@
     renderShell();
     setTimeout(recoveryModal, 300);
     const view = document.getElementById('view');
-    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page === 'joueur' ? 'classement' : page === 'duel' ? 'amis' : page || 'lobby');
+    setActiveNav(page === 'jeu' ? (arg === 'cases' ? 'caisses' : arg) : page === 'joueur' ? 'classement' : page === 'duel' ? 'amis' : page === 'guilde' ? 'guildes' : page || 'lobby');
     if (page === 'caisses') renderGame(view, games.find('cases'), { caseId: arg });
     else if (page === 'jeu' && arg === 'cases') { location.replace('#/caisses'); return; }
     else if (page === 'jeu' && games.find(arg)) renderGame(view, games.find(arg));
@@ -38,6 +38,8 @@
     else if (page === 'bourse') unmountView = DP.bourse.render(view);
     else if (page === 'classement') unmountView = renderLeaderboard(view);
     else if (page === 'amis') unmountView = DP.social.render(view);
+    else if (page === 'guildes') unmountView = DP.guilds.render(view);
+    else if (page === 'guilde' && arg) unmountView = DP.guilds.render(view, arg);
     else if (page === 'duel' && arg) {
       // lobby d'attente puis duel en direct (ou rediffusion), résultat tiré par le serveur
       view.innerHTML = `<div class="empty">${I('swords', 'i--lg')}<strong>Chargement du duel…</strong></div>`;
@@ -251,6 +253,7 @@
           <a class="nav-item" data-nav="profil" href="#/profil">${I('user')}Mon profil</a>
           <a class="nav-item" data-nav="dashboard" href="#/dashboard">${I('layout-dashboard')}Dashboard</a>
           <a class="nav-item" data-nav="amis" href="#/amis">${I('users')}Amis<span class="nav-tag js-ftag" hidden></span></a>
+          <a class="nav-item" data-nav="guildes" href="#/guildes">${I('flag')}Guildes<span class="nav-tag">Nouveau</span></a>
           <a class="nav-item" data-nav="classement" href="#/classement">${I('trophy')}Classement${DP.cloud && DP.cloud.online ? '<span class="nav-tag nav-tag--live">Live</span>' : ''}</a>
           <a class="nav-item" data-nav="progression" href="#/progression">${I('trophy')}Progression<span class="nav-tag js-mistag" hidden></span></a>
           <button class="nav-item js-bonus" type="button">${I('gift')}Bonus</button>
@@ -1229,10 +1232,10 @@
       box.innerHTML = `
         <div class="lb-podium">${[1, 0, 2].map((i) => podium[i] ? `<div class="lb-pod p${i + 1}">
           ${DP.profile.link(podium[i].name, DP.profile.avatarHtml(podium[i].name, 'avatar avatar--lg'))}<span class="lb-pod__rank">${i + 1}</span>
-          ${DP.profile.link(podium[i].name, `<b>${esc(podium[i].name)}</b>`)}<span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
+          ${DP.profile.link(podium[i].name, `<b>${esc(podium[i].name)}</b>`)}${DP.guilds.tagHtml(podium[i].name, true)}<span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
         <div class="table-wrap"><table class="history lb-table"><thead><tr><th>#</th><th>Joueur</th>${COLS.map(([k, l]) => `<th class="num ${k === sortKey ? 'on' : ''}">${l}</th>`).join('')}</tr></thead>
         <tbody>${rows.map((r, i) => { const sm = DP.progress.rankOf(r.level || 1); return `<tr class="${r.name === auth.current() ? 'me' : ''}"><td class="num">${i + 1}</td>
-          <td>${DP.profile.link(r.name, `<span class="g">${DP.profile.avatarHtml(r.name)}${esc(r.name)}<small style="color:${sm.c}">${sm.name}</small></span>`)}</td>
+          <td>${DP.profile.link(r.name, `<span class="g">${DP.profile.avatarHtml(r.name)}${esc(r.name)}<small style="color:${sm.c}">${sm.name}</small></span>`)}${DP.guilds.tagHtml(r.name, true)}</td>
           <td class="num">${fmt(+r.balance || 0)}</td><td class="num">${r.level || 1}</td><td class="num">${fmt(+r.wagered || 0)}</td><td class="num">${r.biggest_win ? '+' + fmt(+r.biggest_win) : '—'}</td></tr>`; }).join('')}</tbody></table></div>`;
     };
     view.querySelector('.js-lsort').addEventListener('click', (e) => {
@@ -1246,6 +1249,7 @@
     const load = async () => {
       if (!(DP.cloud && DP.cloud.online)) { paint(); return; }
       try { list = (await DP.cloud.players()).filter((p) => !p.banned); } catch { list = []; }
+      await DP.guilds.loadTags();
       if (alive) paint();
     };
     load();
