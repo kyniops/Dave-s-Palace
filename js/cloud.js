@@ -252,9 +252,11 @@
   /** null si le compte n'est pas banni, sinon la raison ('' si aucune). */
   async function bannedReason() {
     if (!uid) return null;
-    const { data, error } = await sb.from('profiles').select('banned, banned_reason').eq('id', uid).maybeSingle();
+    // le motif n'est plus lisible directement (vie privée) : le serveur ne renvoie que le sien
+    let { data, error } = await sb.rpc('my_ban');
+    if (error) { ({ data, error } = await sb.from('profiles').select('banned').eq('id', uid).maybeSingle()); if (data) data.reason = ''; }
     if (error || !data || !data.banned) return null;
-    return data.banned_reason || '';
+    return data.reason || '';
   }
   async function kickIfBanned() {
     const why = await bannedReason();
@@ -439,14 +441,16 @@
   };
 
   cloud.players = async ({ withData = false } = {}) => {
-    let profRes = await sb.from('profiles').select('id, username, created_at, banned, banned_reason');
+    let profRes = await sb.from('profiles').select('id, username, created_at, banned');
     if (profRes.error) profRes = await sb.from('profiles').select('id, username, created_at');
+    // motifs de bannissement : seulement pour l'admin
+    const reasons = window.DP_DASH && window.DP_DASH.isAdmin() ? ((await sb.rpc('admin_ban_reasons')).data || {}) : {};
     const [{ data: profs }, { data: saves }] = await Promise.all([
       Promise.resolve(profRes),
       sb.from('saves').select(withData ? 'user_id, balance, level, wagered, biggest_win, updated_at, data' : 'user_id, balance, level, wagered, biggest_win, updated_at')
     ]);
     const byId = Object.fromEntries((saves || []).map((s) => [s.user_id, s]));
-    return (profs || []).map((p) => ({ id: p.id, name: p.username, banned: !!p.banned, bannedReason: p.banned_reason || '', ...(byId[p.id] || { balance: 0, level: 1, wagered: 0, biggest_win: 0 }) }));
+    return (profs || []).map((p) => ({ id: p.id, name: p.username, banned: !!p.banned, bannedReason: reasons[p.id] || '', ...(byId[p.id] || { balance: 0, level: 1, wagered: 0, biggest_win: 0 }) }));
   };
   cloud.uid = () => uid;
   /* Actions d'administration (refusées par le serveur si le compte n'est pas admin) */

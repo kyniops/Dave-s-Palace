@@ -74,12 +74,15 @@
     return '';
   }
   const bannerClass = (p, trusted = false) => { const b = p.banner || {}; return b.type === 'upload' ? 'pb--upload' : b.type === 'card' ? 'pb--card' : 'pb--' + (BANNERS.find((x) => x.id === b.id && (trusted || x.ok())) ? b.id : 'orbite'); };
-  /** Nom d'un titre à partir de son identifiant (sans vérifier qu'il est débloqué : profil d'un autre joueur). */
-  function titleById(id) {
-    if (id && id.startsWith('rank_') && DP.progress) { const r = DP.progress.RANKS.find((x) => 'rank_' + x.name === id); if (r) return { name: 'Rang ' + r.name, color: r.c, tier: 0 }; }
-    if (id && id.startsWith('ach_') && DP.progress) { const a = DP.progress.achievements().find((x) => 'ach_' + x.id === id); if (a) return { name: a.name, tier: a.tier }; }
+  /** Titre d'un autre joueur : affiché seulement s'il l'a vraiment débloqué (son niveau / ses succès), sinon « Nouveau venu ». */
+  function titleById(id, level = 0, ach = {}) {
+    if (id && id.startsWith('rank_') && DP.progress) { const r = DP.progress.RANKS.find((x) => 'rank_' + x.name === id); if (r && level >= r.from) return { name: 'Rang ' + r.name, color: r.c, tier: 0 }; }
+    if (id && id.startsWith('ach_') && DP.progress) { const a = DP.progress.achievements().find((x) => 'ach_' + x.id === id); if (a && ach && ach[a.id]) return { name: a.name, tier: a.tier }; }
     return { name: 'Nouveau venu', tier: 0 };
   }
+  // bannières à débloquer : même règle pour les autres joueurs (niveau / succès réels)
+  const BANNER_NEED = { grid: { ach: 'mis1' }, nebula: { lvl: 5 }, neon: { ach: 'shiny1' }, gold: { lvl: 20 }, jackpot: { ach: 'jackpot' }, diamond: { lvl: 50 }, jpz: { lvl: 90 } };
+  const bannerOkFor = (id, level, ach) => { const n = BANNER_NEED[id]; return !n || (n.lvl ? level >= n.lvl : !!(ach && ach[n.ach])); };
 
   /* ---------- Profil public d'un autre joueur ---------- */
   function renderPublic(view, name) {
@@ -100,10 +103,10 @@
       const got = achs.filter((a) => prog.ach[a.id]).map((a) => ({ ...a, got: prog.ach[a.id] }));
       const uniq = new Set([...Object.keys(inv.cards || {}), ...Object.keys(inv.shiny || {})].filter((id) => cards.byId[id])).size;
       const showcase = (p.showcase || []).map((k) => { const [id, sh] = k.split('|'); return cards.byId[id] && ((sh === '1' ? inv.shiny : inv.cards) || {})[id] ? { card: cards.byId[id], shiny: sh === '1' } : null; }).filter(Boolean);
-      const t = titleById(p.title);
+      const t = titleById(p.title, info.level, prog.ach);
       view.innerHTML = `
         <section class="pcard" style="--rc:${info.rank.c}">
-          <div class="pbanner ${bannerClass(p, true)}" style="${bannerStyle(p)}"><span class="pbanner__fx"></span></div>
+          <div class="pbanner ${bannerClass(p.banner && p.banner.type === 'preset' && !bannerOkFor(p.banner.id, info.level, prog.ach) ? { banner: { type: 'preset', id: 'orbite' } } : p, true)}" style="${bannerStyle(p)}"><span class="pbanner__fx"></span></div>
           <div class="pcard__body">
             <div class="pcard__avatar">${avatarHtml(pl.name, 'avatar avatar--xl')}<span class="pcard__lvl">${DP.progress.badge(info.level, 44)}</span></div>
             <div class="pcard__id">

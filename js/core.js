@@ -9,6 +9,7 @@
   const IMG = 'assets/img/';
   // mise maximum par partie (même valeur que le serveur, eng_const « limits »)
   const MAX_BET = 5000;
+  const MIN_BET = 1; // en dessous, l'arrondi des gains au centime avantageait le joueur
   const START_BALANCE = 1000;
   const DAILY_COOLDOWN = 12 * 3600 * 1000; // roue quotidienne : une rotation toutes les 12 h
   // Cases de la roue quotidienne : [gain, poids]
@@ -1014,12 +1015,12 @@
     betInput(parent, { label = 'Mise', initial = 10, gameId = '' } = {}) {
       const saved = parseFloat(store.get('dp_lastbet_' + gameId));
       // première partie sur ce jeu : 1 % du solde (arrondi)
-      const pct1 = () => { const b = Math.min(MAX_BET, wallet.get() * 0.01); return b >= 10 ? Math.round(b) : Math.max(0.1, Math.round(b * 10) / 10); };
-      const start = saved > 0 ? saved : initial > 0 ? pct1() : initial;
+      const pct1 = () => { const b = Math.min(MAX_BET, wallet.get() * 0.01); return b >= 10 ? Math.round(b) : Math.max(MIN_BET, Math.round(b * 10) / 10); };
+      const start = saved >= MIN_BET ? saved : initial > 0 ? pct1() : initial;
       const node = ui.el(`<div class="field">
         <div class="field__head"><label>${label}</label><span class="field__hint"></span></div>
         <div class="bet">
-          <div class="bet__input">${ui.coin('coin--sm')}<input type="number" inputmode="decimal" min="0.01" step="any" value="${start}"></div>
+          <div class="bet__input">${ui.coin('coin--sm')}<input type="number" inputmode="decimal" min="${initial > 0 ? MIN_BET : 0}" step="any" value="${start}"></div>
           <button type="button" data-a="half">½</button>
           <button type="button" data-a="double">2×</button>
           <button type="button" data-a="max">Max</button>
@@ -1032,6 +1033,7 @@
       // mise trop haute tapée à la main : ramenée à la mise maximum
       input.addEventListener('change', () => {
         if ((parseFloat(input.value) || 0) > MAX_BET) { input.value = MAX_BET; input.dispatchEvent(new Event('input')); ui.toast(`Mise maximum : ${fmt(MAX_BET)} DaveCoins par partie.`, 'info'); }
+        else if (initial > 0 && (parseFloat(input.value) || 0) > 0 && (parseFloat(input.value) || 0) < MIN_BET) { input.value = MIN_BET; input.dispatchEvent(new Event('input')); ui.toast(`Mise minimum : ${MIN_BET} DaveCoin.`, 'info'); }
       });
       const btns = node.querySelectorAll('button');
       // mise de plus de 10 % du solde : on prévient (sans bloquer)
@@ -1052,7 +1054,7 @@
         if (!a) return;
         sound.play('click');
         let v = parseFloat(input.value) || 0;
-        if (a === 'half') v = Math.max(0.01, round2(v / 2));
+        if (a === 'half') v = Math.max(MIN_BET, round2(v / 2));
         if (a === 'double') v = clamp(v * 2 || 1);
         if (a === 'max') v = clamp(wallet.get());
         input.value = v;
