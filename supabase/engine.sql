@@ -368,7 +368,7 @@ begin
   if p_game <> 'poker' then a.prog := jsonb_set(coalesce(a.prog, '{}'::jsonb), '{cbl}', eng_cb_add(a.prog -> 'cbl', p_bet - p_pay)); end if;
   a := eng_xp(a, risk);
   a := eng_bump(a, 'played', jsonb_build_object('game', p_game, 'bet', p_bet, 'payout', p_pay, 'mult', m, 'risk', risk));
-  if p_bet > 0 then update jackpot set amount = r2(amount + p_bet * 0.01) where id = 1; end if;
+  if p_bet > 0 then update jackpot set amount = greatest(amount, least(coalesce((eng_c('slot_jackpots') ->> 'cap')::numeric, 150000), r2(amount + p_bet * 0.01))) where id = 1; end if;
   if net >= 1000 or (m >= 50 and net >= 100) then
     select username into uname from profiles where id = a.user_id;
     insert into feed (user_id, username, game, amount, mult) values (a.user_id, coalesce(uname, '?'), p_game, r2(net), r2(m));

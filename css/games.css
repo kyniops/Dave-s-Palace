@@ -902,3 +902,52 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
 @media (prefers-reduced-motion: reduce) {
   .slot-flat, .slot-flat *, .slot-flat__planet { animation: none !important; }
 }
+
+/* =================== DaveMachine 2 : DaveCoins, 4 jackpots, wilds collants, Hold & Win =================== */
+.slot5__jps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 4px 10px; }
+.jpt { --jc: #3ee68b; display: flex; flex-direction: column; align-items: center; padding: 4px 6px 5px; min-width: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--jc) 22%, #0b0d14), #0b0d14); box-shadow: inset 0 0 0 1px var(--jc), 0 0 14px -6px var(--jc); clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%); }
+.jpt span { font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--jc); }
+.jpt b { font-family: var(--display); font-size: 17px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.jpt--minor { --jc: #2ea8ff; } .jpt--major { --jc: #c04dff; } .jpt--grand { --jc: #ffc145; }
+.jpt--grand b { color: #ffe2a8; text-shadow: 0 0 12px rgba(255,193,69,.7); }
+.plq--mult { justify-self: center; align-items: center; }
+.plq--mult b { color: var(--coin); }
+
+/* DaveCoin sur les rouleaux, avec sa valeur */
+.sym.k-coin img { border-radius: 50%; filter: drop-shadow(0 0 10px rgba(255,193,69,.55)) drop-shadow(0 6px 10px rgba(0,0,0,.6)); }
+.coin-v { position: absolute; left: 50%; bottom: 10%; transform: translateX(-50%); padding: 1px 7px; font-family: var(--display); font-size: clamp(10px, calc(var(--cell, 120px) * .16), 17px); font-weight: 800; color: #1f1300; background: var(--coin); white-space: nowrap; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+.coin-v:empty { display: none; }
+.sym.k-coin.is-big .coin-v { background: linear-gradient(90deg, #ffe08a, #ff9f2c); }
+.sym.k-coin.is-jp .coin-v { color: #fff; letter-spacing: .08em; text-transform: uppercase; }
+.sym.k-coin.jp-mini .coin-v { background: #18a35f; } .sym.k-coin.jp-minor .coin-v { background: #1f7fd6; } .sym.k-coin.jp-major .coin-v { background: #9a2fd8; }
+
+/* couche fixe au-dessus des rouleaux (wilds collants, plateau du Hold & Win) */
+.slot5__layer { position: absolute; inset: 0; z-index: 4; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, var(--cell, 120px)); column-gap: 6px; padding: 7px 6px; pointer-events: none; }
+.slot5__cell { position: relative; display: grid; place-items: center; min-width: 0; }
+.slot5__cell > .sym { width: 100%; height: 100%; }
+.slot5__cell.sticky > .sym img { box-shadow: 0 0 0 2px var(--coin), 0 0 22px rgba(255,193,69,.7); }
+.slot5__cell.sticky::after { content: ''; position: absolute; right: 12%; top: 10%; width: 16px; height: 16px; border-radius: 50%; background: var(--coin) radial-gradient(circle at 50% 40%, #1f1300 0 3px, transparent 3.5px); box-shadow: 0 0 8px var(--coin); }
+.slot5__cell.sticky.new { animation: land .55s cubic-bezier(.2,1.6,.4,1); }
+
+.slot5__hw { pointer-events: auto; }
+.slot5.hw .reel5 { filter: brightness(.35) saturate(.5); }
+.hwc { border-radius: 6px; transition: background .3s, box-shadow .3s; }
+.hwc.empty { background: rgba(4,5,10,.82); box-shadow: inset 0 0 0 1px rgba(255,193,69,.12); }
+.hwc.held { background: radial-gradient(circle, rgba(255,193,69,.22), rgba(20,14,2,.85) 70%); box-shadow: inset 0 0 0 1px rgba(255,193,69,.45); }
+.hwc.roll { animation: hw-roll .3s linear infinite; }
+.hwc.land { animation: land .5s cubic-bezier(.2,1.6,.4,1); }
+.hwc.cash { box-shadow: inset 0 0 0 2px var(--coin), 0 0 24px rgba(255,193,69,.6); }
+.hw-bar { position: absolute; left: 50%; top: -2px; transform: translate(-50%, -100%); display: flex; align-items: baseline; gap: 8px; padding: 4px 14px; background: #0b0d14; box-shadow: inset 0 0 0 1px var(--coin); white-space: nowrap; clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%); }
+.hw-bar span { font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--coin); }
+.hw-bar b { display: inline-block; font-family: var(--display); font-size: 20px; font-weight: 700; color: #fff; margin-right: 8px; }
+@keyframes hw-roll { 0%, 100% { background: rgba(4,5,10,.82); } 50% { background: rgba(255,193,69,.12); } }
+.hw-intro { flex-direction: row; gap: 24px; text-align: left; }
+.hw-intro img { width: min(180px, 30vw); aspect-ratio: 1; border-radius: 50%; filter: drop-shadow(0 0 30px rgba(255,193,69,.7)); animation: jpz-in .7s var(--ease) both; }
+.hw-intro > div { display: flex; flex-direction: column; }
+.hw-intro strong { font-family: var(--display); font-size: clamp(40px, 8vw, 84px); letter-spacing: .02em; color: var(--coin); }
+@media (max-width: 600px) {
+  .slot5__jps { gap: 4px; margin: 0 0 8px; } .jpt { padding: 3px 2px; } .jpt span { font-size: 8px; letter-spacing: .12em; } .jpt b { font-size: 12px; }
+  .slot5__layer { column-gap: 3px; padding: 4px 3px; }
+  .hw-intro { flex-direction: column; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) { .hwc.roll { animation: none; } }
