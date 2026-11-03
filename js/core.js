@@ -21,6 +21,8 @@
   const parisDay = (ms = Date.now()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
   const RESCUE_BELOW = 10; // dépannage possible sous ce solde
   const RESCUE_COOLDOWN = 15 * 60 * 1000; // dépannage toutes les 15 min quand on est à sec
+  const RESCUE_WORTH = 100; // … seulement si solde + cartes + actions restent sous ce montant
+  const RESCUE_DAY_MAX = 6; // … et 6 fois par jour au plus
 
   /* ---------- Stockage sûr ---------- */
   const store = {
@@ -216,7 +218,15 @@
       const last = parseInt(store.get(bonus._key('rescue'), '0'), 10) || 0;
       return Math.max(0, last + RESCUE_COOLDOWN - Date.now());
     },
-    canRescue() { return wallet.get() < RESCUE_BELOW && bonus.rescueLeft() === 0; },
+    /** Fortune hors solde : cartes + actions (au prix d'achat) — le dépannage est réservé aux joueurs vraiment à sec. */
+    rescueWorth() {
+      let v = wallet.get();
+      try { v += inventory.totals().value; } catch { /* ignore */ }
+      try { const mk = store.json('dp_prog_' + auth.current(), {}).mk || {}; Object.values(mk).forEach((p) => { v += +p.c || 0; }); } catch { /* ignore */ }
+      return v;
+    },
+    rescueToday() { try { const d = store.json('dp_prog_' + auth.current(), {}).rsd || {}; return d.d === parisDay() ? +d.n || 0 : 0; } catch { return 0; } },
+    canRescue() { return wallet.get() < RESCUE_BELOW && bonus.rescueLeft() === 0 && bonus.rescueWorth() < RESCUE_WORTH && bonus.rescueToday() < RESCUE_DAY_MAX; },
     claimRescue() {
       if (DP.engine && DP.engine.on) return 0;
       if (!bonus.canRescue()) return 0;
@@ -226,7 +236,7 @@
       emit('bonus');
       return RESCUE_AMOUNT;
     },
-    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT, RESCUE_BELOW, STREAK_DAYS, STREAK_GOLD, GOLD_MAX: 25000, CASHBACK_PCT
+    DAILY_WHEEL, DAILY_MAX: 5000, RESCUE_AMOUNT, RESCUE_BELOW, RESCUE_WORTH, RESCUE_DAY_MAX, STREAK_DAYS, STREAK_GOLD, GOLD_MAX: 25000, CASHBACK_PCT
   };
 
   /* ---------- Jackpot global progressif ----------

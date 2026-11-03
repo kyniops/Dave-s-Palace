@@ -607,7 +607,7 @@
       rbBtn.disabled = rb.pending < 0.01 || rbBusy;
       const r = bonus.rescueLeft();
       rescue.disabled = !bonus.canRescue();
-      rescue.textContent = wallet.get() >= bonus.RESCUE_BELOW ? `Solde ≥ ${bonus.RESCUE_BELOW}` : r > 0 ? countdown(r) : 'Récupérer';
+      rescue.textContent = wallet.get() >= bonus.RESCUE_BELOW ? `Solde ≥ ${bonus.RESCUE_BELOW}` : bonus.rescueWorth() >= bonus.RESCUE_WORTH ? 'Vends tes cartes / actions' : bonus.rescueToday() >= bonus.RESCUE_DAY_MAX ? 'Demain' : r > 0 ? countdown(r) : 'Récupérer';
     };
     paint();
     const timer = setInterval(paint, 1000);
