@@ -331,21 +331,12 @@
       store.setJson('dp_jackpot_last', { name, amount: v, t: Date.now() });
       emit('jackpot', jpCache);
       emit('jackpotwin', { name, amount: v });
-      if (uid) sb.rpc('jackpot_win').then(() => {}, () => {});
       postFeed('jackpot', v, 0);
       return v;
     }
   });
-  async function flushJackpot() {
-    if (DP.engine && DP.engine.on) { jpPending = 0; return; } // alimenté par le serveur
-    if (!uid || jpPending <= 0) return;
-    const amount = Math.min(5000, jpPending);
-    jpPending = round2(jpPending - amount);
-    const { data, error } = await sb.rpc('jackpot_feed', { p_amount: amount });
-    if (error) jpPending = round2(jpPending + amount);
-    else if (data != null && Math.abs(+data - jpCache) > 1) { jpCache = round2(+data + jpPending); emit('jackpot', jpCache); }
-  }
-  setInterval(flushJackpot, 3000);
+  // en ligne, le jackpot est alimenté et gagné uniquement par le serveur (1 % de chaque mise) : rien à envoyer d'ici
+  setInterval(() => { if (uid) jpPending = 0; }, 3000);
   const refreshJackpot = async () => { const { data } = await sb.from('jackpot').select('*').eq('id', 1).maybeSingle(); if (data && !jpPending) setJp(data); };
   refreshJackpot();
   setInterval(refreshJackpot, 5000);
