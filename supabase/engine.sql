@@ -1278,8 +1278,52 @@ create or replace function public.is_banned(p uuid default auth.uid()) returns b
 $$;
 
 -- « saves » : le joueur ne peut plus écrire que son profil (photo, bannière, titre…)
+-- profil écrit par le navigateur : reconstruit champ par champ (voir hardening.sql)
+create or replace function public.eng_clean_profile(t text) returns text language plpgsql immutable set search_path = public as $$
+declare
+  p jsonb; o jsonb := '{}'::jsonb; v jsonb; sc jsonb := '[]'::jsonb; x jsonb;
+  img text := '^data:image/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$';
+  id_re text := '^[A-Za-z0-9_:.-]{1,60}$';
+begin
+  if t is null then return null; end if;
+  begin p := t::jsonb; exception when others then return null; end;
+  if jsonb_typeof(p) <> 'object' then return null; end if;
+  -- photo : importée (vraie image, 400 Ko max) ou carte
+  v := p -> 'avatar';
+  if jsonb_typeof(v) = 'object' and v ->> 'type' = 'upload' and jsonb_typeof(v -> 'data') = 'string'
+     and v ->> 'data' ~ img and length(v ->> 'data') <= 400000 then
+    o := o || jsonb_build_object('avatar', jsonb_build_object('type', 'upload', 'data', v ->> 'data'));
+  elsif jsonb_typeof(v) = 'object' and v ->> 'type' = 'card' and jsonb_typeof(v -> 'id') = 'string' and v ->> 'id' ~ id_re then
+    o := o || jsonb_build_object('avatar', jsonb_build_object('type', 'card', 'id', v ->> 'id'));
+  else
+    o := o || '{"avatar":null}'::jsonb;
+  end if;
+  -- bannière : importée (600 Ko max), carte ou décor
+  v := p -> 'banner';
+  if jsonb_typeof(v) = 'object' and v ->> 'type' = 'upload' and jsonb_typeof(v -> 'data') = 'string'
+     and v ->> 'data' ~ img and length(v ->> 'data') <= 600000 then
+    o := o || jsonb_build_object('banner', jsonb_build_object('type', 'upload', 'data', v ->> 'data'));
+  elsif jsonb_typeof(v) = 'object' and v ->> 'type' in ('card', 'preset') and jsonb_typeof(v -> 'id') = 'string' and v ->> 'id' ~ id_re then
+    o := o || jsonb_build_object('banner', jsonb_build_object('type', v ->> 'type', 'id', v ->> 'id'));
+  else
+    o := o || '{"banner":{"type":"preset","id":"orbite"}}'::jsonb;
+  end if;
+  -- titre
+  o := o || jsonb_build_object('title', case when jsonb_typeof(p -> 'title') = 'string' and p ->> 'title' ~ id_re then p ->> 'title' else 'new' end);
+  -- bio : 80 caractères
+  o := o || jsonb_build_object('bio', case when jsonb_typeof(p -> 'bio') = 'string' then left(p ->> 'bio', 80) else '' end);
+  -- vitrine : 3 cartes au plus, sous la forme « id|0 » ou « id|1 »
+  if jsonb_typeof(p -> 'showcase') = 'array' then
+    for x in select e from jsonb_array_elements(p -> 'showcase') e loop
+      exit when jsonb_array_length(sc) >= 3;
+      if jsonb_typeof(x) = 'string' and x #>> '{}' ~ '^[A-Za-z0-9_:.-]{1,60}\|[01]$' then sc := sc || x; end if;
+    end loop;
+  end if;
+  o := o || jsonb_build_object('showcase', sc);
+  return o::text;
+end $$;
 create or replace function public.saves_guard() returns trigger language plpgsql security definer set search_path = public as $$
-declare acc accounts; keys text[] := array['davecoin_', 'dp_stats_', 'dp_inv_', 'dp_prog_', 'dp_codes_', 'dp_bonus_', 'dp_rescue_'];
+declare acc accounts; prof text;
 begin
   if current_setting('dp.server', true) = 'on' then return new; end if;
   select * into acc from accounts where user_id = new.user_id;
@@ -1287,7 +1331,8 @@ begin
     insert into accounts (user_id) values (new.user_id) on conflict do nothing;
     select * into acc from accounts where user_id = new.user_id;
   end if;
-  new.data := (coalesce(new.data, '{}'::jsonb) - keys) || eng_snap(acc);
+  if new.data ? 'dp_profile_' then prof := eng_clean_profile(new.data ->> 'dp_profile_'); end if;
+  new.data := eng_snap(acc) || case when prof is null then '{}'::jsonb else jsonb_build_object('dp_profile_', prof) end;
   new.balance := acc.balance;
   new.level := eng_level(jn(acc.prog, 'xp'));
   new.wagered := jn(acc.stats, 'wagered');

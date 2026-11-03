@@ -35,6 +35,17 @@ drop policy if exists "demander" on public.friendships;
 create policy "demander" on public.friendships for insert with check (auth.uid() = requester and status = 'pending');
 drop policy if exists "accepter" on public.friendships;
 create policy "accepter" on public.friendships for update using (auth.uid() = addressee) with check (status = 'accepted');
+-- celui qui reçoit la demande peut seulement l'accepter, pas la réécrire
+create or replace function public.friendships_guard() returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.requester is distinct from old.requester or new.addressee is distinct from old.addressee
+     or new.created_at is distinct from old.created_at or new.id is distinct from old.id then
+    raise exception 'Une demande d''ami ne peut pas être modifiée.';
+  end if;
+  return new;
+end $$;
+drop trigger if exists friendships_guard on public.friendships;
+create trigger friendships_guard before update on public.friendships for each row execute function public.friendships_guard();
 drop policy if exists "retirer" on public.friendships;
 create policy "retirer" on public.friendships for delete using (auth.uid() in (requester, addressee));
 

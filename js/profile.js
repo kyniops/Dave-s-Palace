@@ -8,9 +8,19 @@
   const BLANK = () => ({ avatar: null, banner: { type: 'preset', id: 'orbite' }, title: 'new', bio: '', showcase: [] });
   // les autres joueurs : profils récupérés du serveur (version en ligne)
   const others = () => (DP.cloud && DP.cloud.online && DP.cloud.profiles ? DP.cloud.profiles() : {});
+  // un profil venu d'ailleurs peut être mal formé : on garde seulement des champs du bon type
+  const norm = (p) => {
+    const b = BLANK(), o = Object.assign(b, p && typeof p === 'object' && !Array.isArray(p) ? p : {});
+    if (o.avatar !== null && (typeof o.avatar !== 'object' || Array.isArray(o.avatar))) o.avatar = null;
+    if (!o.banner || typeof o.banner !== 'object' || Array.isArray(o.banner)) o.banner = BLANK().banner;
+    if (typeof o.title !== 'string') o.title = 'new';
+    if (typeof o.bio !== 'string') o.bio = '';
+    o.showcase = Array.isArray(o.showcase) ? o.showcase.filter((k) => typeof k === 'string').slice(0, 3) : [];
+    return o;
+  };
   const get = (name = auth.current()) => {
-    if (name !== auth.current() && others()[name.toLowerCase()]) return Object.assign(BLANK(), others()[name.toLowerCase()]);
-    return Object.assign(BLANK(), store.json(key(name), {}));
+    if (name !== auth.current() && others()[name.toLowerCase()]) return norm(others()[name.toLowerCase()]);
+    return norm(store.json(key(name), {}));
   };
   /** Lien vers le profil public d'un joueur. */
   const link = (name, inner, cls = '') => `<a class="plink ${cls}" href="#/joueur/${encodeURIComponent(name)}">${inner}</a>`;
