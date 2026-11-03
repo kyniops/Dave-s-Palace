@@ -16,14 +16,41 @@
     return c;
   };
 
+  /* Décor sans 3D : planète, anneau, étoiles et DaveCoins en CSS, qui réagissent aussi au jeu
+   * (spin, gain, free spins en rose, jackpot en or). */
+  function flatBg(stage, slot) {
+    const el = document.createElement('div');
+    el.className = 'slot-bg slot-flat';
+    const coins = Array.from({ length: 7 }, (_, i) => `<img class="slot-flat__coin" style="--i:${i}" src="${IMG}davecoin.png" alt="">`).join('');
+    el.innerHTML = `<i class="slot-flat__stars"></i><i class="slot-flat__stars slot-flat__stars--b"></i><i class="slot-flat__neb"></i>
+      <div class="planet slot-flat__planet"></div><i class="slot-flat__ring"></i><div class="slot-flat__coins">${coins}</div><i class="slot-flat__flash"></i>`;
+    stage.prepend(el);
+    let wasWin = false;
+    const sync = () => {
+      const win = slot.classList.contains('has-win');
+      el.classList.toggle('is-spin', slot.classList.contains('spinning'));
+      el.classList.toggle('is-fs', document.body.classList.contains('fs-party') || slot.classList.contains('fs'));
+      el.classList.toggle('is-jp', document.body.classList.contains('jp-party'));
+      if (win && !wasWin) { el.classList.remove('is-flash'); void el.offsetWidth; el.classList.add('is-flash'); }
+      wasWin = win;
+    };
+    const mo = new MutationObserver(sync);
+    mo.observe(slot, { attributes: true, attributeFilter: ['class'] });
+    mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    sync();
+    return () => { mo.disconnect(); el.remove(); };
+  }
+
   DP.slotBg = (stage, slot) => {
     const THREE = window.THREE;
     const cv = document.createElement('canvas');
     cv.className = 'slot-bg';
     stage.prepend(cv);
     let renderer;
-    try { if (!THREE) throw 0; renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); }
-    catch { cv.classList.add('slot-bg--flat'); return () => cv.remove(); }
+    // la 3D est-elle disponible ? (sinon three.js remplit la console d'erreurs)
+    const gl = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } })();
+    try { if (!THREE || !gl) throw 0; renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); }
+    catch { cv.remove(); return flatBg(stage, slot); } // pas de 3D (WebGL coupé, vieux PC…) : décor en CSS
     const small = stage.clientWidth < 700;
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, small ? 1.5 : 2));
     const scene = new THREE.Scene();
@@ -63,7 +90,9 @@
     const planetGroup = new THREE.Group();
     planetGroup.position.set(0.4, -4.1, -3);
     scene.add(planetGroup);
-    const tex = window.DP_PLANET_TEX ? new THREE.TextureLoader().load(window.DP_PLANET_TEX) : null;
+    // ouvert depuis le disque (file://), le navigateur refuse les images dans WebGL
+    const canLoad = location.protocol.startsWith('http');
+    const tex = canLoad && window.DP_PLANET_TEX ? new THREE.TextureLoader().load(window.DP_PLANET_TEX) : null;
     if (tex) { tex.wrapS = THREE.RepeatWrapping; }
     const planet = new THREE.Mesh(new THREE.SphereGeometry(R, 96, 64), new THREE.MeshStandardMaterial({ map: tex, color: tex ? 0xffffff : 0xb05a30, roughness: 1, metalness: 0 }));
     planet.rotation.z = 0.32;
@@ -111,8 +140,6 @@
     ring.add(dust);
 
     /* DaveCoins en orbite dans l'anneau */
-    // ouvert depuis le disque (file://), le navigateur refuse l'image dans WebGL : pas de pièces dans ce cas
-    const canLoad = location.protocol.startsWith('http');
     const coinTex = canLoad ? new THREE.TextureLoader().load(IMG + 'davecoin.png') : null;
     const coins = Array.from({ length: canLoad ? (small ? 6 : 10) : 0 }, (_, i) => {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: coinTex, transparent: true, depthWrite: false }));
@@ -150,9 +177,9 @@
       const jp = document.body.classList.contains('jp-party');
       if (win && !wasWin) flash = 1;
       wasWin = win;
-      const k = Math.min(1, dt * 2.5);
+      const k = reduced ? 1 : Math.min(1, dt * 2.5);
       energy += ((jp ? 1 : party ? 0.8 : spinning ? 0.75 : 0.25) - energy) * k;
-      mood += ((jp ? 2 : party ? 1 : 0) - mood) * Math.min(1, dt * 1.5);
+      mood += ((jp ? 2 : party ? 1 : 0) - mood) * (reduced ? 1 : Math.min(1, dt * 1.5));
       warp += ((jp ? 1 : spinning ? 0.35 : party ? 0.25 : 0) - warp) * k;
       flash = Math.max(0, flash - dt * 1.2);
 
@@ -186,13 +213,21 @@
       renderer.render(scene, camera);
       raf = requestAnimationFrame(frame);
     }
-    if (reduced) { last = performance.now(); frame(last); cancelAnimationFrame(raf); }
-    else raf = requestAnimationFrame(frame);
+    // animations réduites (réglage du système) : une seule image, redessinée quand l'état du jeu change
+    const still = () => { last = performance.now(); frame(last); cancelAnimationFrame(raf); };
+    let mo = null;
+    if (reduced) {
+      still();
+      mo = new MutationObserver(still);
+      mo.observe(slot, { attributes: true, attributeFilter: ['class'] });
+      mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    } else raf = requestAnimationFrame(frame);
     const vis = () => { cancelAnimationFrame(raf); if (!document.hidden && !reduced) { last = performance.now(); raf = requestAnimationFrame(frame); } };
     document.addEventListener('visibilitychange', vis);
 
     return () => {
       cancelAnimationFrame(raf);
+      if (mo) mo.disconnect();
       ro.disconnect();
       document.removeEventListener('visibilitychange', vis);
       stage.removeEventListener('pointermove', onMove);

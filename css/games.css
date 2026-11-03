@@ -860,3 +860,45 @@ body.jp-party .slot5__bulbs i { animation: bulb-strobe .18s steps(2) infinite !i
 .strip-tag b { font-size: 26px; line-height: 1; color: var(--c, var(--accent)); }
 .strip-row.is-multi .strip { border-color: transparent; background: rgba(0,0,0,.3); }
 @media (max-width: 600px) { .strip-tag { width: 34px; } .strip-tag b { font-size: 18px; } .strip-tag small { display: none; } .strip-row.is-multi { padding: 6px; } }
+
+/* DaveMachine sans 3D (WebGL indisponible) : décor en CSS qui réagit au jeu comme la version 3D */
+.slot-flat { --glow: 255, 122, 50; position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 100%, rgba(var(--glow), .16), transparent 60%), #05060b; transition: background .8s; }
+.slot-flat.is-fs { --glow: 255, 61, 154; }
+.slot-flat.is-jp { --glow: 255, 211, 107; animation: slot-flat-shake .35s linear infinite; }
+.slot-flat__stars { position: absolute; inset: -50% 0 0; opacity: .8;
+  background-image: radial-gradient(1.4px 1.4px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 33% 72%, #ffe9d0, transparent),
+    radial-gradient(1.6px 1.6px at 58% 34%, #fff, transparent), radial-gradient(1px 1px at 81% 61%, #ffd9f0, transparent),
+    radial-gradient(1.2px 1.2px at 92% 12%, #fff, transparent), radial-gradient(1px 1px at 4% 88%, #fff, transparent);
+  background-size: 240px 240px; animation: slot-flat-drift 60s linear infinite; }
+.slot-flat__stars--b { background-size: 170px 170px; opacity: .45; animation-duration: 90s; }
+.slot-flat.is-spin .slot-flat__stars, .slot-flat.is-jp .slot-flat__stars { animation-duration: 6s; }
+.slot-flat__neb { position: absolute; inset: 0; opacity: .5; transition: opacity .8s, filter .8s;
+  background: radial-gradient(40% 30% at 22% 30%, rgba(192, 77, 255, .35), transparent 70%), radial-gradient(35% 28% at 78% 24%, rgba(255, 107, 44, .28), transparent 70%); }
+.slot-flat.is-fs .slot-flat__neb { opacity: .95; filter: hue-rotate(-35deg) saturate(1.4); }
+.slot-flat.is-jp .slot-flat__neb { opacity: 1; filter: hue-rotate(40deg) saturate(1.6) brightness(1.2); }
+.slot-flat__planet { width: max(105%, 680px); aspect-ratio: 1; height: auto; left: 50%; top: 52%; transform: translateX(-50%);
+  box-shadow: 0 -2px 0 rgba(var(--glow), .8), 0 -24px 90px -10px rgba(var(--glow), .65); transition: box-shadow .8s; }
+.slot-flat.is-spin .slot-flat__planet, .slot-flat.is-fs .slot-flat__planet { animation-duration: 40s; }
+.slot-flat__planet::before { background: radial-gradient(circle at 38% 22%, rgba(255,220,190,.08) 0, transparent 38%, rgba(3,4,7,.55) 62%, rgba(3,4,7,.92) 78%); }
+.slot-flat.is-fs .slot-flat__planet { filter: hue-rotate(-25deg) saturate(1.3); }
+.slot-flat.is-jp .slot-flat__planet { filter: hue-rotate(20deg) saturate(1.5) brightness(1.15); }
+.slot-flat__ring { position: absolute; left: 50%; top: 60%; width: max(140%, 820px); height: 20%; transform: translate(-50%, -50%) rotate(-4deg); border-radius: 50%;
+  border: 2px dashed rgba(255, 193, 69, .45); box-shadow: 0 0 28px rgba(255, 193, 69, .25), inset 0 0 28px rgba(255, 193, 69, .2); animation: slot-flat-ring 30s linear infinite; }
+.slot-flat.is-spin .slot-flat__ring, .slot-flat.is-fs .slot-flat__ring { animation-duration: 6s; }
+.slot-flat__coins { position: absolute; left: 50%; top: 60%; width: max(130%, 720px); height: 0; transform: translateX(-50%); }
+.slot-flat__coin { position: absolute; left: 0; top: -14px; width: 28px; height: 28px; animation: slot-flat-orbit 14s linear infinite; animation-delay: calc(var(--i) * -2s); }
+.slot-flat.is-spin .slot-flat__coin, .slot-flat.is-fs .slot-flat__coin, .slot-flat.is-jp .slot-flat__coin { animation-duration: 4s; animation-delay: calc(var(--i) * -.57s); }
+.slot-flat__flash { position: absolute; inset: 0; opacity: 0; background: radial-gradient(60% 50% at 50% 60%, rgba(var(--glow), .55), transparent 70%); }
+.slot-flat.is-flash .slot-flat__flash { animation: slot-flat-flash 1s ease-out; }
+@keyframes slot-flat-drift { to { transform: translateY(33.33%); } }
+@keyframes slot-flat-ring { to { border-color: rgba(255, 193, 69, .45); transform: translate(-50%, -50%) rotate(-4deg) scaleX(1.02); } }
+@keyframes slot-flat-orbit {
+  0% { transform: translate(0, 18px) scale(.6); opacity: .35; } 25% { transform: translate(25vw, 34px) scale(1); opacity: 1; }
+  50% { transform: translate(min(130%, 100vw), 18px) scale(.6); opacity: .35; } 75% { transform: translate(25vw, -6px) scale(.45); opacity: .2; }
+  100% { transform: translate(0, 18px) scale(.6); opacity: .35; } }
+@keyframes slot-flat-flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes slot-flat-shake { 0%, 100% { transform: none; } 25% { transform: translate(2px, -1px); } 75% { transform: translate(-2px, 1px); } }
+@media (prefers-reduced-motion: reduce) {
+  .slot-flat, .slot-flat *, .slot-flat__planet { animation: none !important; }
+}

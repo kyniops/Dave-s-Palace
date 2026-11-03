@@ -13,6 +13,8 @@
     const THREE = window.THREE;
     if (!THREE) return null;
     let renderer;
+    // pas de 3D disponible : pas de scène (sans remplir la console d'erreurs)
+    try { const c = document.createElement('canvas'); if (!(c.getContext('webgl2') || c.getContext('webgl'))) return null; } catch { return null; }
     try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); } catch { return null; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     const scene = new THREE.Scene();
