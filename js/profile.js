@@ -48,14 +48,18 @@
   const titleHtml = (t) => `<span class="ptitle t${t.tier}" ${t.color ? `style="--tc:${t.color}"` : ''}>${esc(t.name)}</span>`;
 
   /* ---------- Avatar ---------- */
+  // les profils des autres joueurs viennent du serveur : une image importée n'est acceptée que sous forme
+  // de data URI d'image en base64 (sinon, n'importe qui pourrait glisser du HTML ou du JavaScript dans la page)
+  const IMG_DATA = /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
+  const safeImg = (s) => (typeof s === 'string' && IMG_DATA.test(s) ? s : null);
   function avatarHtml(name = auth.current(), cls = 'avatar') {
     const p = get(name);
-    const src = p.avatar && (p.avatar.type === 'upload' ? p.avatar.data : p.avatar.type === 'card' && cards.byId[p.avatar.id] ? IMG + cards.byId[p.avatar.id].img : null);
-    return src ? `<span class="${cls} avatar--img"><img src="${src}" alt=""></span>` : `<span class="${cls}">${esc(name.charAt(0).toUpperCase())}</span>`;
+    const src = p.avatar && (p.avatar.type === 'upload' ? safeImg(p.avatar.data) : p.avatar.type === 'card' && cards.byId[p.avatar.id] ? IMG + cards.byId[p.avatar.id].img : null);
+    return src ? `<span class="${cls} avatar--img"><img src="${esc(src)}" alt=""></span>` : `<span class="${cls}">${esc(String(name).charAt(0).toUpperCase())}</span>`;
   }
   function bannerStyle(p) {
     const b = p.banner || { type: 'preset', id: 'orbite' };
-    if (b.type === 'upload') return `background-image:url(${b.data})`;
+    if (b.type === 'upload') return safeImg(b.data) ? `background-image:url(${b.data})` : '';
     if (b.type === 'card' && cards.byId[b.id]) return `background-image:url(${IMG}${cards.byId[b.id].img})`;
     return '';
   }

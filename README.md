@@ -171,7 +171,7 @@ Tout le site est responsive.
 1. `schema.sql`, puis `engine.sql` (moteur de jeu)
 2. `social.sql`, `poker.sql`
 3. `duels.sql`, `trades.sql`, `admin.sql`, `security.sql`, `email.sql`
-4. les extensions et réglages : `scratch.sql`, `selfie.sql`, `horsserie.sql`, `reorg.sql`, `rakeback.sql`, `rescue.sql`, `limits.sql`, `codes.sql`, `xp_fix.sql`, `fix_inscription.sql`
+4. les extensions et réglages : `scratch.sql`, `selfie.sql`, `horsserie.sql`, `reorg.sql`, `rakeback.sql`, `rescue.sql`, `limits.sql`, `codes.sql`, `xp_fix.sql`, `fix_inscription.sql`, `eco.sql`, `streak.sql`, `market.sql`, `xss.sql`
 
 La plupart des fichiers peuvent être relancés sans risque. Les réglages (mise maximum, niveaux minimum, dépannage…) se changent ensuite dans *Table Editor > eng_const*.
 
