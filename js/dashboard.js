@@ -8,16 +8,11 @@
   /* Accès admin : réservé au compte « dave » (vérifié par la connexion), puis code d'accès.
    * Le code n'est pas écrit dans le site : on compare seulement son empreinte SHA-256. */
   const ADMIN_USER = 'dave';
-  const ADMIN_HASH = '4a4d7abd77fa45064f844eed0925b248bb1aa18f9aa312a8787956d307f7fee9';
   const isAdmin = () => {
     const u = auth.current();
     if (!u || u.toLowerCase() !== ADMIN_USER) return false;
     // en ligne, il faut une vraie session Supabase sur ce compte
     return !(DP.cloud && DP.cloud.online) || !!DP.cloud.uid();
-  };
-  const sha256 = async (txt) => {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
-    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
   };
   const INCOME = { daily: 'Roue quotidienne', rescue: 'Dépannage', promo: 'Codes promo', album: 'Albums complétés', sale: 'Ventes de cartes', level: 'Niveaux', mission: 'Missions', achievement: 'Succès', rakeback: 'Rakeback', streak: 'Bonus 7 jours', cashback: 'Remboursement des pertes' };
 
@@ -292,29 +287,40 @@
   }
 
   /* ================= Dashboard admin ================= */
-  const adminOpen = () => { try { return isAdmin() && sessionStorage.getItem('dp_admin') === auth.current(); } catch { return false; } };
+  // mode admin ouvert : en ligne, c'est le serveur qui décide (code entré il y a moins de 30 min) ; on garde ici l'heure de fin
+  const online0 = () => !!(DP.cloud && DP.cloud.online);
+  const adminUntil = () => { try { const v = JSON.parse(sessionStorage.getItem('dp_admin') || 'null'); return v && v.u === auth.current() ? +v.t || 0 : 0; } catch { return 0; } };
+  const setAdminUntil = (t) => { try { if (t) sessionStorage.setItem('dp_admin', JSON.stringify({ u: auth.current(), t })); else sessionStorage.removeItem('dp_admin'); } catch { /* ignore */ } };
+  const adminOpen = () => isAdmin() && (online0() ? adminUntil() > Date.now() : adminUntil() > 0);
 
   function lockScreen(view, done) {
     view.innerHTML = `
-      <div class="page-head" data-reveal><span class="game-head__ico">${I('shield', 'i--lg')}</span><div><h1>Admin</h1><p>Zone réservée. Entre le code d’accès.</p></div></div>
+      <div class="page-head" data-reveal><span class="game-head__ico">${I('shield', 'i--lg')}</span><div><h1>Admin</h1><p>Zone réservée. Entre le code d’accès : il est vérifié par le serveur et ouvre le mode admin pour 30 minutes.</p></div></div>
       <form class="code-box" data-reveal novalidate>
-        <label class="field"><span>Code d’accès</span><input name="code" type="password" autocomplete="off" maxlength="40"></label>
+        <label class="field"><span>Code d’accès</span><input name="code" type="password" autocomplete="off" maxlength="200"></label>
         <button class="btn btn--primary btn--lg" type="submit">${I('lock', 'i--sm')}Déverrouiller</button>
         <p class="code-box__msg" role="status"></p>
       </form>`;
     const form = view.querySelector('form');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      let good = false;
-      try { good = isAdmin() && (await sha256(form.code.value.trim())) === ADMIN_HASH; } catch { good = false; }
+      const btn = form.querySelector('button'), code = form.code.value;
+      let good = false, msg = 'Code incorrect.', until = 0;
+      btn.disabled = true;
+      if (!isAdmin()) good = false;
+      else if (online0()) {
+        try { const r = await DP.cloud.admin.unlock(code); good = !!r.ok; msg = r.msg || msg; until = r.until ? Date.parse(r.until) : 0; } catch { msg = 'Accès refusé par le serveur.'; }
+      } else { good = true; until = Date.now() + 30 * 60000; } // version hors ligne (navigateur seul) : pas de serveur à protéger
+      btn.disabled = false;
+      form.code.value = '';
       if (!good) {
-        form.querySelector('.code-box__msg').textContent = 'Code incorrect.';
+        form.querySelector('.code-box__msg').textContent = msg;
         form.querySelector('.code-box__msg').className = 'code-box__msg neg';
         DP.sound.play('error');
         form.animate([{ transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], { duration: 260 });
         return;
       }
-      try { sessionStorage.setItem('dp_admin', auth.current()); } catch { /* ignore */ }
+      setAdminUntil(until || Date.now() + 30 * 60000);
       DP.sound.play('win');
       done();
     });
@@ -353,7 +359,7 @@
     });
   }
 
-  const adminErr = (e) => (/refus|denied|permission/i.test((e && e.message) || '') ? 'Accès refusé par le serveur : ce compte n’est pas admin.' : /function|does not exist|schema cache/i.test((e && e.message) || '') ? 'Le script supabase/admin.sql n’a pas encore été exécuté dans Supabase.' : 'Erreur : ' + ((e && e.message) || e));
+  const adminErr = (e) => (/refus|denied|permission/i.test((e && e.message) || '') ? (setAdminUntil(0), 'Mode admin fermé ou expiré : recharge la page et entre à nouveau le code.') : /function|does not exist|schema cache/i.test((e && e.message) || '') ? 'Le script supabase/admin.sql n’a pas encore été exécuté dans Supabase.' : 'Erreur : ' + ((e && e.message) || e));
 
   /** Applique une modification à la sauvegarde d'un joueur (en ligne via le serveur, sinon dans ce navigateur). */
   async function applyTo(u, mutate) {
@@ -513,7 +519,7 @@
       <div class="page-head dhead">
         <span class="game-head__ico" data-reveal>${I('shield', 'i--lg')}</span>
         <div><h1>Admin</h1><p>Toute l’économie du casino, compte par compte (${DP.cloud && DP.cloud.online ? 'tous les joueurs en ligne' : 'données de ce navigateur'})</p></div>
-        <div class="dhead__act"><button class="btn btn--ghost js-lock" type="button">${I('lock', 'i--sm')}Verrouiller</button></div>
+        <div class="dhead__act">${online ? `<span class="dhead__timer muted js-atimer"></span>` : ''}<button class="btn btn--ghost js-lock" type="button">${I('lock', 'i--sm')}Verrouiller</button></div>
       </div>
 
       <section class="dkpis">
@@ -524,6 +530,11 @@
         ${kpi('RTP réel global', pct(won, wagered), { icon: 'percent', sub: 'Gains / mises, tous jeux' })}
         ${kpi('Jackpot', fmt(jackpot.get()), { icon: 'crown', sub: jpLast ? `Dernier : ${esc(jpLast.name)} (${fmt(jpLast.amount)})` : `Départ ${fmt(jackpot.SEED)}` })}
       </section>
+
+      ${online ? `<section class="dpanel" data-reveal>
+        <header><h2>Historique admin</h2><span>Toutes les actions faites en mode admin</span></header>
+        <div class="table-wrap js-alog"><p class="muted">Chargement…</p></div>
+      </section>` : ''}
 
       <section class="dpanel" data-reveal>
         <header><h2>Joueurs</h2><span>Clique sur une colonne pour trier</span></header>
@@ -606,7 +617,36 @@
       if (!online) return ui.toast('Le fil des gains n’existe qu’en ligne.', 'error');
       try { await DP.cloud.admin.clearFeed(); ui.toast('Fil des gains vidé', 'win'); } catch (err) { ui.toast(adminErr(err), 'error'); }
     });
-    view.querySelector('.js-lock').addEventListener('click', () => { try { sessionStorage.removeItem('dp_admin'); } catch { /* ignore */ } ctx.rerender(); });
+    view.querySelector('.js-lock').addEventListener('click', async () => { setAdminUntil(0); if (online) { try { await DP.cloud.admin.relock(); } catch { /* ignore */ } } ctx.rerender(); });
+    // temps restant avant que le mode admin se referme
+    const timerEl = view.querySelector('.js-atimer');
+    const tick = () => {
+      if (!timerEl || !timerEl.isConnected) return;
+      const left = adminUntil() - Date.now();
+      if (left <= 0) { clearInterval(aTimer); setAdminUntil(0); ctx.rerender(); return; }
+      timerEl.textContent = `Fermeture dans ${Math.ceil(left / 60000)} min`;
+    };
+    const aTimer = online ? setInterval(tick, 15000) : 0;
+    tick();
+    // historique des actions admin
+    const ACT = { set_save: 'Compte modifié', ban: 'Bannissement', unban: 'Débannissement', rename: 'Renommage', set_jackpot: 'Jackpot fixé', clear_feed: 'Fil des gains vidé',
+      unlock: 'Mode admin ouvert', unlock_failed: 'Mauvais code', unlock_blocked: 'Bloqué (trop d’essais)', code_change: 'Code admin changé' };
+    const detailOf = (x) => {
+      const d = x.detail || {};
+      if (x.action === 'set_save') return `Solde ${fmt(+(d.balance || [])[0] || 0)} → ${fmt(+(d.balance || [])[1] || 0)} · niveau ${esc(String((d.level || [])[0] ?? '?'))} → ${esc(String((d.level || [])[1] ?? '?'))}`;
+      if (x.action === 'rename') return `${esc(d.old || '')} → ${esc(d.new || '')}`;
+      if (x.action === 'set_jackpot') return `${fmt(+d.old || 0)} → ${fmt(+d.new || 0)}`;
+      if (x.action === 'ban' && d.reason) return esc(d.reason);
+      return '';
+    };
+    const logBox = view.querySelector('.js-alog');
+    if (logBox) DP.cloud.admin.history(100).then((rows) => {
+      if (!logBox.isConnected) return;
+      logBox.innerHTML = rows.length ? `<table class="history dtable"><thead><tr><th>Quand</th><th>Admin</th><th>Action</th><th>Joueur</th><th>Détail</th></tr></thead><tbody>
+        ${rows.map((x) => `<tr class="${/fail|blocked/.test(x.action) ? 'neg' : ''}"><td class="muted">${esc(new Date(x.at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}</td>
+          <td>${esc(x.admin || '—')}</td><td>${esc(ACT[x.action] || x.action)}</td><td>${esc(x.target || '—')}</td><td>${detailOf(x)}</td></tr>`).join('')}</tbody></table>`
+        : '<p class="muted">Aucune action pour l’instant.</p>';
+    }, () => { logBox.innerHTML = '<p class="muted">Historique indisponible (lance supabase/admin_lock.sql).</p>'; });
 
     const offDays = dayBars(view.querySelector('.js-days'), days, { mode: 'count' });
     const jpEls = view.querySelectorAll('.js-jp');
@@ -625,7 +665,7 @@
       inner = admin(view, { ...ctx, players, quiet: true });
       window.scrollTo(0, y);
     }
-    function cleanup() { gone = true; offDays(); offJp(); }
+    function cleanup() { gone = true; offDays(); offJp(); clearInterval(aTimer); }
     return () => { if (inner) inner(); else cleanup(); };
   }
 

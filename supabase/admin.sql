@@ -16,9 +16,15 @@ insert into public.admins (user_id)
   select id from public.profiles where lower(username) = 'dave'
   on conflict do nothing;
 
+-- mode admin ouvert : compte admin ET code entré il y a moins de 30 min (voir admin_lock.sql)
+create table if not exists public.admin_unlock (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  until timestamptz, fails int not null default 0, locked_until timestamptz
+);
+alter table public.admin_unlock enable row level security;
 create or replace function public.is_admin()
 returns boolean language sql stable security definer set search_path = public as $$
-  select exists (select 1 from admins where user_id = auth.uid());
+  select exists (select 1 from admins a join admin_unlock u on u.user_id = a.user_id where a.user_id = auth.uid() and u.until > now());
 $$;
 
 -- Remplace la sauvegarde d'un joueur (solde, niveau, cartes, caisses offertes…)

@@ -450,6 +450,11 @@
     ban: async (userId, banned, reason) => { const { error } = await sb.rpc('admin_ban', { p_user: userId, p_banned: banned, p_reason: reason || null }); if (error) throw error; },
     rename: async (userId, name) => { const bad = auth.usernameProblem(name); if (bad) throw new Error(bad); const { error } = await sb.rpc('admin_rename', { p_user: userId, p_name: name }); if (error) throw error; },
     setJackpot: async (amount) => { const { error } = await sb.rpc('admin_set_jackpot', { p_amount: amount }); if (error) throw error; await refreshJackpot(); },
-    clearFeed: async () => { const { error } = await sb.rpc('admin_clear_feed'); if (error) throw error; feedRows.length = 0; emit('livefeed'); }
+    clearFeed: async () => { const { error } = await sb.rpc('admin_clear_feed'); if (error) throw error; feedRows.length = 0; emit('livefeed'); },
+    // verrou du mode admin : le code est vérifié par le serveur (30 min), jamais stocké dans le site
+    unlock: async (code) => { const { data, error } = await sb.rpc('admin_unlock', { p_code: code }); if (error) throw error; return data || {}; },
+    relock: async () => { await sb.rpc('admin_relock'); },
+    status: async () => { const { data, error } = await sb.rpc('admin_status'); if (error) throw error; return data || {}; },
+    history: async (n = 100) => { const { data, error } = await sb.rpc('admin_history', { p_limit: n }); if (error) throw error; return data || []; }
   };
 })();
