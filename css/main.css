@@ -2082,7 +2082,7 @@ a.gtag:hover { background: var(--accent-hover); }
 @media (prefers-reduced-motion: reduce) { .lb-table tr.lb-top td, .lb-medal { animation: none !important; } }
 
 /* =================== ADMIN ABUSE =================== */
-.abuse-banner { position: fixed; left: 50%; top: 10px; z-index: 120; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; max-width: calc(100vw - 24px); padding: 8px 14px 8px 18px;
+.abuse-banner { position: fixed; left: 50%; top: calc(var(--topbar) + env(safe-area-inset-top, 0px) + var(--gt, 0px) + 8px); z-index: 120; /* sous la barre du haut : le solde reste visible */ transform: translateX(-50%); display: flex; align-items: center; gap: 16px; max-width: calc(100vw - 24px); padding: 8px 14px 8px 18px;
   background: linear-gradient(90deg, #ff3d9a, #a855f7, #2ea8ff, #3ee68b, #ffc145, #ff3d9a); background-size: 300% 100%; animation: abuse-flow 3s linear infinite;
   box-shadow: 0 10px 40px -8px rgba(255, 61, 154, .8), 0 0 0 2px rgba(255,255,255,.35); clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); color: #fff; }
 .abuse-banner__title { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 20px; letter-spacing: .14em; text-shadow: 0 2px 0 rgba(0,0,0,.35); white-space: nowrap; }
