@@ -2063,3 +2063,17 @@ a.gtag:hover { background: var(--accent-hover); }
 @keyframes lb-base { to { background-position: -200% 0; } }
 @media (max-width: 600px) { .lb-pod__crown { font-size: 20px; top: 2px; } }
 @media (prefers-reduced-motion: reduce) { .lb-pod, .lb-pod::after, .lb-pod *, .lb-pod *::before { animation: none !important; } }
+
+/* ---------- Tableau du classement : top 3 en évidence ---------- */
+.lb-table tr.lb-top { --pc: #d6dce8; position: relative; background: linear-gradient(90deg, color-mix(in srgb, var(--pc) 22%, transparent), color-mix(in srgb, var(--pc) 6%, transparent) 45%, transparent 80%); }
+.lb-table tr.lb-top1 { --pc: #ffc145; } .lb-table tr.lb-top3 { --pc: #d0864b; }
+.lb-table tr.lb-top td:first-child { box-shadow: inset 3px 0 0 var(--pc); }
+.lb-table tr.lb-top td { background-image: linear-gradient(105deg, transparent 40%, color-mix(in srgb, var(--pc) 14%, transparent) 50%, transparent 60%); background-size: 300% 100%; background-attachment: fixed; animation: lb-row 6s ease-in-out infinite; }
+.lb-table tr.lb-top2 td { animation-delay: 2s; } .lb-table tr.lb-top3 td { animation-delay: 4s; }
+@keyframes lb-row { 0% { background-position: 120% 0; } 50%, 100% { background-position: -120% 0; } }
+.lb-table tr.lb-top td.num:nth-child(3) { color: var(--pc); font-weight: 700; }
+.lb-medal { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-family: var(--display); font-weight: 800; font-size: 14px; color: #1a1205;
+  background: radial-gradient(circle at 35% 30%, #fff 0, var(--pc) 45%, color-mix(in srgb, var(--pc) 55%, #000) 100%); box-shadow: 0 0 0 2px color-mix(in srgb, var(--pc) 40%, transparent), 0 0 12px -2px var(--pc); }
+.lb-top1 .lb-medal { animation: lb-medal 2.4s ease-in-out infinite alternate; }
+@keyframes lb-medal { from { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pc) 40%, transparent), 0 0 8px -2px var(--pc); } to { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pc) 60%, transparent), 0 0 18px 0 var(--pc); } }
+@media (prefers-reduced-motion: reduce) { .lb-table tr.lb-top td, .lb-medal { animation: none !important; } }
