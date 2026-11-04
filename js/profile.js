@@ -5,7 +5,7 @@
   const { auth, stats, store, ui, sound, cards, inventory, fmt, esc, on, emit, IMG } = DP;
   const I = ui.icon;
   const key = (name) => 'dp_profile_' + name;
-  const BLANK = () => ({ avatar: null, banner: { type: 'preset', id: 'orbite' }, title: 'new', bio: '', showcase: [], namefx: null });
+  const BLANK = () => ({ avatar: null, banner: { type: 'preset', id: 'orbite' }, title: 'new', bio: '', showcase: [], namefx: null, frame: null });
   // les autres joueurs : profils récupérés du serveur (version en ligne)
   const others = () => (DP.cloud && DP.cloud.online && DP.cloud.profiles ? DP.cloud.profiles() : {});
   // un profil venu d'ailleurs peut être mal formé : on garde seulement des champs du bon type
@@ -17,6 +17,7 @@
     if (typeof o.bio !== 'string') o.bio = '';
     o.showcase = Array.isArray(o.showcase) ? o.showcase.filter((k) => typeof k === 'string').slice(0, 3) : [];
     if (typeof o.namefx !== 'string') o.namefx = null;
+    if (typeof o.frame !== 'string') o.frame = null;
     return o;
   };
   const get = (name = auth.current()) => {
@@ -61,6 +62,19 @@
     { id: 'diamond', name: 'Diamant', ach: 'bal100000' },
     { id: 'jpz', name: 'Couronne JPZ', ach: 'jackpot' }
   ];
+  // cadres animés autour de la photo
+  const AVATAR_FX = [
+    { id: 'neon', name: 'Néon orange', ach: 'play50' },
+    { id: 'ice', name: 'Glace', ach: 'uniq10' },
+    { id: 'aura', name: 'Aura violette', ach: 'lvl10' },
+    { id: 'fire', name: 'Anneau de feu', ach: 'play1000' },
+    { id: 'gold', name: 'Or tournant', ach: 'bal10000' },
+    { id: 'glitch', name: 'Glitch', ach: 'shiny5' },
+    { id: 'rainbow', name: 'Arc-en-ciel', ach: 'wag100000' },
+    { id: 'galaxy', name: 'Galaxie', ach: 'mult100' },
+    { id: 'diamond', name: 'Diamant', ach: 'bal100000' },
+    { id: 'jpz', name: 'Couronne JPZ', ach: 'jackpot' }
+  ];
   const fxHow = (f) => { const a = DP.progress && DP.progress.achievements().find((x) => x.id === f.ach); return a ? `${a.name} : ${a.desc}` : 'Succès à débloquer'; };
   /** Pseudo avec son effet. Pour les autres joueurs, l'effet est déjà vérifié par le serveur. */
   function nameHtml(name) {
@@ -85,10 +99,15 @@
   // de data URI d'image en base64 (sinon, n'importe qui pourrait glisser du HTML ou du JavaScript dans la page)
   const IMG_DATA = /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
   const safeImg = (s) => (typeof s === 'string' && IMG_DATA.test(s) ? s : null);
-  function avatarHtml(name = auth.current(), cls = 'avatar') {
+  function avatarHtml(name = auth.current(), cls = 'avatar', frameId) {
     const p = get(name);
     const src = p.avatar && (p.avatar.type === 'upload' ? safeImg(p.avatar.data) : p.avatar.type === 'card' && cards.byId[p.avatar.id] ? IMG + cards.byId[p.avatar.id].img : null);
-    return src ? `<span class="${cls} avatar--img"><img src="${esc(src)}" alt=""></span>` : `<span class="${cls}">${esc(String(name).charAt(0).toUpperCase())}</span>`;
+    const inner = src ? `<img src="${esc(src)}" alt="">` : esc(String(name).charAt(0).toUpperCase());
+    // cadre animé (pour les autres joueurs, déjà vérifié par le serveur ; frameId force un aperçu)
+    const fid = frameId !== undefined ? frameId : p.frame;
+    const fx = fid && AVATAR_FX.find((f) => f.id === fid && (frameId !== undefined || name !== auth.current() || hasAch(f.ach)));
+    if (fx) return `<span class="${cls} afx afx--${fx.id}${src ? ' afx--img' : ''}"><span class="afx__in">${inner}</span></span>`;
+    return src ? `<span class="${cls} avatar--img">${inner}</span>` : `<span class="${cls}">${inner}</span>`;
   }
   function bannerStyle(p) {
     const b = p.banner || { type: 'preset', id: 'orbite' };
@@ -228,7 +247,7 @@
 
     function editorBlock() {
       const p = get();
-      const tabs = [['avatar', 'Photo'], ['banner', 'Bannière'], ['title', 'Titre'], ['namefx', 'Pseudo'], ['showcase', 'Vitrine'], ['bio', 'Bio']];
+      const tabs = [['avatar', 'Photo'], ['banner', 'Bannière'], ['title', 'Titre'], ['namefx', 'Pseudo'], ['frame', 'Cadre'], ['showcase', 'Vitrine'], ['bio', 'Bio']];
       let body = '';
       if (tab === 'avatar') {
         body = `<div class="pedit__row">
@@ -252,6 +271,13 @@
           <div class="pnamefx">
             <button type="button" class="pnamefx__it ${!p.namefx ? 'on' : ''}" data-nf=""><b>${esc(me)}</b><small>Classique</small></button>
             ${NAME_FX.map((f) => { const ok = hasAch(f.ach); return `<button type="button" class="pnamefx__it ${p.namefx === f.id ? 'on' : ''}" data-nf="${f.id}" ${ok ? '' : 'disabled'} title="${esc(fxHow(f))}"><b><span class="nfx nfx--${f.id}" data-t="${esc(me)}">${esc(me)}</span></b><small>${ok ? esc(f.name) + (p.namefx === f.id ? ' · équipé' : '') : I('lock', 'i--sm') + esc(fxHow(f))}</small></button>`; }).join('')}
+          </div>`;
+      } else if (tab === 'frame') {
+        const me = auth.current();
+        body = `<p class="muted">Un cadre animé autour de ta photo, visible partout. Chaque cadre se débloque avec un succès. ${AVATAR_FX.filter((f) => hasAch(f.ach)).length} / ${AVATAR_FX.length} débloqués.</p>
+          <div class="pnamefx pframes">
+            <button type="button" class="pnamefx__it ${!p.frame ? 'on' : ''}" data-fr="">${avatarHtml(me, 'avatar avatar--lg', null)}<small>Aucun cadre</small></button>
+            ${AVATAR_FX.map((f) => { const ok = hasAch(f.ach); return `<button type="button" class="pnamefx__it ${p.frame === f.id ? 'on' : ''}" data-fr="${f.id}" ${ok ? '' : 'disabled'} title="${esc(fxHow(f))}">${avatarHtml(me, 'avatar avatar--lg', f.id)}<small>${ok ? esc(f.name) + (p.frame === f.id ? ' · équipé' : '') : I('lock', 'i--sm') + esc(fxHow(f))}</small></button>`; }).join('')}
           </div>`;
       } else if (tab === 'showcase') {
         body = `<p class="muted">Choisis jusqu’à 3 cartes à exposer. Clique à nouveau pour retirer.</p>
@@ -317,6 +343,8 @@
       if (bc) { set({ banner: { type: 'card', id: bc.dataset.bc } }); return changed(); }
       const tt = t.closest('[data-tt]');
       if (tt && !tt.disabled) { set({ title: tt.dataset.tt }); sound.play('win', { x: 2 }); repaintCard(); repaintEdit(); return; }
+      const fr = t.closest('[data-fr]');
+      if (fr && !fr.disabled) { set({ frame: fr.dataset.fr || null }); sound.play('win', { x: 2 }); repaintCard(); repaintEdit(); return; }
       const nf = t.closest('[data-nf]');
       if (nf && !nf.disabled) { set({ namefx: nf.dataset.nf || null }); sound.play('win', { x: 2 }); repaintCard(); repaintEdit(); return; }
       const sc = t.closest('[data-sc]');

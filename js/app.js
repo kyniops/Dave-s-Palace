@@ -1231,7 +1231,8 @@
       const podium = rows.slice(0, 3);
       box.innerHTML = `
         <div class="lb-podium">${[1, 0, 2].map((i) => podium[i] ? `<div class="lb-pod p${i + 1}">
-          ${DP.profile.link(podium[i].name, DP.profile.avatarHtml(podium[i].name, 'avatar avatar--lg'))}<span class="lb-pod__rank">${i + 1}</span>
+          <span class="lb-pod__rays" aria-hidden="true"></span><span class="lb-pod__sparks" aria-hidden="true"></span><span class="lb-pod__sheen" aria-hidden="true"></span>
+          ${i === 0 ? '<span class="lb-pod__crown" aria-hidden="true">👑</span>' : ''}<span class="lb-pod__halo">${DP.profile.link(podium[i].name, DP.profile.avatarHtml(podium[i].name, 'avatar avatar--lg'))}</span><span class="lb-pod__rank">${i + 1}</span>
           ${DP.profile.link(podium[i].name, `<b>${DP.profile.nameHtml(podium[i].name)}</b>`)}${DP.guilds.tagHtml(podium[i].name, true)}<span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
         <div class="table-wrap"><table class="history lb-table"><thead><tr><th>#</th><th>Joueur</th>${COLS.map(([k, l]) => `<th class="num ${k === sortKey ? 'on' : ''}">${l}</th>`).join('')}</tr></thead>
         <tbody>${rows.map((r, i) => { const sm = DP.progress.rankOf(r.level || 1); return `<tr class="${r.name === auth.current() ? 'me' : ''}"><td class="num">${i + 1}</td>

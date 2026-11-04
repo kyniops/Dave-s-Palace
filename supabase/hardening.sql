@@ -60,6 +60,7 @@ begin
     end loop;
   end if;
   o := o || jsonb_build_object('namefx', case when jsonb_typeof(p -> 'namefx') = 'string' and p ->> 'namefx' ~ '^[a-z0-9_]{1,20}$' then p ->> 'namefx' end);
+  o := o || jsonb_build_object('frame', case when jsonb_typeof(p -> 'frame') = 'string' and p ->> 'frame' ~ '^[a-z0-9_]{1,20}$' then p ->> 'frame' end);
   o := o || jsonb_build_object('showcase', sc);
   return o::text;
 end $$;
@@ -67,14 +68,20 @@ end $$;
 -- 2. Sauvegarde : seul le profil vient du navigateur, tout le reste vient du serveur
 -- garde l'effet de pseudo seulement si le succès requis est débloqué (voir namefx.sql)
 create or replace function public.eng_namefx_ok(prof text, acc public.accounts) returns text language plpgsql stable set search_path = public as $$
-declare p jsonb; fx text; need text;
+declare p jsonb; fx text; need text; ach jsonb := coalesce(acc.prog -> 'ach', '{}'::jsonb);
 begin
   if prof is null then return null; end if;
   p := prof::jsonb;
   fx := p ->> 'namefx';
-  if fx is null then return prof; end if;
-  need := eng_c('name_fx') ->> fx;
-  if need is null or not (coalesce(acc.prog -> 'ach', '{}'::jsonb) ? need) then p := jsonb_set(p, '{namefx}', 'null'::jsonb); end if;
+  if fx is not null then
+    need := eng_c('name_fx') ->> fx;
+    if need is null or not (ach ? need) then p := jsonb_set(p, '{namefx}', 'null'::jsonb); end if;
+  end if;
+  fx := p ->> 'frame';
+  if fx is not null then
+    need := eng_c('avatar_fx') ->> fx;
+    if need is null or not (ach ? need) then p := jsonb_set(p, '{frame}', 'null'::jsonb); end if;
+  end if;
   return p::text;
 end $$;
 
