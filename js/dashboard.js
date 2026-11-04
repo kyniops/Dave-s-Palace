@@ -537,12 +537,14 @@
           <label>Durée<select name="min">${[5, 10, 15, 30, 60].map((m) => `<option value="${m}" ${m === 15 ? 'selected' : ''}>${m} min</option>`).join('')}</select></label>
           <label>Pluie de DaveCoins<select name="rain">${[0, 250, 500, 1000, 2000, 5000].map((v) => `<option value="${v}" ${v === 1000 ? 'selected' : ''}>${v ? fmt(v) : 'Aucune'}</option>`).join('')}</select></label>
           <label>XP<select name="xp"><option value="1">Normale</option><option value="2" selected>×2</option><option value="3">×3</option></select></label>
-          <label>Gains<select name="gain"><option value="1">Normaux</option><option value="2" selected>×2 (1 gain sur 5)</option><option value="3">×3 (1 gain sur 10)</option></select></label>
+          <label>Pertes remboursées<select name="refund">${[0, 0.2, 0.3, 0.4, 0.5].map((v) => `<option value="${v}" ${v === 0.3 ? 'selected' : ''}>${v ? Math.round(v * 100) + ' %' : 'Non'}</option>`).join('')}</select></label>
+          <label>Gain surprise<select name="gain"><option value="1">Non</option><option value="2" selected>×2 (1 gain sur 10)</option><option value="3">×3 (1 gain sur 20)</option></select></label>
+          <label>Bonus max par joueur<select name="cap">${[1000, 2000, 5000, 10000, 25000, 0].map((v) => `<option value="${v}" ${v === 5000 ? 'selected' : ''}>${v ? fmt(v) : 'Pas de limite'}</option>`).join('')}</select></label>
           <label>Sur<select name="game">${Object.entries(DP.abuse ? DP.abuse.GAMES : { all: 'tous les jeux' }).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
           <label class="dabuse__check"><input type="checkbox" name="gift" checked>Caisse Aura offerte</label>
           <div class="dabuse__btns"><button class="btn btn--primary" type="submit">🐱 Lancer l’Admin Abuse</button><button class="btn btn--ghost js-abstop" type="button">Arrêter</button></div>
         </form>
-        <p class="muted dabuse__note">Musique « Miaou Miaou », chats et pièces qui tombent, confettis et lumières pour tous les joueurs connectés. Gains boostés : chaque partie gagnante a une chance de voir son bénéfice doublé (×2 : 1 sur 5) ou triplé (×3 : 1 sur 10), hors caisses, Upgrade, bourse, poker et GRAND.</p>
+        <p class="muted dabuse__note">Musique « Miaou Miaou », chats et pièces qui tombent, confettis et lumières pour tous les joueurs connectés. À chaque partie : une part de chaque perte est remboursée, et chaque gain a une chance d’être doublé (×2 : 1 sur 10) ou triplé (×3 : 1 sur 20). Le total de ces bonus est limité par joueur et par événement (pluie et caisse en plus). Hors caisses, Upgrade, bourse, poker et GRAND. « Pas de limite » : les gros parieurs peuvent gagner beaucoup.</p>
       </section>
 
       <section class="dpanel" data-reveal>
@@ -651,7 +653,7 @@
       abForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const f = abForm;
-        const { error } = await DP.cloud.sb.rpc('admin_abuse_start', { p_minutes: +f.min.value, p_rain: +f.rain.value, p_xp: +f.xp.value, p_gain: +f.gain.value, p_game: f.game.value, p_case: f.gift.checked });
+        const { error } = await DP.cloud.sb.rpc('admin_abuse_start', { p_minutes: +f.min.value, p_rain: +f.rain.value, p_xp: +f.xp.value, p_gain: +f.gain.value, p_game: f.game.value, p_case: f.gift.checked, p_refund: +f.refund.value, p_cap: +f.cap.value });
         if (error) return ui.toast(adminErr(error), 'error');
         DP.sound.play('win', { x: 20 });
         ui.toast('Admin Abuse lancé pour tout le monde !', 'win');

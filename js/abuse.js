@@ -22,7 +22,9 @@
     if (r && r.id) start(r); else stop();
   }
   const boostsText = (b) => [
-    b.gain > 1 ? `Gains ×${b.gain} (1 sur ${Math.round((b.gain - 1) / 0.2)}) sur ${GAMES[b.game] || b.game}` : '',
+    b.refund > 0 ? `Pertes remboursées ${Math.round(b.refund * 100)} %` : '',
+    b.gain > 1 ? `Gain ×${b.gain} surprise` : '',
+    (b.refund > 0 || b.gain > 1) && b.game !== 'all' ? `sur ${GAMES[b.game] || b.game}` : '',
     b.xp > 1 ? `XP ×${b.xp}` : '',
     b.rain > 0 ? `Pluie de ${fmt(b.rain)} DaveCoins` : '',
     b.case ? 'Caisse Aura offerte' : ''
@@ -63,7 +65,10 @@
   }
   function paintBanner() {
     if (!banner || !ev) return;
-    banner.querySelector('.js-ab-boosts').innerHTML = boostsText(ev.boosts).map((t) => `<span>${DP.esc(t)}</span>`).join('');
+    const b = ev.boosts, mine = +ev.mine || 0;
+    const prog = (b.refund > 0 || b.gain > 1) && DP.engine && DP.engine.on
+      ? `<span class="abuse-banner__mine">Tes bonus +${fmt(mine)}${b.cap > 0 ? ' / ' + fmt(b.cap) : ''}</span>` : '';
+    banner.querySelector('.js-ab-boosts').innerHTML = boostsText(b).map((t) => `<span>${DP.esc(t)}</span>`).join('') + prog;
     const btn = banner.querySelector('.js-ab-claim');
     btn.hidden = ev.claimed || !(ev.boosts.rain > 0 || ev.boosts.case) || !(DP.engine && DP.engine.on);
     paintTime();
@@ -144,6 +149,8 @@
     const first = lastBonus === 0;
     lastBonus = +ab.t;
     if (first && Date.now() - ab.t > 15000) return; // ancien bonus déjà vu
+    if (ab.tot != null) { ev.mine = +ab.tot; paintBanner(); }
+    if (ab.k === 'r') { coinRain(4); return; } // remboursement : discret (compteur de la bannière + quelques pièces)
     ui.toast(`ADMIN ABUSE : GAIN ×${ab.m} ! Bonus +${fmt(+ab.v)} DaveCoins`, 'win', 3500);
     if (sound) sound.play('win', { x: 10 });
     coinRain(24);

@@ -2089,6 +2089,7 @@ a.gtag:hover { background: var(--accent-hover); }
 .abuse-cat { display: inline-block; animation: abuse-cat .6s ease-in-out infinite alternate; }
 .abuse-banner__boosts { display: flex; flex-wrap: wrap; gap: 6px; }
 .abuse-banner__boosts span { padding: 2px 8px; font-size: 12px; font-weight: 700; background: rgba(0,0,0,.35); border-radius: 999px; white-space: nowrap; }
+.abuse-banner__boosts .abuse-banner__mine { background: rgba(255, 255, 255, .9); color: #a0136a; font-variant-numeric: tabular-nums; }
 .abuse-banner__right { display: flex; align-items: center; gap: 10px; }
 .abuse-banner__time { font-family: var(--display); font-size: 20px; text-shadow: 0 2px 0 rgba(0,0,0,.35); }
 .abuse-banner .btn { animation: abuse-glow .8s ease-in-out infinite alternate; }
