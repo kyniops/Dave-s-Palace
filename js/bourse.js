@@ -310,7 +310,7 @@
     }
     paintAll();
     refresh().then(loadChart);
-    const tPoll = setInterval(refresh, 10000);
+    const tPoll = setInterval(() => { if (!document.hidden) refresh(); }, 15000);
     const tChart = setInterval(loadChart, 60000);
     const tSec = setInterval(() => { if (alive) { paintPos(); paintNews(); } }, 1000);
     const offs = [on('balance', () => { paintBuy(); }), on('progress', () => { paintList(); paintPos(); paintPort(); })];

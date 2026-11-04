@@ -1261,7 +1261,7 @@
       if (alive) paint();
     };
     load();
-    const t = setInterval(load, 20000);
+    const t = setInterval(() => { if (!document.hidden) load(); }, 45000);
     M.reveal(view, '[data-reveal]');
     return () => { alive = false; clearInterval(t); };
   }

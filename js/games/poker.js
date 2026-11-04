@@ -109,7 +109,7 @@
         const ok = await loadLobby(true);
         if (!ok || !alive || tableId) return;
         // la liste se met à jour toute seule tant qu'on est dans le salon
-        lobbyTimer = setInterval(() => { if (!tableId && alive && !document.querySelector('.modal')) loadLobby(false); }, 6000);
+        lobbyTimer = setInterval(() => { if (!tableId && alive && !document.hidden && !document.querySelector('.modal')) loadLobby(false); }, 10000);
       }
       async function loadLobby(first) {
         const L = await rpc('poker_lobby', {}, { silent: true });
@@ -327,7 +327,8 @@
         fxCh = DP.cloud.sb.channel('pkfx-' + id, { config: { broadcast: { self: true } } })
           .on('broadcast', { event: 'emote' }, (m) => showEmote(m.payload))
           .subscribe();
-        timer = setInterval(tick, 1000);
+        // filet de sécurité : le temps réel et les minuteurs de tour déclenchent déjà les mises à jour
+        timer = setInterval(() => { if (!document.hidden) tick(); }, 2500);
         if (first) apply(first);
         tick();
       }

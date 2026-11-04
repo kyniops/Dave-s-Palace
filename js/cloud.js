@@ -66,17 +66,17 @@
   let revChannel = null, revTimer = 0;
   function startSync() {
     clearInterval(pushTimer);
-    pushTimer = setInterval(() => push(), 4000);
+    pushTimer = setInterval(() => { if (!document.hidden) push(); }, 6000);
     // un admin modifie le compte : on recharge la partie (temps réel + vérification régulière)
     if (revChannel) sb.removeChannel(revChannel);
     // (plus de temps réel sur « saves » : trop d'écritures, la base saturait ; la vérification régulière ci-dessous suffit)
     revChannel = null;
     clearInterval(revTimer);
     revTimer = setInterval(async () => {
-      if (!uid || !hasRev || knownRev == null) return;
+      if (!uid || !hasRev || knownRev == null || document.hidden) return;
       const { data } = await sb.from('saves').select('admin_rev').eq('user_id', uid).maybeSingle();
       if (data && data.admin_rev > knownRev) adminReload();
-    }, 20000);
+    }, 45000);
   }
   let reloading = false;
   async function adminReload() {
@@ -268,7 +268,7 @@
     emit('cloudload');
     return true;
   }
-  setInterval(() => { if (uid) kickIfBanned(); }, 30000);
+  setInterval(() => { if (uid && !document.hidden) kickIfBanned(); }, 90000);
 
   /** Renommé par un admin : on reprend la partie sous le nouveau pseudo. */
   cloud.renamed = async (newName) => {
@@ -339,7 +339,8 @@
   setInterval(() => { if (uid) jpPending = 0; }, 3000);
   const refreshJackpot = async () => { const { data } = await sb.from('jackpot').select('*').eq('id', 1).maybeSingle(); if (data && !jpPending) setJp(data); };
   refreshJackpot();
-  setInterval(refreshJackpot, 5000);
+  // onglet caché : pas de requêtes (les onglets oubliés chargeaient le serveur pour rien)
+  setInterval(() => { if (!document.hidden) refreshJackpot(); }, 15000);
 
   /* ---------- Fil des gros gains ---------- */
   const feedRows = [];
@@ -420,7 +421,7 @@
     emit('profiles');
   }
   loadProfiles();
-  setInterval(loadProfiles, 60000);
+  setInterval(() => { if (!document.hidden) loadProfiles(); }, 180000);
 
   /** Fiche complète d'un joueur (profil public), ou null s'il n'existe pas. */
   cloud.player = async (name) => {

@@ -153,7 +153,7 @@
   function boot() {
     if (!sb()) return;
     refresh();
-    clearInterval(poll); poll = setInterval(refresh, 20000);
+    clearInterval(poll); poll = setInterval(() => { if (!document.hidden) refresh(); }, 60000); // le temps réel prévient tout de suite
     if (!channel) {
       try {
         channel = sb().channel('abuse-palace').on('postgres_changes', { event: '*', schema: 'public', table: 'abuse_events' }, () => setTimeout(refresh, 300)).subscribe();
