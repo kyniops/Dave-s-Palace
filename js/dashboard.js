@@ -14,7 +14,7 @@
     // en ligne, il faut une vraie session Supabase sur ce compte
     return !(DP.cloud && DP.cloud.online) || !!DP.cloud.uid();
   };
-  const INCOME = { daily: 'Roue quotidienne', rescue: 'Dépannage', promo: 'Codes promo', album: 'Albums complétés', sale: 'Ventes de cartes', level: 'Niveaux', mission: 'Missions', achievement: 'Succès', rakeback: 'Rakeback', streak: 'Bonus 7 jours', cashback: 'Remboursement des pertes' };
+  const INCOME = { abuse: 'Admin Abuse', daily: 'Roue quotidienne', rescue: 'Dépannage', promo: 'Codes promo', album: 'Albums complétés', sale: 'Ventes de cartes', level: 'Niveaux', mission: 'Missions', achievement: 'Succès', rakeback: 'Rakeback', streak: 'Bonus 7 jours', cashback: 'Remboursement des pertes' };
 
   const signed = (v) => (v > 0 ? '+' : '') + fmt(round2(v));
   const tone = (v) => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
@@ -531,7 +531,21 @@
         ${kpi('Jackpot', fmt(jackpot.get()), { icon: 'crown', sub: jpLast ? `Dernier : ${esc(jpLast.name)} (${fmt(jpLast.amount)})` : `Départ ${fmt(jackpot.SEED)}` })}
       </section>
 
-      ${online ? `<section class="dpanel" data-reveal>
+      ${online ? `<section class="dpanel dabuse" data-reveal>
+        <header><h2>🐱 Admin Abuse</h2><span class="js-abstatus">Aucun événement en cours</span></header>
+        <form class="dabuse__form js-abform">
+          <label>Durée<select name="min">${[5, 10, 15, 30, 60].map((m) => `<option value="${m}" ${m === 15 ? 'selected' : ''}>${m} min</option>`).join('')}</select></label>
+          <label>Pluie de DaveCoins<select name="rain">${[0, 250, 500, 1000, 2000, 5000].map((v) => `<option value="${v}" ${v === 1000 ? 'selected' : ''}>${v ? fmt(v) : 'Aucune'}</option>`).join('')}</select></label>
+          <label>XP<select name="xp"><option value="1">Normale</option><option value="2" selected>×2</option><option value="3">×3</option></select></label>
+          <label>Gains<select name="gain"><option value="1">Normaux</option><option value="2" selected>×2</option><option value="3">×3</option></select></label>
+          <label>Sur<select name="game">${Object.entries(DP.abuse ? DP.abuse.GAMES : { all: 'tous les jeux' }).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+          <label class="dabuse__check"><input type="checkbox" name="gift" checked>Caisse Aura offerte</label>
+          <div class="dabuse__btns"><button class="btn btn--primary" type="submit">🐱 Lancer l’Admin Abuse</button><button class="btn btn--ghost js-abstop" type="button">Arrêter</button></div>
+        </form>
+        <p class="muted dabuse__note">Musique « Miaou Miaou », chats et pièces qui tombent, confettis et lumières pour tous les joueurs connectés. Les gains boostés portent sur le bénéfice des parties gagnantes (hors caisses, Upgrade, bourse et poker).</p>
+      </section>
+
+      <section class="dpanel" data-reveal>
         <header><h2>Historique admin</h2><span>Toutes les actions faites en mode admin</span></header>
         <div class="table-wrap js-alog"><p class="muted">Chargement…</p></div>
       </section>` : ''}
@@ -629,7 +643,29 @@
     const aTimer = online ? setInterval(tick, 15000) : 0;
     tick();
     // historique des actions admin
-    const ACT = { set_save: 'Compte modifié', ban: 'Bannissement', unban: 'Débannissement', rename: 'Renommage', set_jackpot: 'Jackpot fixé', clear_feed: 'Fil des gains vidé',
+    // Admin Abuse : lancer / arrêter
+    const abForm = view.querySelector('.js-abform'), abStatus = view.querySelector('.js-abstatus');
+    const paintAb = () => { if (!abStatus) return; const a = DP.abuse && DP.abuse.active(); abStatus.textContent = a ? `En cours (${Math.ceil(a.left_s / 60)} min restantes)` : 'Aucun événement en cours'; };
+    paintAb();
+    if (abForm) {
+      abForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = abForm;
+        const { error } = await DP.cloud.sb.rpc('admin_abuse_start', { p_minutes: +f.min.value, p_rain: +f.rain.value, p_xp: +f.xp.value, p_gain: +f.gain.value, p_game: f.game.value, p_case: f.gift.checked });
+        if (error) return ui.toast(adminErr(error), 'error');
+        DP.sound.play('win', { x: 20 });
+        ui.toast('Admin Abuse lancé pour tout le monde !', 'win');
+        if (DP.abuse) await DP.abuse.refresh();
+        paintAb();
+      });
+      view.querySelector('.js-abstop').addEventListener('click', async () => {
+        const { error } = await DP.cloud.sb.rpc('admin_abuse_stop');
+        if (error) return ui.toast(adminErr(error), 'error');
+        if (DP.abuse) await DP.abuse.refresh();
+        paintAb();
+      });
+    }
+    const ACT = { abuse_start: 'Admin Abuse lancé', abuse_stop: 'Admin Abuse arrêté', set_save: 'Compte modifié', ban: 'Bannissement', unban: 'Débannissement', rename: 'Renommage', set_jackpot: 'Jackpot fixé', clear_feed: 'Fil des gains vidé',
       unlock: 'Mode admin ouvert', unlock_failed: 'Mauvais code', unlock_blocked: 'Bloqué (trop d’essais)', code_change: 'Code admin changé' };
     const detailOf = (x) => {
       const d = x.detail || {};

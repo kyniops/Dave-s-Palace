@@ -15,10 +15,11 @@
    * gros moments (gros gain, free spins, jackpot, carte légendaire, fusée qui s'envole) puis repasse la main.
    * Le passage se fait par un fondu croisé ; la phonk démarre juste avant un de ses « drops ». */
   const mk = (src) => { const a = new Audio(src); a.loop = true; a.preload = 'auto'; a.volume = 0; return a; };
-  const tracks = { calm: mk('assets/audio/ambiance.mp3'), hype: mk('assets/audio/phonk.mp3') };
+  const tracks = { calm: mk('assets/audio/ambiance.mp3'), hype: mk('assets/audio/phonk.mp3'), abuse: mk('assets/audio/admin-abuse.mp3') };
   tracks.hype.preload = 'none'; // téléchargée seulement au premier jeu ouvert
+  tracks.abuse.preload = 'none'; // seulement pendant un Admin Abuse
   // la phonk est plus forte : on la cale un peu plus bas pour garder le même ressenti
-  const GAIN = { calm: 0.6, hype: 0.5 };
+  const GAIN = { calm: 0.6, hype: 0.5, abuse: 0.75 };
   const XFADE = 2000;
   let started = false, current = 'calm', duck = 1;
   const fades = new Map();
@@ -43,7 +44,8 @@
   // moments où la phonk passe à pleine puissance (analyse du morceau), pris à tour de rôle
   const DROPS = [15, 73, 139, 169];
   let dropIdx = 0, hypeUntil = 0, hold = false, hypeTimer = 0;
-  const wanted = () => (hold || Date.now() < hypeUntil ? 'hype' : 'calm');
+  // Admin Abuse : « Miaou Miaou » passe avant tout le reste
+  const wanted = () => (document.body.classList.contains('abuse-party') ? 'abuse' : hold || Date.now() < hypeUntil ? 'hype' : 'calm');
   function update() {
     const k = wanted();
     if (k === current) return;
@@ -70,7 +72,7 @@
     fadeTo(k, target(k), ms);
     if (old !== k) fadeTo(old, 0, ms);
   }
-  const refresh = (ms = 300) => { fadeTo(current, target(current), ms); const other = current === 'calm' ? 'hype' : 'calm'; if (!tracks[other].paused) fadeTo(other, 0, ms); };
+  const refresh = (ms = 300) => { fadeTo(current, target(current), ms); Object.keys(tracks).forEach((k) => { if (k !== current && !tracks[k].paused) fadeTo(k, 0, ms); }); };
   function play() {
     if (state.musicMuted) return;
     current = wanted();
@@ -88,6 +90,7 @@
   // free spins et jackpot de DaveMachine : phonk pendant toute la séquence, puis encore quelques secondes
   new MutationObserver(() => {
     const h = document.body.classList.contains('fs-party') || document.body.classList.contains('jp-party');
+    if (wanted() !== current) { hold = h; return update(); }
     if (h === hold) return;
     hold = h;
     if (!h) hype(6000); else update();

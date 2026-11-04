@@ -2077,3 +2077,55 @@ a.gtag:hover { background: var(--accent-hover); }
 .lb-top1 .lb-medal { animation: lb-medal 2.4s ease-in-out infinite alternate; }
 @keyframes lb-medal { from { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pc) 40%, transparent), 0 0 8px -2px var(--pc); } to { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pc) 60%, transparent), 0 0 18px 0 var(--pc); } }
 @media (prefers-reduced-motion: reduce) { .lb-table tr.lb-top td, .lb-medal { animation: none !important; } }
+
+/* =================== ADMIN ABUSE =================== */
+.abuse-banner { position: fixed; left: 50%; top: 10px; z-index: 120; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; max-width: calc(100vw - 24px); padding: 8px 14px 8px 18px;
+  background: linear-gradient(90deg, #ff3d9a, #a855f7, #2ea8ff, #3ee68b, #ffc145, #ff3d9a); background-size: 300% 100%; animation: abuse-flow 3s linear infinite;
+  box-shadow: 0 10px 40px -8px rgba(255, 61, 154, .8), 0 0 0 2px rgba(255,255,255,.35); clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); color: #fff; }
+.abuse-banner__title { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 20px; letter-spacing: .14em; text-shadow: 0 2px 0 rgba(0,0,0,.35); white-space: nowrap; }
+.abuse-cat { display: inline-block; animation: abuse-cat .6s ease-in-out infinite alternate; }
+.abuse-banner__boosts { display: flex; flex-wrap: wrap; gap: 6px; }
+.abuse-banner__boosts span { padding: 2px 8px; font-size: 12px; font-weight: 700; background: rgba(0,0,0,.35); border-radius: 999px; white-space: nowrap; }
+.abuse-banner__right { display: flex; align-items: center; gap: 10px; }
+.abuse-banner__time { font-family: var(--display); font-size: 20px; text-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.abuse-banner .btn { animation: abuse-glow .8s ease-in-out infinite alternate; }
+@keyframes abuse-glow { from { box-shadow: 0 0 0 rgba(255,255,255,0); } to { box-shadow: 0 0 18px #fff, 0 0 6px #fff; } }
+@keyframes abuse-flow { to { background-position: 300% 0; } }
+@keyframes abuse-bob { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(3px); } }
+@keyframes abuse-cat { from { transform: rotate(-15deg) scale(1); } to { transform: rotate(15deg) scale(1.25); } }
+@keyframes abuse-pulse { from { transform: scale(1); } to { transform: scale(1.08); box-shadow: 0 0 18px #fff; } }
+
+.abuse-fx { position: fixed; inset: 0; z-index: 110; pointer-events: none; overflow: hidden; }
+.abuse-fx__disco { position: absolute; inset: -20%; mix-blend-mode: screen; opacity: .28;
+  background: radial-gradient(22% 18% at 20% 30%, #ff3d9a, transparent 70%), radial-gradient(20% 16% at 80% 25%, #2ea8ff, transparent 70%),
+    radial-gradient(24% 20% at 60% 80%, #3ee68b, transparent 70%), radial-gradient(18% 14% at 30% 75%, #ffc145, transparent 70%);
+  animation: abuse-disco 6s ease-in-out infinite alternate; }
+@keyframes abuse-disco { 0% { transform: rotate(0deg) scale(1); filter: hue-rotate(0deg); } 100% { transform: rotate(25deg) scale(1.15); filter: hue-rotate(180deg); } }
+.abuse-fx__border { position: absolute; inset: 0; border: 4px solid transparent; border-image: linear-gradient(90deg, #ff3d9a, #a855f7, #2ea8ff, #3ee68b, #ffc145, #ff3d9a) 1; animation: abuse-hue 2s linear infinite; box-shadow: inset 0 0 40px rgba(255, 61, 154, .35); }
+@keyframes abuse-hue { to { filter: hue-rotate(360deg); } }
+.abuse-drop { position: absolute; top: -60px; font-size: 34px; line-height: 1; animation: abuse-fall var(--d, 4s) linear forwards; }
+.abuse-drop--coin img { width: 30px; height: 30px; display: block; }
+@keyframes abuse-fall { to { transform: translate(var(--x, 0), calc(100vh + 120px)) rotate(var(--r, 360deg)); } }
+
+body.abuse-party .wallet { animation: abuse-pulse .9s ease-in-out infinite alternate; }
+body.abuse-party .brand__mark, body.abuse-party .nav-item.on svg { animation: abuse-hue 1.6s linear infinite; }
+body.abuse-party .topbar { box-shadow: 0 2px 30px -6px #ff3d9a; }
+body.abuse-party .glass, body.abuse-party .dpanel, body.abuse-party .game-card { box-shadow: 0 0 0 1px rgba(255, 61, 154, .35), 0 0 24px -10px rgba(168, 85, 247, .8); }
+body.abuse-party .game-card:hover { animation: abuse-wiggle .4s ease-in-out infinite; }
+@keyframes abuse-wiggle { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } }
+
+.dabuse { background: linear-gradient(135deg, rgba(255, 61, 154, .12), rgba(168, 85, 247, .1) 50%, transparent), var(--surface); }
+.dabuse__form { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; align-items: end; }
+.dabuse__form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); }
+.dabuse__form select { height: 40px; padding: 0 10px; background: rgba(0,0,0,.45); color: var(--text); border: 1px solid var(--line-2); }
+.dabuse__check { flex-direction: row !important; align-items: center; gap: 8px !important; height: 40px; }
+.dabuse__btns { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; }
+.dabuse__note { margin: 12px 0 0; font-size: 12px; }
+@media (max-width: 700px) {
+  .abuse-banner { top: auto; bottom: 10px; width: calc(100vw - 24px); flex-wrap: wrap; justify-content: center; gap: 6px 10px; padding: 8px 14px; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+  .abuse-banner__boosts { justify-content: center; }
+  .abuse-banner__boosts span { font-size: 11px; }
+  .abuse-banner__title { font-size: 16px; }
+  @keyframes abuse-bob { 0%, 100% { transform: translateX(-50%); } 50% { transform: translateX(-50%) translateY(-3px); } }
+}
+@media (prefers-reduced-motion: reduce) { .abuse-banner, .abuse-banner *, .abuse-fx * { animation: none !important; } }
