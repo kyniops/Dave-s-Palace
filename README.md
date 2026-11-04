@@ -171,7 +171,7 @@ Tout le site est responsive.
 1. `schema.sql`, puis `engine.sql` (moteur de jeu)
 2. `social.sql`, `poker.sql`
 3. `duels.sql`, `trades.sql`, `admin.sql`, `security.sql`, `email.sql`
-4. les extensions et réglages : `scratch.sql`, `selfie.sql`, `horsserie.sql`, `reorg.sql`, `rakeback.sql`, `rescue.sql`, `limits.sql`, `codes.sql`, `xp_fix.sql`, `fix_inscription.sql`, `eco.sql`, `streak.sql`, `market.sql`, `xss.sql`, `hardening.sql`, `guilds.sql`, `antitriche.sql`, `admin_lock.sql`, `machine2.sql` (puis `select public.admin_set_code('…');` pour choisir le code admin), `admin_lock.sql` (puis `select public.admin_set_code('…');` pour choisir le code admin)
+4. les extensions et réglages : `scratch.sql`, `selfie.sql`, `horsserie.sql`, `reorg.sql`, `rakeback.sql`, `rescue.sql`, `limits.sql`, `codes.sql`, `xp_fix.sql`, `fix_inscription.sql`, `eco.sql`, `streak.sql`, `market.sql`, `xss.sql`, `hardening.sql`, `guilds.sql`, `antitriche.sql`, `admin_lock.sql`, `machine2.sql`, `fortune.sql` (puis `select public.admin_set_code('…');` pour choisir le code admin), `admin_lock.sql` (puis `select public.admin_set_code('…');` pour choisir le code admin)
 
 La plupart des fichiers peuvent être relancés sans risque. Les réglages (mise maximum, niveaux minimum, dépannage…) se changent ensuite dans *Table Editor > eng_const*.
 

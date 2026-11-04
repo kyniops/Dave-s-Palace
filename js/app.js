@@ -1220,7 +1220,7 @@
     const COLS = [['balance', 'Fortune'], ['level', 'Niveau'], ['wagered', 'Total misé'], ['biggest_win', 'Plus gros gain']];
     view.innerHTML = `
       <div class="page-head" data-reveal><span class="game-head__ico">${I('trophy', 'i--lg')}</span>
-        <div><h1>Classement</h1><p>${DP.cloud && DP.cloud.online ? 'Tous les joueurs du Palace, en direct.' : 'Disponible sur la version en ligne du site.'}</p></div></div>
+        <div><h1>Classement</h1><p>${DP.cloud && DP.cloud.online ? 'Tous les joueurs du Palace, en direct. La fortune compte les DaveCoins, les actions de la DaveBourse et la valeur des cartes.' : 'Disponible sur la version en ligne du site.'}</p></div></div>
       <div class="section-head" data-reveal><div class="seg js-lsort">${COLS.map(([k, l]) => `<button type="button" data-k="${k}" class="${k === sortKey ? 'on' : ''}">${l}</button>`).join('')}</div><span class="js-lcount"></span></div>
       <div class="js-lb" data-reveal><div class="empty">${I('history', 'i--lg')}<strong>Chargement…</strong></div></div>`;
     const box = view.querySelector('.js-lb');

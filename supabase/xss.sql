@@ -21,6 +21,12 @@ begin
   return p::text;
 end $$;
 
+-- fortune = DaveCoins + actions + cartes (classement, guildes)
+create or replace function public.eng_fortune(a public.accounts) returns numeric language plpgsql stable set search_path = public as $$
+begin
+  return r2(a.balance + eng_mk_value(a.prog) + eng_inv_value(a.inv));
+end $$;
+
 create or replace function public.saves_guard() returns trigger language plpgsql security definer set search_path = public as $$
 declare acc accounts; keys text[] := array['davecoin_', 'dp_stats_', 'dp_inv_', 'dp_prog_', 'dp_codes_', 'dp_bonus_', 'dp_rescue_'];
 begin
@@ -35,7 +41,7 @@ begin
   if new.data ? 'dp_profile_' then
     new.data := jsonb_set(new.data, '{dp_profile_}', coalesce(to_jsonb(eng_clean_profile(new.data ->> 'dp_profile_')), 'null'::jsonb));
   end if;
-  new.balance := acc.balance;
+  new.balance := eng_fortune(acc);
   new.level := eng_level(jn(acc.prog, 'xp'));
   new.wagered := jn(acc.stats, 'wagered');
   new.biggest_win := jn(acc.stats, 'biggestWin');

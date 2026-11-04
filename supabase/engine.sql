@@ -126,6 +126,12 @@ begin
 end $$;
 
 -- enregistre le compte et recopie les données publiques dans « saves » (balance = fortune : solde + actions) (classement, profils, admin)
+-- fortune = DaveCoins + actions + cartes (classement, guildes)
+create or replace function public.eng_fortune(a public.accounts) returns numeric language plpgsql stable set search_path = public as $$
+begin
+  return r2(a.balance + eng_mk_value(a.prog) + eng_inv_value(a.inv));
+end $$;
+
 create or replace function public.eng_commit(a public.accounts) returns jsonb language plpgsql security definer set search_path = public as $$
 declare snap jsonb := eng_snap(a);
 begin
@@ -134,7 +140,7 @@ begin
     bonus_at = a.bonus_at, rescue_at = a.rescue_at, last_ms = a.last_ms where user_id = a.user_id;
   perform set_config('dp.server', 'on', true);
   insert into saves (user_id, data, balance, level, wagered, biggest_win, updated_at)
-  values (a.user_id, snap, r2(a.balance + eng_mk_value(a.prog)), eng_level(jn(a.prog, 'xp')), jn(a.stats, 'wagered'), jn(a.stats, 'biggestWin'), now())
+  values (a.user_id, snap, eng_fortune(a), eng_level(jn(a.prog, 'xp')), jn(a.stats, 'wagered'), jn(a.stats, 'biggestWin'), now())
   on conflict (user_id) do update set data = coalesce(saves.data, '{}'::jsonb) || snap, balance = excluded.balance, level = excluded.level,
     wagered = excluded.wagered, biggest_win = excluded.biggest_win, updated_at = now();
   perform set_config('dp.server', 'off', true);
@@ -357,7 +363,7 @@ create or replace function public.eng_played(a public.accounts, p_game text, p_b
 declare net numeric := p_pay - p_bet; m numeric := case when p_bet > 0 then p_pay / p_bet else 0 end; uname text;
   -- risque réellement pris : écart entre mise et gain (+10 % de la mise), au plus la mise.
   -- Empêche de « farmer » l'XP et les missions avec des paris presque sans risque (1 bombe, toute la roulette…).
-  risk numeric := r2(least(p_bet, abs(p_pay - p_bet) + p_bet * 0.1));
+  risk numeric := r2(least(p_bet, abs(p_pay - p_bet) + case when p_game = 'market' then 0 else p_bet * 0.1 end));
   rb numeric;
 begin
   a := eng_record(a, p_game, p_bet, p_pay);
@@ -1354,7 +1360,7 @@ begin
   end if;
   if new.data ? 'dp_profile_' then prof := eng_clean_profile(new.data ->> 'dp_profile_'); end if;
   new.data := eng_snap(acc) || case when prof is null then '{}'::jsonb else jsonb_build_object('dp_profile_', prof) end;
-  new.balance := acc.balance;
+  new.balance := eng_fortune(acc);
   new.level := eng_level(jn(acc.prog, 'xp'));
   new.wagered := jn(acc.stats, 'wagered');
   new.biggest_win := jn(acc.stats, 'biggestWin');

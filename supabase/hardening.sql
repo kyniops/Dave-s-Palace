@@ -64,6 +64,12 @@ begin
 end $$;
 
 -- 2. Sauvegarde : seul le profil vient du navigateur, tout le reste vient du serveur
+-- fortune = DaveCoins + actions + cartes (classement, guildes)
+create or replace function public.eng_fortune(a public.accounts) returns numeric language plpgsql stable set search_path = public as $$
+begin
+  return r2(a.balance + eng_mk_value(a.prog) + eng_inv_value(a.inv));
+end $$;
+
 create or replace function public.saves_guard() returns trigger language plpgsql security definer set search_path = public as $$
 declare acc accounts; prof text;
 begin
@@ -75,7 +81,7 @@ begin
   end if;
   if new.data ? 'dp_profile_' then prof := eng_clean_profile(new.data ->> 'dp_profile_'); end if;
   new.data := eng_snap(acc) || case when prof is null then '{}'::jsonb else jsonb_build_object('dp_profile_', prof) end;
-  new.balance := acc.balance;
+  new.balance := eng_fortune(acc);
   new.level := eng_level(jn(acc.prog, 'xp'));
   new.wagered := jn(acc.stats, 'wagered');
   new.biggest_win := jn(acc.stats, 'biggestWin');

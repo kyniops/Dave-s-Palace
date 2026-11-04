@@ -31,6 +31,12 @@ begin
   return coalesce((select sum(jn(e.value, 'q') * m.price) from jsonb_each(coalesce(p -> 'mk', '{}'::jsonb)) e join market_assets m on m.sym = e.key), 0);
 end $$;
 
+-- fortune = DaveCoins + actions + cartes (classement, guildes)
+create or replace function public.eng_fortune(a public.accounts) returns numeric language plpgsql stable set search_path = public as $$
+begin
+  return r2(a.balance + eng_mk_value(a.prog) + eng_inv_value(a.inv));
+end $$;
+
 create or replace function public.eng_commit(a public.accounts) returns jsonb language plpgsql security definer set search_path = public as $$
 declare snap jsonb := eng_snap(a);
 begin
@@ -39,7 +45,7 @@ begin
     bonus_at = a.bonus_at, rescue_at = a.rescue_at, last_ms = a.last_ms where user_id = a.user_id;
   perform set_config('dp.server', 'on', true);
   insert into saves (user_id, data, balance, level, wagered, biggest_win, updated_at)
-  values (a.user_id, snap, r2(a.balance + eng_mk_value(a.prog)), eng_level(jn(a.prog, 'xp')), jn(a.stats, 'wagered'), jn(a.stats, 'biggestWin'), now())
+  values (a.user_id, snap, eng_fortune(a), eng_level(jn(a.prog, 'xp')), jn(a.stats, 'wagered'), jn(a.stats, 'biggestWin'), now())
   on conflict (user_id) do update set data = coalesce(saves.data, '{}'::jsonb) || snap, balance = excluded.balance, level = excluded.level,
     wagered = excluded.wagered, biggest_win = excluded.biggest_win, updated_at = now();
   perform set_config('dp.server', 'off', true);

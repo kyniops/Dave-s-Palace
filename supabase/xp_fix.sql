@@ -41,7 +41,7 @@ create or replace function public.eng_played(a public.accounts, p_game text, p_b
 declare net numeric := p_pay - p_bet; m numeric := case when p_bet > 0 then p_pay / p_bet else 0 end; uname text;
   -- risque réellement pris : écart entre mise et gain (+10 % de la mise), au plus la mise.
   -- Empêche de « farmer » l'XP et les missions avec des paris presque sans risque (1 bombe, toute la roulette…).
-  risk numeric := r2(least(p_bet, abs(p_pay - p_bet) + p_bet * 0.1));
+  risk numeric := r2(least(p_bet, abs(p_pay - p_bet) + case when p_game = 'market' then 0 else p_bet * 0.1 end));
 begin
   a := eng_record(a, p_game, p_bet, p_pay);
   a := eng_xp(a, risk);
