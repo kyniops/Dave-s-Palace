@@ -15,7 +15,8 @@ alter table public.jackpot_add enable row level security;
 create or replace function public.eng_jp_take() returns numeric language plpgsql security definer set search_path = public as $$
 declare pend numeric;
 begin
-  with d as (delete from jackpot_add returning amt) select coalesce(sum(d.amt), 0) into pend from d;
+  -- « where » obligatoire : Supabase refuse les DELETE sans WHERE (pg_safeupdate)
+  with d as (delete from jackpot_add where amt is not null returning amt) select coalesce(sum(d.amt), 0) into pend from d;
   return pend;
 end $$;
 
