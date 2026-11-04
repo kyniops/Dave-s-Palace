@@ -1224,6 +1224,8 @@
       <div class="section-head" data-reveal><div class="seg js-lsort">${COLS.map(([k, l]) => `<button type="button" data-k="${k}" class="${k === sortKey ? 'on' : ''}">${l}</button>`).join('')}</div><span class="js-lcount"></span></div>
       <div class="js-lb" data-reveal><div class="empty">${I('history', 'i--lg')}<strong>Chargement…</strong></div></div>`;
     const box = view.querySelector('.js-lb');
+    // étincelles du podium : position, taille, vitesse et départ au hasard
+    const sparks = (n) => Array.from({ length: n }, () => `<i style="left:${(Math.random() * 96 + 2).toFixed(1)}%;--s:${(1.5 + Math.random() * 2.5).toFixed(1)}px;--t:${(3 + Math.random() * 4).toFixed(1)}s;--d:${(Math.random() * 7).toFixed(1)}s;--x:${(Math.random() * 30 - 15).toFixed(0)}px"></i>`).join('');
     const paint = () => {
       if (!list.length) { box.innerHTML = `<div class="empty">${I('users', 'i--lg')}<strong>Aucun joueur</strong>${DP.cloud && DP.cloud.online ? 'Sois le premier !' : 'Le classement fonctionne sur le site en ligne.'}</div>`; return; }
       const rows = list.slice().sort((a, b) => (+b[sortKey] || 0) - (+a[sortKey] || 0));
@@ -1231,7 +1233,7 @@
       const podium = rows.slice(0, 3);
       box.innerHTML = `
         <div class="lb-podium">${[1, 0, 2].map((i) => podium[i] ? `<div class="lb-pod p${i + 1}">
-          <span class="lb-pod__rays" aria-hidden="true"></span><span class="lb-pod__sparks" aria-hidden="true"></span><span class="lb-pod__sheen" aria-hidden="true"></span>
+          <span class="lb-pod__aura" aria-hidden="true"></span><span class="lb-pod__sparks" aria-hidden="true">${sparks(i === 0 ? 16 : 10)}</span><span class="lb-pod__sheen" aria-hidden="true"></span>
           ${i === 0 ? '<span class="lb-pod__crown" aria-hidden="true">👑</span>' : ''}<span class="lb-pod__halo">${DP.profile.link(podium[i].name, DP.profile.avatarHtml(podium[i].name, 'avatar avatar--lg'))}</span><span class="lb-pod__rank">${i + 1}</span>
           ${DP.profile.link(podium[i].name, `<b>${DP.profile.nameHtml(podium[i].name)}</b>`)}${DP.guilds.tagHtml(podium[i].name, true)}<span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
         <div class="table-wrap"><table class="history lb-table"><thead><tr><th>#</th><th>Joueur</th>${COLS.map(([k, l]) => `<th class="num ${k === sortKey ? 'on' : ''}">${l}</th>`).join('')}</tr></thead>
