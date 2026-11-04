@@ -1158,6 +1158,7 @@
   on('livefeed', (r) => { repaintTicker(); if (r && r.game === 'jackpot') jackpotAlert(r); });
 
   /* ---------- Joueurs en ligne (total + par jeu dans le menu) ---------- */
+  const GAME_PAGES = () => [['caisses', 'Caisses']].concat(games.list.filter((g) => g.id !== 'cases').map((g) => [g.id, g.name]), [['bourse', 'DaveBourse']]);
   function paintOnline() {
     const pr = DP.cloud && DP.cloud.presence ? DP.cloud.presence() : null;
     const box = document.querySelector('.js-online');
@@ -1165,17 +1166,21 @@
       box.hidden = !pr;
       if (pr) {
         box.querySelector('b').textContent = pr.total;
-        // seulement les jeux (pas l'inventaire, le profil…)
+        // tous les joueurs connectés : d'abord ceux en jeu (par jeu), puis ceux ailleurs sur le site
         const who = pr.who || {};
-        const rows = [['caisses', 'Caisses']].concat(games.list.filter((g) => g.id !== 'cases').map((g) => [g.id, g.name]), [['bourse', 'DaveBourse']])
-          .filter(([k]) => who[k] && who[k].length)
+        const gameRows = GAME_PAGES().filter(([k]) => who[k] && who[k].length)
           .map(([k, n]) => `<a href="${k === 'caisses' ? '#/caisses' : k === 'bourse' ? '#/bourse' : '#/jeu/' + k}"><span>${esc(n)}</span><em>${who[k].map(esc).join(', ')}</em></a>`);
-        box.querySelector('.nav-online__list').innerHTML = rows.length ? rows.join('') : '<p>Personne en jeu pour l’instant</p>';
+        const keys = new Set(GAME_PAGES().map(([k]) => k));
+        const elsewhere = [...new Set(Object.entries(who).filter(([k]) => !keys.has(k)).flatMap(([, list]) => list))];
+        const rows = gameRows.concat(elsewhere.length ? [`<div class="nav-online__else"><span>Sur le site</span><em>${elsewhere.map(esc).join(', ')}</em></div>`] : []);
+        box.querySelector('.nav-online__list').innerHTML = rows.length ? rows.join('') : '<p>Personne d’autre en ligne</p>';
       }
     }
+    const gameKeys = new Set(GAME_PAGES().map(([k]) => k));
     document.querySelectorAll('.nav-item[data-nav]').forEach((n) => {
       let tag = n.querySelector('.nav-pl');
-      const k = pr ? pr.per[n.dataset.nav] || 0 : 0;
+      // pastille seulement à côté des jeux (pas Amis, Guildes, Profil…)
+      const k = pr && gameKeys.has(n.dataset.nav) ? pr.per[n.dataset.nav] || 0 : 0;
       if (!k) { if (tag) tag.remove(); return; }
       if (!tag) { tag = document.createElement('span'); tag.className = 'nav-pl num'; tag.title = 'Joueurs sur ce jeu'; n.appendChild(tag); }
       tag.innerHTML = `<i></i>${k}`;

@@ -1815,6 +1815,9 @@ body:has(.modal) { overflow: hidden; }
 .nav-online__list a em { font-style: normal; color: #86efac; font-size: 12px; overflow-wrap: anywhere; }
 .nav-online__list a:hover span { color: var(--accent); }
 .nav-online__list p { margin: 0; }
+.nav-online__else { display: grid; gap: 1px; padding-top: 6px; border-top: 1px dashed rgba(74, 222, 128, .2); }
+.nav-online__else span { font-family: var(--display); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+.nav-online__else em { font-style: normal; color: #86efac; font-size: 12px; overflow-wrap: anywhere; }
 /* petit écran : le solde ne se superpose plus aux boutons de droite (son, niveau, profil) */
 @media (max-width: 560px) {
   .wallet { position: static; transform: none; margin-left: auto; flex: none; }
