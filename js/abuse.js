@@ -22,7 +22,7 @@
     if (r && r.id) start(r); else stop();
   }
   const boostsText = (b) => [
-    b.gain > 1 ? `Gains ×${b.gain} sur ${GAMES[b.game] || b.game}` : '',
+    b.gain > 1 ? `Gains ×${b.gain} (1 sur ${Math.round((b.gain - 1) / 0.2)}) sur ${GAMES[b.game] || b.game}` : '',
     b.xp > 1 ? `XP ×${b.xp}` : '',
     b.rain > 0 ? `Pluie de ${fmt(b.rain)} DaveCoins` : '',
     b.case ? 'Caisse Aura offerte' : ''
@@ -144,8 +144,9 @@
     const first = lastBonus === 0;
     lastBonus = +ab.t;
     if (first && Date.now() - ab.t > 15000) return; // ancien bonus déjà vu
-    ui.toast(`Admin Abuse : gains ×${ab.m} ! Bonus +${fmt(+ab.v)} DaveCoins`, 'win', 3500);
-    coinRain(18);
+    ui.toast(`ADMIN ABUSE : GAIN ×${ab.m} ! Bonus +${fmt(+ab.v)} DaveCoins`, 'win', 3500);
+    if (sound) sound.play('win', { x: 10 });
+    coinRain(24);
   }
   on('balance', checkBonus);
 

@@ -537,12 +537,12 @@
           <label>Durée<select name="min">${[5, 10, 15, 30, 60].map((m) => `<option value="${m}" ${m === 15 ? 'selected' : ''}>${m} min</option>`).join('')}</select></label>
           <label>Pluie de DaveCoins<select name="rain">${[0, 250, 500, 1000, 2000, 5000].map((v) => `<option value="${v}" ${v === 1000 ? 'selected' : ''}>${v ? fmt(v) : 'Aucune'}</option>`).join('')}</select></label>
           <label>XP<select name="xp"><option value="1">Normale</option><option value="2" selected>×2</option><option value="3">×3</option></select></label>
-          <label>Gains<select name="gain"><option value="1">Normaux</option><option value="2" selected>×2</option><option value="3">×3</option></select></label>
+          <label>Gains<select name="gain"><option value="1">Normaux</option><option value="2" selected>×2 (1 gain sur 5)</option><option value="3">×3 (1 gain sur 10)</option></select></label>
           <label>Sur<select name="game">${Object.entries(DP.abuse ? DP.abuse.GAMES : { all: 'tous les jeux' }).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
           <label class="dabuse__check"><input type="checkbox" name="gift" checked>Caisse Aura offerte</label>
           <div class="dabuse__btns"><button class="btn btn--primary" type="submit">🐱 Lancer l’Admin Abuse</button><button class="btn btn--ghost js-abstop" type="button">Arrêter</button></div>
         </form>
-        <p class="muted dabuse__note">Musique « Miaou Miaou », chats et pièces qui tombent, confettis et lumières pour tous les joueurs connectés. Les gains boostés portent sur le bénéfice des parties gagnantes (hors caisses, Upgrade, bourse et poker).</p>
+        <p class="muted dabuse__note">Musique « Miaou Miaou », chats et pièces qui tombent, confettis et lumières pour tous les joueurs connectés. Gains boostés : chaque partie gagnante a une chance de voir son bénéfice doublé (×2 : 1 sur 5) ou triplé (×3 : 1 sur 10), hors caisses, Upgrade, bourse, poker et GRAND.</p>
       </section>
 
       <section class="dpanel" data-reveal>
