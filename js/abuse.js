@@ -116,7 +116,7 @@
     const p = document.createElement('i');
     p.style.cssText = `position:fixed;left:${10 + Math.random() * 80}%;top:${15 + Math.random() * 60}%;width:1px;height:1px`;
     document.body.appendChild(p);
-    ui.burst(p, { n: 40, colors: ['#ff3d9a', '#ffc145', '#2ea8ff', '#3ee68b', '#a855f7', '#ffffff'], spread: 2.4, size: 7 });
+    ui.burst(p, { n: 24, colors: ['#ff3d9a', '#ffc145', '#2ea8ff', '#3ee68b', '#a855f7', '#ffffff'], spread: 2.4, size: 7 });
     setTimeout(() => p.remove(), 1500);
   }
   function startFx() {
@@ -127,7 +127,7 @@
     catRain(14); coinRain(30);
     timers.push(setInterval(() => !document.hidden && catRain(6), 4000));
     timers.push(setInterval(() => !document.hidden && coinRain(12), 5500));
-    timers.push(setInterval(() => !document.hidden && confetti(), 2200));
+    timers.push(setInterval(() => !document.hidden && confetti(), 3000));
   }
   function stopFx() {
     timers.forEach(clearInterval); timers = [];
