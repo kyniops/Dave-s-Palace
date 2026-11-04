@@ -40,7 +40,10 @@
   async function push(force = false) {
     const u = auth.current();
     if (!uid || !u || pushing) return;
-    const data = snapshot(u), json = JSON.stringify(data);
+    let data = snapshot(u);
+    // moteur serveur : le serveur tient déjà le solde, les stats, l'inventaire… on n'envoie que le profil, et seulement s'il change
+    if (DP.engine && DP.engine.on) data = data['dp_profile_'] ? { dp_profile_: data['dp_profile_'] } : {};
+    const json = JSON.stringify(data);
     if (!force && json === lastSent) return;
     pushing = true;
     const s = stats.get();
@@ -66,11 +69,8 @@
     pushTimer = setInterval(() => push(), 4000);
     // un admin modifie le compte : on recharge la partie (temps réel + vérification régulière)
     if (revChannel) sb.removeChannel(revChannel);
-    revChannel = sb.channel('rev-' + uid)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'saves', filter: `user_id=eq.${uid}` }, (p) => {
-        if (hasRev && knownRev != null && p.new && p.new.admin_rev > knownRev) adminReload();
-      })
-      .subscribe();
+    // (plus de temps réel sur « saves » : trop d'écritures, la base saturait ; la vérification régulière ci-dessous suffit)
+    revChannel = null;
     clearInterval(revTimer);
     revTimer = setInterval(async () => {
       if (!uid || !hasRev || knownRev == null) return;
@@ -362,7 +362,7 @@
 
   /* ---------- Temps réel ---------- */
   sb.channel('palace')
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jackpot' }, (p) => { if (!jpPending) setJp(p.new); })
+    // (jackpot : relu toutes les 5 s, plus en temps réel — il change à chaque mise et saturait la base)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feed' }, (p) => {
       const r = p.new;
       feedRows.unshift(r);
