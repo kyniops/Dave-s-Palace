@@ -281,7 +281,7 @@
           </div>`;
       } else if (tab === 'showcase') {
         body = `<p class="muted">Choisis jusqu’à 3 cartes à exposer. Clique à nouveau pour retirer.</p>
-          <div class="ppick ppick--cards">${owned().map((x) => { const k = x.card.id + '|' + (x.shiny ? 1 : 0); const i = p.showcase.indexOf(k); return `<button type="button" class="ppick__card ${i >= 0 ? 'on' : ''}" data-sc="${k}">${cards.html(x.card, { compact: true, shiny: x.shiny })}${i >= 0 ? `<span class="ppick__n">${i + 1}</span>` : ''}</button>`; }).join('') || '<p class="muted">Aucune carte.</p>'}</div>`;
+          <div class="ppick ppick--cards">${owned().map((x) => { const k = x.card.id + '|' + (x.shiny ? 1 : 0); const i = p.showcase.indexOf(k); return `<button type="button" class="ppick__card ${i >= 0 ? 'on' : ''}" data-sc="${k}">${cards.html(x.card, { compact: true, shiny: x.shiny })}${i >= 0 ? `<span class="ppick__n">${i + 1}</span>` : ''}</button>`; }).join('') || '<p class="muted">Ton inventaire est vide : la vitrine montre des cartes que tu possèdes. Ouvre des caisses (une carte vendue disparaît aussi de la vitrine).</p><a class="btn btn--primary btn--sm" href="#/caisses">Ouvrir des caisses</a>'}</div>`;
       } else {
         body = `<label class="field"><span>Ta bio (80 caractères)</span><input class="js-bio" maxlength="80" value="${esc(p.bio)}" placeholder="Ex. Je vise le jackpot."></label>`;
       }
