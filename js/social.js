@@ -284,7 +284,7 @@
         <div><h1>Amis</h1><p>Ajoute tes potes, suis leurs gros gains et compare vos profils.</p></div></div>
       <div class="js-fbody"></div>`;
     const body = view.querySelector('.js-fbody');
-    const row = (id, name, right) => `<div class="frow"><a class="plink" href="#/joueur/${encodeURIComponent(name)}">${DP.profile.avatarHtml(name)}<b>${esc(name)}</b></a><div class="frow__act">${right}</div></div>`;
+    const row = (id, name, right) => `<div class="frow"><a class="plink" href="#/joueur/${encodeURIComponent(name)}">${DP.profile.avatarHtml(name)}<b>${DP.profile.nameHtml(name)}</b></a><div class="frow__act">${right}</div></div>`;
     const paint = () => {
       if (!online()) { body.innerHTML = `<div class="empty">${I('users', 'i--lg')}<strong>Disponible en ligne</strong>Les amis fonctionnent sur le site en ligne, avec un compte connecté.</div>`; return; }
       if (!S.available) { body.innerHTML = `<div class="empty">${I('users', 'i--lg')}<strong>Bientôt disponible</strong>Le script supabase/social.sql n’a pas encore été exécuté dans Supabase.</div>`; return; }

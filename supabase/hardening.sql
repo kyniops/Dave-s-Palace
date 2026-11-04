@@ -59,11 +59,26 @@ begin
       if jsonb_typeof(x) = 'string' and x #>> '{}' ~ '^[A-Za-z0-9_:.-]{1,60}\|[01]$' then sc := sc || x; end if;
     end loop;
   end if;
+  o := o || jsonb_build_object('namefx', case when jsonb_typeof(p -> 'namefx') = 'string' and p ->> 'namefx' ~ '^[a-z0-9_]{1,20}$' then p ->> 'namefx' end);
   o := o || jsonb_build_object('showcase', sc);
   return o::text;
 end $$;
 
 -- 2. Sauvegarde : seul le profil vient du navigateur, tout le reste vient du serveur
+-- garde l'effet de pseudo seulement si le succès requis est débloqué (voir namefx.sql)
+create or replace function public.eng_namefx_ok(prof text, acc public.accounts) returns text language plpgsql stable set search_path = public as $$
+declare p jsonb; fx text; need text;
+begin
+  if prof is null then return null; end if;
+  p := prof::jsonb;
+  fx := p ->> 'namefx';
+  if fx is null then return prof; end if;
+  need := eng_c('name_fx') ->> fx;
+  if need is null or not (coalesce(acc.prog -> 'ach', '{}'::jsonb) ? need) then p := jsonb_set(p, '{namefx}', 'null'::jsonb); end if;
+  return p::text;
+end $$;
+
+
 -- fortune = DaveCoins + actions + cartes (classement, guildes)
 create or replace function public.eng_fortune(a public.accounts) returns numeric language plpgsql stable set search_path = public as $$
 begin
@@ -79,7 +94,7 @@ begin
     insert into accounts (user_id) values (new.user_id) on conflict do nothing;
     select * into acc from accounts where user_id = new.user_id;
   end if;
-  if new.data ? 'dp_profile_' then prof := eng_clean_profile(new.data ->> 'dp_profile_'); end if;
+  if new.data ? 'dp_profile_' then prof := eng_namefx_ok(eng_clean_profile(new.data ->> 'dp_profile_'), acc); end if;
   new.data := eng_snap(acc) || case when prof is null then '{}'::jsonb else jsonb_build_object('dp_profile_', prof) end;
   new.balance := eng_fortune(acc);
   new.level := eng_level(jn(acc.prog, 'xp'));

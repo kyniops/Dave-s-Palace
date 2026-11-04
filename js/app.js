@@ -232,7 +232,7 @@
             <button class="icon-btn bell js-bell" type="button" aria-label="Notifications" hidden></button>
             <button class="icon-btn sound-btn" type="button" aria-label="Son"></button>
             <a class="lvl-chip js-lvl" href="#/progression" title="Ta progression"></a>
-            <a class="user-chip js-userchip" href="#/profil">${DP.profile.avatarHtml(user)}<span class="user-chip__name">${esc(user)}</span></a>
+            <a class="user-chip js-userchip" href="#/profil">${DP.profile.avatarHtml(user)}<span class="user-chip__name">${DP.profile.nameHtml(user)}</span></a>
           </div>
         </header>
         <div class="gticker"><span class="gticker__lbl">${I('trophy', 'i--sm')}Gagnants</span><div class="gticker__win"><div class="ticker__track js-gtrack">${tickerHtml()}${tickerHtml()}</div></div></div>
@@ -310,7 +310,7 @@
   });
   on('profile', () => {
     const chip = document.querySelector('.js-userchip');
-    if (chip && auth.current()) chip.innerHTML = `${DP.profile.avatarHtml(auth.current())}<span class="user-chip__name">${esc(auth.current())}</span>`;
+    if (chip && auth.current()) chip.innerHTML = `${DP.profile.avatarHtml(auth.current())}<span class="user-chip__name">${DP.profile.nameHtml(auth.current())}</span>`;
   });
   function paintInvCount() {
     const el = document.querySelector('.js-invcount');
@@ -796,7 +796,7 @@
     if (live.length) {
       const rows = live.slice(0, 12);
       while (rows.length < 10) rows.push(...rows.slice(0, 10 - rows.length));
-      return rows.map((r) => { const g = games.find(r.game); return `<span class="ticker__item"><i class="ticker__dot"></i>${DP.profile.link(r.username, DP.profile.avatarHtml(r.username) + `<b>${esc(r.username)}</b>`)} ${r.game === 'jackpot' ? 'remporte le <b class="pos">JACKPOT</b>' : 'gagne'} <span class="pos num">+${fmt(r.amount)}</span>${r.game === 'jackpot' ? '' : ' sur ' + (g ? g.name : esc(r.game))}</span>`; }).join('');
+      return rows.map((r) => { const g = games.find(r.game); return `<span class="ticker__item"><i class="ticker__dot"></i>${DP.profile.link(r.username, DP.profile.avatarHtml(r.username) + `<b>${DP.profile.nameHtml(r.username)}</b>`)} ${r.game === 'jackpot' ? 'remporte le <b class="pos">JACKPOT</b>' : 'gagne'} <span class="pos num">+${fmt(r.amount)}</span>${r.game === 'jackpot' ? '' : ' sur ' + (g ? g.name : esc(r.game))}</span>`; }).join('');
     }
     const crew = [['Olman', 'olman.jpg'], ['Tdam', 'tdam.png'], ['Nathan', 'nathan.jpg'], ['Tony', 'tony.jpg'], ['Sévaré', 'sevare.png'], ['Slymefire', 'slymefire.png'], ['AXB', 'axb.png'], ['Sauce Blanche', 'sauceblanche.png'],
       ['Billy', 'billy.jpg'], ['Carl', 'carl.jpg'], ['Linkay', 'linkay.jpg'], ['Lucasco', 'lucasco.jpg'], ['Petit Bonnin', 'petitbonnin.jpg'], ['Yohan', 'yohan.jpg'], ['Tddam', 'tddam.jpg']];
@@ -1232,10 +1232,10 @@
       box.innerHTML = `
         <div class="lb-podium">${[1, 0, 2].map((i) => podium[i] ? `<div class="lb-pod p${i + 1}">
           ${DP.profile.link(podium[i].name, DP.profile.avatarHtml(podium[i].name, 'avatar avatar--lg'))}<span class="lb-pod__rank">${i + 1}</span>
-          ${DP.profile.link(podium[i].name, `<b>${esc(podium[i].name)}</b>`)}${DP.guilds.tagHtml(podium[i].name, true)}<span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
+          ${DP.profile.link(podium[i].name, `<b>${DP.profile.nameHtml(podium[i].name)}</b>`)}${DP.guilds.tagHtml(podium[i].name, true)}<span class="num">${sortKey === 'level' ? 'Niveau ' + podium[i].level : fmt(+podium[i][sortKey] || 0)}</span><i></i></div>` : '<div></div>').join('')}</div>
         <div class="table-wrap"><table class="history lb-table"><thead><tr><th>#</th><th>Joueur</th>${COLS.map(([k, l]) => `<th class="num ${k === sortKey ? 'on' : ''}">${l}</th>`).join('')}</tr></thead>
         <tbody>${rows.map((r, i) => { const sm = DP.progress.rankOf(r.level || 1); return `<tr class="${r.name === auth.current() ? 'me' : ''}"><td class="num">${i + 1}</td>
-          <td>${DP.profile.link(r.name, `<span class="g">${DP.profile.avatarHtml(r.name)}${esc(r.name)}<small style="color:${sm.c}">${sm.name}</small></span>`)}${DP.guilds.tagHtml(r.name, true)}</td>
+          <td>${DP.profile.link(r.name, `<span class="g">${DP.profile.avatarHtml(r.name)}${DP.profile.nameHtml(r.name)}<small style="color:${sm.c}">${sm.name}</small></span>`)}${DP.guilds.tagHtml(r.name, true)}</td>
           <td class="num">${fmt(+r.balance || 0)}</td><td class="num">${r.level || 1}</td><td class="num">${fmt(+r.wagered || 0)}</td><td class="num">${r.biggest_win ? '+' + fmt(+r.biggest_win) : '—'}</td></tr>`; }).join('')}</tbody></table></div>`;
     };
     view.querySelector('.js-lsort').addEventListener('click', (e) => {

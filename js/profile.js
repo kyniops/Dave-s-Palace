@@ -5,7 +5,7 @@
   const { auth, stats, store, ui, sound, cards, inventory, fmt, esc, on, emit, IMG } = DP;
   const I = ui.icon;
   const key = (name) => 'dp_profile_' + name;
-  const BLANK = () => ({ avatar: null, banner: { type: 'preset', id: 'orbite' }, title: 'new', bio: '', showcase: [] });
+  const BLANK = () => ({ avatar: null, banner: { type: 'preset', id: 'orbite' }, title: 'new', bio: '', showcase: [], namefx: null });
   // les autres joueurs : profils récupérés du serveur (version en ligne)
   const others = () => (DP.cloud && DP.cloud.online && DP.cloud.profiles ? DP.cloud.profiles() : {});
   // un profil venu d'ailleurs peut être mal formé : on garde seulement des champs du bon type
@@ -16,6 +16,7 @@
     if (typeof o.title !== 'string') o.title = 'new';
     if (typeof o.bio !== 'string') o.bio = '';
     o.showcase = Array.isArray(o.showcase) ? o.showcase.filter((k) => typeof k === 'string').slice(0, 3) : [];
+    if (typeof o.namefx !== 'string') o.namefx = null;
     return o;
   };
   const get = (name = auth.current()) => {
@@ -45,6 +46,28 @@
     { id: 'diamond', name: 'Diamant', req: 'Rang Diamant (niveau 50)', ok: () => level() >= 50 },
     { id: 'jpz', name: 'Couronne JPZ', req: 'Rang JPZ (niveau 90)', ok: () => level() >= 90 }
   ];
+
+  /* ---------- Effets de pseudo : débloqués par les succès (le serveur vérifie aussi, voir supabase/namefx.sql) ---------- */
+  const NAME_FX = [
+    { id: 'sunset', name: 'Coucher de soleil', ach: 'wag1000' },
+    { id: 'ocean', name: 'Océan', ach: 'mult10' },
+    { id: 'violet', name: 'Néon violet', ach: 'lvl10' },
+    { id: 'mint', name: 'Menthe glacée', ach: 'day1' },
+    { id: 'fire', name: 'Flammes', ach: 'play1000' },
+    { id: 'gold', name: 'Or royal', ach: 'win5000' },
+    { id: 'glitch', name: 'Glitch', ach: 'shiny5' },
+    { id: 'rainbow', name: 'Arc-en-ciel', ach: 'wag100000' },
+    { id: 'galaxy', name: 'Galaxie', ach: 'mult100' },
+    { id: 'diamond', name: 'Diamant', ach: 'bal100000' },
+    { id: 'jpz', name: 'Couronne JPZ', ach: 'jackpot' }
+  ];
+  const fxHow = (f) => { const a = DP.progress && DP.progress.achievements().find((x) => x.id === f.ach); return a ? `${a.name} : ${a.desc}` : 'Succès à débloquer'; };
+  /** Pseudo avec son effet. Pour les autres joueurs, l'effet est déjà vérifié par le serveur. */
+  function nameHtml(name) {
+    const p = get(name);
+    const fx = NAME_FX.find((f) => f.id === p.namefx && (name !== auth.current() || hasAch(f.ach)));
+    return fx ? `<span class="nfx nfx--${fx.id}" data-t="${esc(name)}">${esc(name)}</span>` : esc(name);
+  }
 
   /* ---------- Titres : succès débloqués + rangs atteints ---------- */
   function titles() {
@@ -110,7 +133,7 @@
           <div class="pcard__body">
             <div class="pcard__avatar">${avatarHtml(pl.name, 'avatar avatar--xl')}<span class="pcard__lvl">${DP.progress.badge(info.level, 44)}</span></div>
             <div class="pcard__id">
-              <h1>${esc(pl.name)}</h1>
+              <h1>${nameHtml(pl.name)}</h1>
               <div class="pcard__tags">${DP.guilds ? DP.guilds.tagHtml(pl.name, true) : ''}${titleHtml(t)}<span class="prank">Rang ${info.rank.name} · niveau ${info.level}</span></div>
               ${p.bio ? `<p class="pcard__bio">${esc(p.bio)}</p>` : ''}
             </div>
@@ -180,7 +203,7 @@
           <div class="pcard__body">
             <div class="pcard__avatar">${avatarHtml(name, 'avatar avatar--xl')}<span class="pcard__lvl">${DP.progress.badge(sm.level, 44)}</span></div>
             <div class="pcard__id">
-              <h1>${esc(name)}</h1>
+              <h1>${nameHtml(name)}</h1>
               <div class="pcard__tags">${titleHtml(t)}<span class="prank">Rang ${sm.rank.name} · niveau ${sm.level}</span></div>
               ${p.bio ? `<p class="pcard__bio">${esc(p.bio)}</p>` : ''}
             </div>
@@ -205,7 +228,7 @@
 
     function editorBlock() {
       const p = get();
-      const tabs = [['avatar', 'Photo'], ['banner', 'Bannière'], ['title', 'Titre'], ['showcase', 'Vitrine'], ['bio', 'Bio']];
+      const tabs = [['avatar', 'Photo'], ['banner', 'Bannière'], ['title', 'Titre'], ['namefx', 'Pseudo'], ['showcase', 'Vitrine'], ['bio', 'Bio']];
       let body = '';
       if (tab === 'avatar') {
         body = `<div class="pedit__row">
@@ -223,6 +246,13 @@
         const list = titles();
         body = `<p class="muted">Chaque succès débloqué et chaque rang atteint te donne un titre. ${list.filter((t) => t.got).length} / ${list.length} débloqués.</p>
           <div class="ptitles">${list.map((t) => `<button type="button" class="ptitles__it ${p.title === t.id ? 'on' : ''}" data-tt="${t.id}" ${t.got ? '' : 'disabled'} title="${esc(t.how)}">${titleHtml(t)}<small>${t.got ? (p.title === t.id ? 'Équipé' : '') : I('lock', 'i--sm') + esc(t.how)}</small></button>`).join('')}</div>`;
+      } else if (tab === 'namefx') {
+        const me = auth.current();
+        body = `<p class="muted">Un effet sur ton pseudo, visible partout (classement, profil, gagnants, guildes…). Chaque effet se débloque avec un succès. ${NAME_FX.filter((f) => hasAch(f.ach)).length} / ${NAME_FX.length} débloqués.</p>
+          <div class="pnamefx">
+            <button type="button" class="pnamefx__it ${!p.namefx ? 'on' : ''}" data-nf=""><b>${esc(me)}</b><small>Classique</small></button>
+            ${NAME_FX.map((f) => { const ok = hasAch(f.ach); return `<button type="button" class="pnamefx__it ${p.namefx === f.id ? 'on' : ''}" data-nf="${f.id}" ${ok ? '' : 'disabled'} title="${esc(fxHow(f))}"><b><span class="nfx nfx--${f.id}" data-t="${esc(me)}">${esc(me)}</span></b><small>${ok ? esc(f.name) + (p.namefx === f.id ? ' · équipé' : '') : I('lock', 'i--sm') + esc(fxHow(f))}</small></button>`; }).join('')}
+          </div>`;
       } else if (tab === 'showcase') {
         body = `<p class="muted">Choisis jusqu’à 3 cartes à exposer. Clique à nouveau pour retirer.</p>
           <div class="ppick ppick--cards">${owned().map((x) => { const k = x.card.id + '|' + (x.shiny ? 1 : 0); const i = p.showcase.indexOf(k); return `<button type="button" class="ppick__card ${i >= 0 ? 'on' : ''}" data-sc="${k}">${cards.html(x.card, { compact: true, shiny: x.shiny })}${i >= 0 ? `<span class="ppick__n">${i + 1}</span>` : ''}</button>`; }).join('') || '<p class="muted">Aucune carte.</p>'}</div>`;
@@ -287,6 +317,8 @@
       if (bc) { set({ banner: { type: 'card', id: bc.dataset.bc } }); return changed(); }
       const tt = t.closest('[data-tt]');
       if (tt && !tt.disabled) { set({ title: tt.dataset.tt }); sound.play('win', { x: 2 }); repaintCard(); repaintEdit(); return; }
+      const nf = t.closest('[data-nf]');
+      if (nf && !nf.disabled) { set({ namefx: nf.dataset.nf || null }); sound.play('win', { x: 2 }); repaintCard(); repaintEdit(); return; }
       const sc = t.closest('[data-sc]');
       if (sc) {
         const p = get(), k = sc.dataset.sc, list = p.showcase.filter((x) => x !== k);
@@ -314,5 +346,5 @@
     return () => {};
   }
 
-  DP.profile = { get, avatarHtml, titleOf, titleHtml, render, renderPublic, link };
+  DP.profile = { get, avatarHtml, titleOf, titleHtml, render, renderPublic, link, nameHtml };
 })();

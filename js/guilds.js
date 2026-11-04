@@ -149,7 +149,7 @@
         <section class="gd-panel" data-reveal><header><h2>${I('users')}Membres</h2><span>${g.members.length} / ${g.max}</span></header>
           <div class="table-wrap"><table class="history gd-table gd-table--mem"><thead><tr><th>Joueur</th><th class="num">Niveau</th><th class="num">Fortune</th><th>Depuis</th>${isOwner ? '<th></th>' : ''}</tr></thead><tbody>
           ${g.members.map((m) => `<tr class="${m.id === me ? 'me' : ''}">
-            <td>${DP.profile.link(m.name, `<span class="g">${DP.profile.avatarHtml(m.name)}${esc(m.name)}</span>`)}${m.role === 'owner' ? `<span class="gd-role">${I('crown', 'i--sm')}Chef</span>` : ''}</td>
+            <td>${DP.profile.link(m.name, `<span class="g">${DP.profile.avatarHtml(m.name)}${DP.profile.nameHtml(m.name)}</span>`)}${m.role === 'owner' ? `<span class="gd-role">${I('crown', 'i--sm')}Chef</span>` : ''}</td>
             <td class="num">${+m.level || 1}</td><td class="num">${fmt(+m.fortune)}</td><td>${date(m.joined)}</td>
             ${isOwner ? `<td class="gd-act">${m.id === me ? '' : `<button type="button" class="btn btn--ghost btn--sm js-chief" data-u="${esc(m.id)}">Nommer chef</button><button type="button" class="btn btn--ghost btn--sm js-kick" data-u="${esc(m.id)}">Exclure</button>`}</td>` : ''}</tr>`).join('')}
           </tbody></table></div></section>`;
