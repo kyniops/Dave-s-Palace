@@ -361,7 +361,7 @@
       try {
         const isAv = up.dataset.k === 'avatar';
         const data = await shrink(up.files[0], isAv ? 256 : 1200, isAv ? 256 : 340);
-        if (set(isAv ? { avatar: { type: 'upload', data } } : { banner: { type: 'upload', data } })) { sound.play('coin'); ui.toast(isAv ? 'Photo de profil mise à jour' : 'Bannière mise à jour', 'win'); }
+        if (set(isAv ? { avatar: { type: 'upload', data } } : { banner: { type: 'upload', data } })) { sound.play('coin'); ui.toast(`${isAv ? 'Photo de profil envoyée' : 'Bannière envoyée'} : les autres joueurs la verront après validation par un admin.`, 'win', 4500); }
         repaintCard(); repaintEdit();
       } catch { ui.toast('Ce fichier n’est pas une image.', 'error'); sound.play('error'); }
     });

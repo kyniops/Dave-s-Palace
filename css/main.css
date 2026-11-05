@@ -2136,3 +2136,13 @@ body.abuse-party .game-card:hover { animation: abuse-wiggle .4s ease-in-out infi
   @keyframes abuse-bob { 0%, 100% { transform: translateX(-50%); } 50% { transform: translateX(-50%) translateY(-3px); } }
 }
 @media (prefers-reduced-motion: reduce) { .abuse-banner, .abuse-banner *, .abuse-fx * { animation: none !important; } }
+
+/* Panel admin : photos à valider */
+.dimg { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.dimg > p { grid-column: 1 / -1; margin: 0; }
+.dimg__item { margin: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.dimg__img { display: block; width: 100%; object-fit: cover; border-radius: 8px; background: #000; }
+.dimg__img--av { aspect-ratio: 1; }
+.dimg__img--bn { aspect-ratio: 1200 / 340; }
+.dimg__item figcaption { display: flex; flex-direction: column; gap: 4px; }
+.dimg__btns { display: flex; gap: 8px; margin-top: 4px; }

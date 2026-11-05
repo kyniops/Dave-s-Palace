@@ -548,6 +548,11 @@
       </section>
 
       <section class="dpanel" data-reveal>
+        <header><h2>Photos à valider</h2><span>Photos de profil et bannières importées : visibles par les autres seulement après validation</span></header>
+        <div class="dimg js-imgq"><p class="muted">Chargement…</p></div>
+      </section>
+
+      <section class="dpanel" data-reveal>
         <header><h2>Historique admin</h2><span>Toutes les actions faites en mode admin</span></header>
         <div class="table-wrap js-alog"><p class="muted">Chargement…</p></div>
       </section>` : ''}
@@ -634,6 +639,33 @@
       try { await DP.cloud.admin.clearFeed(); ui.toast('Fil des gains vidé', 'win'); } catch (err) { ui.toast(adminErr(err), 'error'); }
     });
     view.querySelector('.js-lock').addEventListener('click', async () => { setAdminUntil(0); if (online) { try { await DP.cloud.admin.relock(); } catch { /* ignore */ } } ctx.rerender(); });
+    // photos à valider
+    const imgBox = view.querySelector('.js-imgq');
+    const loadImgs = async () => {
+      if (!imgBox || !imgBox.isConnected) return;
+      const { data, error } = await DP.cloud.sb.rpc('admin_img_pending');
+      if (error) { imgBox.innerHTML = `<p class="muted">${esc(adminErr(error))}</p>`; return; }
+      const list = (data || []).filter((x) => /^data:image\/(png|jpe?g|webp|gif);base64,/.test(x.data || ''));
+      imgBox.innerHTML = list.length ? list.map((x) => `<figure class="dimg__item" data-u="${esc(x.user_id)}" data-k="${esc(x.kind)}">
+          <img src="${x.data}" alt="" class="dimg__img dimg__img--${x.kind === 'avatar' ? 'av' : 'bn'}">
+          <figcaption><b>${esc(x.username)}</b><small class="muted">${x.kind === 'avatar' ? 'Photo de profil' : 'Bannière'} · ${ago(new Date(x.at).getTime())}</small>
+          <span class="dimg__btns"><button class="btn btn--primary btn--sm js-imgok" type="button">Accepter</button><button class="btn btn--ghost btn--sm js-imgno" type="button">Refuser</button></span></figcaption>
+        </figure>`).join('') : '<p class="muted">Aucune photo en attente.</p>';
+    };
+    if (imgBox) {
+      loadImgs();
+      imgBox.addEventListener('click', async (e) => {
+        const b = e.target.closest('.js-imgok, .js-imgno');
+        if (!b) return;
+        const it = b.closest('.dimg__item');
+        b.disabled = true;
+        const ok = b.classList.contains('js-imgok');
+        const { error } = await DP.cloud.sb.rpc('admin_img_decide', { p_user: it.dataset.u, p_kind: it.dataset.k, p_ok: ok });
+        if (error) { b.disabled = false; return ui.toast(adminErr(error), 'error'); }
+        ui.toast(ok ? 'Photo acceptée' : 'Photo refusée', ok ? 'win' : 'info');
+        loadImgs();
+      });
+    }
     // temps restant avant que le mode admin se referme
     const timerEl = view.querySelector('.js-atimer');
     const tick = () => {
@@ -667,7 +699,7 @@
         paintAb();
       });
     }
-    const ACT = { abuse_start: 'Admin Abuse lancé', abuse_stop: 'Admin Abuse arrêté', set_save: 'Compte modifié', ban: 'Bannissement', unban: 'Débannissement', rename: 'Renommage', set_jackpot: 'Jackpot fixé', clear_feed: 'Fil des gains vidé',
+    const ACT = { img_ok: 'Photo acceptée', img_refuse: 'Photo refusée', abuse_start: 'Admin Abuse lancé', abuse_stop: 'Admin Abuse arrêté', set_save: 'Compte modifié', ban: 'Bannissement', unban: 'Débannissement', rename: 'Renommage', set_jackpot: 'Jackpot fixé', clear_feed: 'Fil des gains vidé',
       unlock: 'Mode admin ouvert', unlock_failed: 'Mauvais code', unlock_blocked: 'Bloqué (trop d’essais)', code_change: 'Code admin changé' };
     const detailOf = (x) => {
       const d = x.detail || {};
